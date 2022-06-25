@@ -1,53 +1,53 @@
 function    [painscores_out]  = RCS_redcap_painscores(varargin)
-%   [painscores_out]  = RCS_painScores_REDcap(varargin)
-%
-%  This will import redcap data for RCS patients using Prasad's
-%  RedCap API Token for daily surveys
-%
-% INPUT
-%   1. (OPTIONAL) PATIENTID
-%       such as 'RCS01', 'FLUCT', etc.
-%
-%   If omitted, will get ALL patients RCS01-05 (but not the FLUCTUATION data)
-%
-%   2. (OPTIONAL) PLOT pain scores ?
-%         if second value = 1, will plot pain scores, otherwise not
-%
-%
-%
-%  OUTPUT
-%
-%   1. PAINSCORES_OUT - a structure, with one field per patient per pain
-%   scores or streaming notes. Each field contains a table of values
-%
-%
-% If you want to get the pain fluctuation data, use 'FLUCT' as the
-% PATIENTID.
-%
-% EXAMPLE USAGE:
-%
-%  painscores = RCS_redcap_painscores()
-%
-%       OR
-%
-%  painscores = RCS_redcap_painscores('RCS01',1)
-%
-%       etc...
-%
-%
-%
-%  ***NOT yet working for FLUCT****
-%
-% Prasad Shirvalkar MD, PhD
-% Sept 16, 2021
-% UCSF
+%{
+  [painscores_out]  = RCS_painScores_REDcap(varargin)
 
+ This will import redcap data for RCS patients using Prasad's
+ RedCap API Token for daily surveys
+
+INPUT
+  1. (OPTIONAL) PATIENTID
+      such as 'RCS01', 'FLUCT', etc.
+
+  If omitted, will get ALL patients RCS01-05 (but not the FLUCTUATION data)
+
+  2. (OPTIONAL) PLOT pain scores ?
+        if second value = 1, will plot pain scores, otherwise not
+
+
+
+ OUTPUT
+
+  1. PAINSCORES_OUT - a structure, with one field per patient per pain
+  scores or streaming notes. Each field contains a table of values
+
+
+If you want to get the pain fluctuation data, use 'FLUCT' as the
+PATIENTID.
+
+EXAMPLE USAGE:
+
+ painscores = RCS_redcap_painscores()
+
+      OR
+
+ painscores = RCS_redcap_painscores('RCS01',1)
+
+      etc...
+
+
+
+ ***NOT yet working for FLUCT****
+
+Prasad Shirvalkar MD, PhD
+Sept 16, 2021
+UCSF
+%}
 tic
 
 
-%NOTE THAT For RCS02,04,05 patients, there is a NEW Pain reporting survey which
-%should be combined with the old at the end
-
+% NOTE THAT For RCS02,04,05 patients, there is a NEW Pain reporting survey
+% is concatenated at end
 
 % IMPLANT DATES
 % RCS01: 11/19/19
@@ -58,45 +58,45 @@ tic
 % RCS05L: 7/21/21
 % RCS05R: 7/21/21
 
+SERVICE            = 'https://redcap.ucsf.edu/api/';
 
 
+if nargin == 0
+    error('Token is required input')
 
-
-
-if nargin == 1
-    PATIENTIDlist = {varargin(1)};
+elseif nargin == 1
+    TOKEN = varargin{1};
+    pt_id_list = ...
+        {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new',...
+        'RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING',...
+        'RCS04_STREAMING_v2','RCS05_STREAMING'};
     plotval = 0;
-elseif nargin == 0
-    PATIENTIDlist ={'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING','RCS04_STREAMING_v2','RCS05_STREAMING'};
-    plotval = 0;
-elseif nargin == 2 && isempty(varargin{1}) && (varargin{2}==1)
-    PATIENTIDlist ={'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING','RCS04_STREAMING_v2','RCS05_STREAMING'};
-    plotval = 1;
-elseif nargin == 2 && ~isempty(varargin{1}) && (varargin{2}==1)
-    PATIENTIDlist = {varargin(1)};
-    plotval = 1;
+
+elseif nargin == 3
+    TOKEN      = varargin{1};
+    pt_id_list = varargin{2};
+    plotval    = varargin{3};   
+
 end
 
 
 
-
-for p = 1:numel(PATIENTIDlist)
+for p = 1:numel(pt_id_list)
     
     
-    PATIENTID = PATIENTIDlist{p};
+    pt_id = pt_id_list{p};
     
     clear redcap*
     
     % Uses REDCap API to fetch redcap pain data based off reportid and
     % patientID
-    disp(['Getting RCS redcap pain data from internets for ' PATIENTID '....'])
+    disp(['Getting RCS redcap pain data from internets for ' pt_id '....'])
     
-    SERVICE = 'https://redcap.ucsf.edu/api/';
-    %TOKEN = '581DB97DE99D44DAFD9833E058AE79AB';
-    TOKEN = '6968847584A81D488985F258537FE6BF'; %updated with tableau connection 3/3/21
+    
+
     % Report ID determines which report set to load from. (Daily, Weekly, or Monthly)
     
-    switch PATIENTID
+    switch pt_id
         % old arms
         case 'RCS01'
             PATIENT_ARM = 'rcs01_daily_arm_1';
@@ -147,7 +147,7 @@ for p = 1:numel(PATIENTIDlist)
             
         otherwise
             
-            fprintf('\n Data not found for %s !     ...      Continuing ...  \n\n',PATIENTID)
+            fprintf('\n Data not found for %s !     ...      Continuing ...  \n\n',pt_id)
             continue
             %
     end
@@ -173,7 +173,7 @@ for p = 1:numel(PATIENTIDlist)
     
    
     
-    if ~contains(PATIENTID,'STREAMING')
+    if ~contains(pt_id,'STREAMING')
         
         timestampvars = alltable.Properties.VariableNames( find(contains(alltable.Properties.VariableNames,'timestamp')) );
         
@@ -210,7 +210,7 @@ for p = 1:numel(PATIENTIDlist)
         redcap_painscores.unpleasantVAS = (clntable.(unp_field));
         
         
-        if contains(PATIENTID,'new')
+        if contains(pt_id,'new')
             worstnrs_field = varnames{contains(varnames,'worst_please_rate')};
             worstvas_field = varnames{contains(varnames,'please_rate_your_pain_inte') & ~contains(varnames,'worst')};
                         
@@ -249,13 +249,13 @@ for p = 1:numel(PATIENTIDlist)
 
         
         % make 0 values NaN for RCS01 because of unreliable reporting
-        if strcmp(PATIENTID,'RCS01')
+        if strcmp(pt_id,'RCS01')
             redcap_painscores.MPQsum(redcap_painscores.MPQsum == 0) = NaN;
         else
             redcap_painscores.MPQsum = redcap_painscores.MPQsum;
         end
         
-        painscores_out.(PATIENTID) = redcap_painscores;
+        painscores_out.(pt_id) = redcap_painscores;
         
 
         
@@ -286,7 +286,7 @@ for p = 1:numel(PATIENTIDlist)
         redcap_streaming.stimON = clntable.(stimon_field);
         redcap_streaming.stimprog = clntable.(stimprog_field);
         
-        painscores_out.(PATIENTID) = redcap_streaming;
+        painscores_out.(pt_id) = redcap_streaming;
        
         
     end
@@ -299,10 +299,6 @@ for n = 1:numel(holdfieldnames)
 end
 
 
-% Combine the OLD ARMS with NEW ARMS for Pain score reports for each
-% patient
-if nargin == 0  || isempty(varargin{1})
-    
 oldscores = painscores_out;
 clear painscores_out
  
@@ -316,11 +312,11 @@ newscores.RCS02_STREAMING = oldscores.RCS02_STREAMING;
 newscores.RCS04_STREAMING = [oldscores.RCS04_STREAMING; oldscores.RCS04_STREAMING_v2];
 newscores.RCS05_STREAMING = oldscores.RCS05_STREAMING;
 
-end
-
 
 % OUTPUT
 painscores_out = newscores;
+
+
 
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -368,9 +364,6 @@ painscores_out = newscores;
             
             
         end
-
-
-
 
 
 
