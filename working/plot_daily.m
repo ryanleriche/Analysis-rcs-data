@@ -65,18 +65,18 @@ function plot_daily(RCSXX, epoch, varargin)
 
         if strcmp(epoch, 'all-time') == 1
         
-            plot(t, movmean([MPQ_total,MPQ_aff, MPQ_som], 5),...
+            plot(t, movmean([MPQ_som, MPQ_aff, MPQ_total, ], 5),...
                 'LineWidth', 2);
             
         elseif strcmp(epoch, 'PreviousDays') == 1
 
-            plot(t, [MPQ_total,MPQ_aff, MPQ_som], '.', 'MarkerSize',15);
+            plot(t, [MPQ_som, MPQ_aff, MPQ_total, ], '.', 'MarkerSize',15);
             
         end
         
         ylabel('McGill Pain Questionaire');     ylim([0,45])
         
-        legend({'MPQ: Total (0-45)',  'MPQ: Somatic (0-36)', 'MPQ: Affective (0-9)'}, ...
+        legend({'MPQ: Somatic (0-33)', 'MPQ: Affective (0-12)', 'MPQ: Total (0-45)'}, ...
             'Location','northeastoutside');     
         format_plot();
 

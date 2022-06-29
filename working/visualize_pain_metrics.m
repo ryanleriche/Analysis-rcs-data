@@ -80,49 +80,65 @@ Statistical Approach
         TBD
 
 %}
+%% user-inputs
+% the patient's ID and specific side as outputted by RCS
+PATIENTIDside         = 'RCS04Lt';
+
+% where the RCS files are outputted (as saved on a Portable SSD)
+rootdir               = '/Volumes/RBL_X5/';
+
+% where the 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
+github_dir            = '/Users/Leriche/Github/';
+
+% application programming interface (API) token which is essentially a
+% password to access REDcap remotely, and is unique per researcher per
+% study (e.g., Ryan has a unique token for the RCS and PCS studies)
+
+API_token             = '95FDE91411C10BF91FD77328169F7E1B';
 
 
-% rootdir             = '/Volumes/PrasadX5/' ;
+%% pulls/organizes arms from REDcap (go into fxn to add new arms)
+cd(github_dir);         addpath(genpath(github_dir));
 
-github_dir          = '/Users/Leriche/Github/';
-
-% patientroot_dir     = fullfile(rootdir,char(regexp(PATIENTIDside,...
-%                         '\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
-% 
-% scbs_dir = fullfile(patientroot_dir,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
-
-
-cd(github_dir);         addpath(genpath(github_dir))
-
-
-API_token = '95FDE91411C10BF91FD77328169F7E1B';
-
-% pulls/organizes arms from REDcap (go into fxn to add new arms)
 pt_pain            = RCS_redcap_painscores(API_token);
 
+%% (RBL 06/28/22--in progress)
 % import RCS files
+patientroot_dir = fullfile(rootdir,char(regexp(PATIENTIDside,...
+                        '\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
+
+scbs_dir        = fullfile(patientroot_dir,...
+                    '/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
+
+
+
+[RCSdatabase_out, badsessions] = ...
+    makeDataBaseRCSdata(scbs_dir,'RCS04','ignoreold');
 
 
 
 %% plot daily metrics
+
 %{
 Specify, 'all-time' for a 5 nearest report sliding average of all daily
 reported pain metrics. Alternatively, to see the last n days of pain metrics
 specify 'PreviousDays' followed by n days (without the sliding average).
-
-06/25/22 RBL
-Add overlay of stim, days on patch, contacts, etc., as optional arguements 
-(see introduction comment)
-
 %}
 
-plot_daily(pt_pain.RCS04, 'all-time');
+% Add overlay of stim, days on patch, contacts, etc., as optional arguements 
+% (see introduction comment)
 
+plot_daily(pt_pain.RCS04, 'all-time');
 plot_daily(pt_pain.RCS04,'PreviousDays',30);
 
-plot_daily(pt_pain.RCS04,'PreviousDays', 14);
+
+plot_daily(pt_pain.RCS04,'PreviousDays', 10);
 
 
+plot_daily(pt_pain.RCS05, 'all-time');
 
-%% 
+plot_daily(pt_pain.RCS02, 'all-time');
+plot_daily(pt_pain.RCS02, 'PreviousDays',10);
+
+%%
 
