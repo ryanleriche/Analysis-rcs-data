@@ -1,4 +1,4 @@
-function plot_daily(RCSXX, epoch, varargin)
+function plot_timeline(RCSXX, epoch, varargin)
 
     if strcmp(epoch, 'all-time') == 1
 

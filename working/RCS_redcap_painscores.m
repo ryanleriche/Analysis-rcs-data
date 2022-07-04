@@ -90,7 +90,7 @@ for p = 1:numel(pt_id_list)
     
     % Uses REDCap API to fetch redcap pain data based off reportid and
     % patientID
-    disp(['Getting RCS redcap pain data from internets for ' pt_id '....'])
+    disp(['Pulling REDcap data for' pt_id '....'])
     
     
 
@@ -154,8 +154,7 @@ for p = 1:numel(pt_id_list)
     
     
     disp('************************');
-    disp('Download a file from a subject record');
-    disp('************************');
+    
     data = webwrite(...
         SERVICE,...
         'token', TOKEN, ...
