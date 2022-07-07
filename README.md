@@ -11,7 +11,6 @@ extraction of REDCAP survey data and transformation of data into a data format f
 Note: This research is funded by UH# HEAL Grant; IRB Study: G190160.
 
 # Overview of Variables
-
 **Independent Variables** 
 - **Stimulation programs** 
    - A, B, C, vs D
@@ -38,9 +37,11 @@ Note: This research is funded by UH# HEAL Grant; IRB Study: G190160.
 - **Monthly**
    - AE reporting, C-SSRS, Beck Depression Inventory (BDI), Beck Anxiety Inventory (BAI), Rand 36 Item SF Health Survey Instrument, IMS-25, Promis SfV11 Global Health, Clinical Global Impressions Scale
 
-Note: Assuming sufficient (>10) number of pain metrics (see Shirvalkar et al., 2020 where min of 10 trials is used to justify the duration of Stage 0 which allows generalizability of the streaming sessions indexed in this script to 
+Notes: 
+- Assuming sufficient (>10) number of pain metrics (see Shirvalkar et al., 2020 where min of 10 trials is used to justify the duration of Stage 0 which allows generalizability of the streaming sessions indexed in this script to 
 subsequent neurophy analysis.
-- If this assumption fails, reconsider grouping.
+   - If this assumption fails, reconsider grouping.
+- RCS04's pain metrics will be used for the development of this script as their data are of current clinical interest, but this script will generalize.
 
 # Approaches 
 **Visualization Approach**
