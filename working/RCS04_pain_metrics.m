@@ -60,7 +60,11 @@ plot_timeline(pt_pain.RCS04, 'AllTime');
 
 plot_hist(pt_pain.RCS04,'AllTime');
 
+prop_painVAS_50 = length(pt_pain.RCS04.painVAS(find(pt_pain.RCS04.painVAS == 50)))...
+    ./length(find(~isnan(pt_pain.RCS04.painVAS)));
 
+
+%% RBL In-progress
 % pain metric A "versus" pain metric B --> see how metrics visually covary
 
 plot_versus(pt_pain.RCS04, 'AllTime');
