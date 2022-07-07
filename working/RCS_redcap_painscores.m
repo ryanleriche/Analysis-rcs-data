@@ -69,7 +69,7 @@ elseif nargin == 1
     pt_id_list = ...
         {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new',...
         'RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING',...
-        'RCS04_STREAMING_v2','RCS05_STREAMING'};
+        'RCS04_STREAMING_v2','RCS05_STREAMING', 'RCS_Weekly', 'RCS_Monthly'};
     plotval = 0;
 
 elseif nargin == 3
@@ -90,7 +90,7 @@ for p = 1:numel(pt_id_list)
     
     % Uses REDCap API to fetch redcap pain data based off reportid and
     % patientID
-    disp(['Pulling REDcap data for' pt_id '....'])
+    disp(['Pulling REDcap data for ' pt_id '....'])
     
     
 
@@ -142,7 +142,14 @@ for p = 1:numel(pt_id_list)
         case 'FLUCT'
             PATIENT_ARM = 'dbs_and_nondbs_pat_arm_23';
             reportid = '84060';
+
+        case 'RCS_Weekly'
             
+            reportid = '135968';
+
+        case 'RCS_Monthly'
+
+            reportid = '135969';
             
             
         otherwise
@@ -172,7 +179,7 @@ for p = 1:numel(pt_id_list)
     
    
     
-    if ~contains(pt_id,'STREAMING')
+    if ~contains(pt_id, {'STREAMING', 'Weekly', 'Monthly'}) 
         
         timestampvars = alltable.Properties.VariableNames( find(contains(alltable.Properties.VariableNames,'timestamp')) );
         
@@ -258,7 +265,7 @@ for p = 1:numel(pt_id_list)
         
 
         
-    else
+    elseif ~contains(pt_id, {'Weekly', 'Monthly'}) 
         %FOR STREAMING NOTES ARMS
         
         timevarNAME = alltable.Properties.VariableNames(    find(contains(alltable.Properties.VariableNames,'timestamp'))     );

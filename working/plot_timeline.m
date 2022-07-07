@@ -1,6 +1,6 @@
 function plot_timeline(RCSXX, epoch, varargin)
 
-    if strcmp(epoch, 'all-time') == 1
+    if strcmp(epoch, 'AllTime') == 1
 
         figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
 
@@ -15,13 +15,21 @@ function plot_timeline(RCSXX, epoch, varargin)
         [~, i_date] = min(abs(RCSXX.time - (datetime('now') - days(n_days))));
 
         date_range         = [RCSXX.time(i_date), RCSXX.time(end)];   
+
+
+    elseif strcmp(epoch, 'DateRange') == 1
+
+        
+
+
+
     end
     
     t = RCSXX.time;
 
     subplot(311)
 
-        if strcmp(epoch, 'all-time') == 1
+        if strcmp(epoch, 'AllTime') == 1
         
             plot(t, movmean([RCSXX.mayoNRS,RCSXX.worstNRS], 5),...
                 'LineWidth', 2);
@@ -40,7 +48,7 @@ function plot_timeline(RCSXX, epoch, varargin)
     
     subplot(312)
 
-        if strcmp(epoch, 'all-time') == 1
+        if strcmp(epoch, 'AllTime') == 1
         
             plot(t, movmean([RCSXX.painVAS,RCSXX.unpleasantVAS,RCSXX.worstVAS], 5),...
                 'LineWidth', 2);
@@ -63,7 +71,7 @@ function plot_timeline(RCSXX, epoch, varargin)
         MPQ_aff       = sum([RCSXX.MPQsickening, RCSXX.MPQfearful, RCSXX.MPQcruel],2,'omitnan');
         MPQ_som       = MPQ_total - MPQ_aff;
 
-        if strcmp(epoch, 'all-time') == 1
+        if strcmp(epoch, 'AllTime') == 1
         
             plot(t, movmean([MPQ_som, MPQ_aff, MPQ_total, ], 5),...
                 'LineWidth', 2);
