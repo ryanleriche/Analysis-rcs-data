@@ -1,6 +1,6 @@
 function plot_hist(RCSXX, epoch, varargin)
 
-    if strcmp(epoch, 'all-time') == 1
+    if strcmp(epoch, 'AllTime') == 1
 
         figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
 
@@ -21,7 +21,7 @@ function plot_hist(RCSXX, epoch, varargin)
 
     ds  =    datestr(date_range,'dd-mmm-yyyy');
 
-    sgtitle([ds(1,:) ' to ' ds(2,:)]);
+    sgtitle([ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
     
     subplot(3,2,[1,2])
 
@@ -69,7 +69,7 @@ function plot_hist(RCSXX, epoch, varargin)
 
     function format_plot()  
 
-        set(gca,'defaultAxesFontSize',12, 'TickLength', [0 0]); 
+        set(gca,'fontSize',16, 'TickLength', [0 0]); 
         grid on;    grid MINOR;      box off
         
     end

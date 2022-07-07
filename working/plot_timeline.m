@@ -25,6 +25,12 @@ function plot_timeline(RCSXX, epoch, varargin)
 
     end
     
+    ds  =    datestr(date_range,'dd-mmm-yyyy');
+
+    sgtitle([ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
+    
+
+
     t = RCSXX.time;
 
     subplot(311)
@@ -90,7 +96,7 @@ function plot_timeline(RCSXX, epoch, varargin)
 
     function format_plot()  
 
-        set(gca,'defaultAxesFontSize',12, 'xlim', date_range , 'TickLength', [0 0]); 
+        set(gca,'fontSize',16, 'xlim', date_range , 'TickLength', [0 0]); 
         grid on;    grid MINOR;    legend boxoff;   box off
         
     end
