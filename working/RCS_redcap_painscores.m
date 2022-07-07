@@ -236,7 +236,7 @@ for p = 1:numel(pt_id_list)
         
         mpqhold = table2array(clntable(:,mpq_start:mpq_end));
         
-        redcap_painscores.MPQsum =  nansum((mpqhold),2);
+        redcap_painscores.MPQsum = tsnansum((mpqhold),2);
         redcap_painscores.MPQthrobbing = (clntable.throbbing);
         redcap_painscores.MPQshooting = (clntable.shooting);
         redcap_painscores.MPQstabbing = (clntable.stabbing);
