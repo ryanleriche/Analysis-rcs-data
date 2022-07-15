@@ -1,4 +1,4 @@
-function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside,varargin)
+function [RCSdatabase_out, varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside,varargin)
 % function database_out = makeDataBaseRCSdata(dirname)
 %
 %
@@ -369,7 +369,7 @@ RCSdatabase_out = table2timetable(expanded_database); % rename output for clarit
 % IF the old database existed, recombine with new database and sort it
 % but first fix cell/ mat class issues
 
-if ~isempty(old_database)
+if exist(old_database,1)
     disp('combining with old database...');
 
     %make cells to mat for some fields
@@ -439,6 +439,7 @@ end
 
 % Rename file to include patient ID
 writetimetable(RCSdatabase_out,fullfile(dirname,[PtIDside '_database.csv']))
+
 save(fullfile(dirname,[PtIDside '_database.mat']),'RCSdatabase_out','badsessions')
 fprintf('csv and mat of database saved as %s to %s \n',[PtIDside '_database.mat'],dirname);
 

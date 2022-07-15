@@ -1,13 +1,12 @@
 %% user-inputs
 % the patient's ID and specific side as outputted by RCS
-PATIENTIDside         = 'RCS04Lt';
+PATIENTIDside         = 'RCS04L';
 
-% where the RCS files are outputted (as saved on a Portable SSD)
-rootdir               = '/Volumes/RBL_X5/';
+% where RCS files are saved from PIA server
+rootdir               = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/raw';
 
-% where the 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
+% where 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
 github_dir            = '/Users/Leriche/Github/';
-
 
 % application programming interface (API) token which is essentially a
 % password to access REDcap remotely, and is unique per researcher per
@@ -16,57 +15,171 @@ github_dir            = '/Users/Leriche/Github/';
 API_token             = '95FDE91411C10BF91FD77328169F7E1B';
 
 
-%% pulls/organizes arms from REDcap (go into fxn to add new arms)
+% pulls/organizes arms from REDcap (go into fxn to add new arms)
 cd(github_dir);         addpath(genpath(github_dir));
 
 pt_pain                 = RCS_redcap_painscores(API_token);
 
-%% (RBL 06/28/22--in progress)
-% import RCS files
+%% import RCS files
 patientroot_dir = fullfile(rootdir,char(regexp(PATIENTIDside,...
                         '\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
 
-scbs_dir        = fullfile(patientroot_dir,...
-                    '/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
-
-
+% scbs_dir        = [patientroot_dir,...
+%                     '/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside];
 
 [RCSdatabase_out, badsessions] = ...
-    makeDataBaseRCSdata(scbs_dir,'RCS04','ignoreold');
-
-
+    makeDataBaseRCSdata(patientroot_dir, PATIENTIDside, 'ignoreold');
 
 
 %% RCS04 plot daily metrics
 
-%{
-Specify, 'AllTime' for a 5 nearest report sliding average of all daily
-reported pain metrics. Alternatively, to see the last n days of pain metrics
-specify 'PreviousDays' followed by n days (without the sliding average).
-%}
-
-%{ 
-Add overlay of stim, days on patch, contacts, etc., as optional arguements
-
-(see introduction comment)
-% 07/02/22 RBL: consider adding 'cfg' input w/ stim specifications, and pt
-% ID as title
-
-%}
-
-plot_timeline(pt_pain.RCS04, 'AllTime');
-
-% visually inspect to see distributions of the various pain metrics
-
-plot_hist(pt_pain.RCS04,'AllTime');
-
-prop_painVAS_50 = length(pt_pain.RCS04.painVAS(find(pt_pain.RCS04.painVAS == 50)))...
-    ./length(find(~isnan(pt_pain.RCS04.painVAS)));
+% Specify, cfg before calling functions--see below for examples.
+cfg             = [];
+cfg.pt_id       = 'RCS04';
+cfg.dates       = 'AllTime';
+cfg.stage_dates = {'13-May-2021', '12-Jul-2021'}; % starts at Stage 1
+   
+    plot_timeline(cfg, pt_pain.RCS04);
 
 
-%% RBL In-progress
+cfg.dates       = 'DateRange';
+cfg.date_range  = {'01-Jun-2022'; '30-Jun-2022'};
+
+    plot_timeline(cfg, pt_pain.RCS04) ;
+
+
+cfg.dates       = 'DateRange';
+cfg.date_range  = {'13-Jul-2022'; '16-Jul-2022'};
+    plot_timeline(cfg, pt_pain.RCS04) ;
+
+
+% visually inspect pain metric distributions
+cfg             = [];
+cfg.pt_id       = 'RCS04';
+cfg.dates       = 'AllTime';
+
+    plot_hist(cfg, pt_pain.RCS04);
+
+
+% SEE Table for easy access to common summary statistics
+RCS04_sum_stats      = calc_sum_stats(pt_pain.RCS04);
+
+%%
 % pain metric A "versus" pain metric B --> see how metrics visually covary
+cfg             = [];
+cfg.pt_id       = 'RCS04';
+cfg.dates       = 'AllTime';
 
-plot_versus(pt_pain.RCS04, 'AllTime');
+% go into this fxn to change the pain metrics on each axis
+
+% RBL reccomends leaving NRS as the colorbar though, as it is a categorical
+% metric--visually creating planes which muddles visualization
+    plot_versus(cfg, pt_pain.RCS04);
+
+
+
+%% RCS04 Stim Plan
+
+% 07/13/22; Home Programs
+%{
+LCaud
+    open-loop
+        A:     9+11-    1 mA     125 Hz     300 mcs     60s/20s
+        B:     C+10-    1 mA     125 Hz     300 mcs     60s/20s  
+        C:     C+9-     1 mA     125 Hz     300 mcs     60s/20s
+
+    closed-loop
+        D:     C+10-    0-1 mA   100 Hz     300 mcs     aDBS
+
+RThal
+    open-loop
+        A:     9+11-    1 mA     150 Hz     200 mcs     60s/20s
+        B:     C+11-    3 mA     100 Hz     200 mcs     60s/20s
+
+    closed-loop
+        D:     C+10-    0-1 mA   100 Hz     300 mcs     aDBS
+
+RACC
+    open-loop
+        C:     0+3-     2 mA     100 Hz     300 mcs     60s/20s
+
+%}
+
+% Stim Comparisons
+%{
+
+07/15/22 - 07/29/22
+
+    RACC
+        open-loop
+            C:     0+3-     2 mA     100 Hz     300 mcs     60s/20s
+
+    *w/ option to decrease amplitude
+
+    If lowering the amplitude 0.1-0.5 mA does not help after 5-6 hours
+    -->
+        Lower amplitude further (min of 0.5 mA)?
+        Keep waiting?
+        Turn off stim? 
+
+07/20/22, Stim Sweep
+    
+    IF pain was controlled at given amplitude (given expected compliance of
+    2 mA max w/ option to decrease amplitude).
+    -->
+        sweep
+        [80, 0, 90, 0, 100, 0, 110, 0, 100, 0, 90, 100, 0, 110]
+
+    Else
+    -->
+        sweep
+        [0, 2, 0, 3, 0, 2.5, 0, 2.75, 0, 3, 0, 2.5, 0, 2, 0, 2.75]
+
+
+    What other sweep should we try?
+        IJ mentioned
+
+
+
+
+
+
+
+
+
+___________________________________________________________________________
+bilateral v. unilateral stim
+
+cumalative effect of stim
+
+    regular stim-sweeps
+
+    total energy delieverd as fxn of pain
+
+%}
+
+% Control Comparisons
+%{
+
+%}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

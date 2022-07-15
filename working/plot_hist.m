@@ -1,46 +1,72 @@
-function plot_hist(RCSXX, epoch, varargin)
+function plot_hist(cfg, RCSXX)
 
-    if strcmp(epoch, 'AllTime') == 1
+    figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
 
-        figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
-
-        date_range           = [RCSXX.time(1), RCSXX.time(end)];
-
-        
-
-    elseif strcmp(epoch, 'PreviousDays') == 1
-
-        n_days             = varargin{1};
-
-        figure('Units', 'Inches', 'Position', [0, 0, 10, 7.5])
-        
-        [~, i_date] = min(abs(RCSXX.time - (datetime('now') - days(n_days))));
-
-        date_range         = [RCSXX.time(i_date), RCSXX.time(end)];   
-    end
+    [RCSXX, date_range] = date_parser(cfg, RCSXX);
 
     ds  =    datestr(date_range,'dd-mmm-yyyy');
+    sgtitle([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
 
-    sgtitle([ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
+    RCSXX_sum = calc_sum_stats(RCSXX);
+
     
     subplot(3,2,[1,2])
 
         histogram(RCSXX.mayoNRS);    hold on;   histogram(RCSXX.worstNRS);
 
-         ylabel('Numeric Rating Scale');
+         ylabel('Numeric Rating Scale'); xlim([0,10])
              
-         legend({'NRS: Intensity', 'NRS: Worst Intensity'}, 'Location','northeastoutside'); 
+         legend({...
+             ['NRS Intensity (',...
+               num2str(RCSXX_sum.mayoNRS(4)),...
+               ' ',char(177),' ', ...
+               num2str(RCSXX_sum.mayoNRS(5)),')']...
+               ...
+               ['NRS Unpleasantness (', ...
+               num2str(RCSXX_sum.worstNRS(4)),...
+               ' ',char(177),' ', ...
+               num2str(RCSXX_sum.worstNRS(5)),')']
+              }, ...
+             'Location','northeastoutside');
+
 
          format_plot(); legend boxoff; 
             
     subplot(3,2,[3,4])
 
-        histogram(RCSXX.painVAS,'BinWidth', 2);    hold on;   histogram(RCSXX.unpleasantVAS,'BinWidth', 2);
+        histogram(RCSXX.painVAS, [0:3:48, 49:51, 52:3:100]);    
+        hold on;   
+        histogram(RCSXX.unpleasantVAS, [0:3:48, 49:51, 52:3:100]);
 
-        ylabel('Visual Analog Scale');       
-        legend({'VAS: Intensity', 'VAS: Unpleasantness'}, ...
-             'Location','northeastoutside'); 
+        ylabel('Visual Analog Scale');       xlim([0,100])
 
+        legend({...
+               ['VAS Intensity (',...
+               num2str(RCSXX_sum.painVAS(4)),...
+               ' ',char(177),' ', ...
+               num2str(RCSXX_sum.painVAS(5)),')']...
+               ...
+               ['VAS Unpleasantness (', ...
+               num2str(RCSXX_sum.unpleasantVAS(4)),...
+               ' ',char(177),' ', ...
+               num2str(RCSXX_sum.unpleasantVAS(5)),')'] ...
+               }, ...
+               'Location','northeastoutside'); 
+
+        prop_50_painVAS       = sum(RCSXX.painVAS == 50)./...
+                                length(...
+                                find(~isnan(RCSXX.painVAS)));
+
+        prop_50_unpleasantVAS = sum(RCSXX.unpleasantVAS == 50)./...
+                                length(...
+                                find(~isnan(RCSXX.unpleasantVAS)));
+
+        text(55, height(RCSXX)/4,...
+            ['prob(50) Intensity VAS : ', num2str(prop_50_painVAS),...
+            newline, 'prob(50) Unpleasant VAS: ', ...
+            num2str(prop_50_unpleasantVAS)],...
+            'FontSize', 14);
+  
         format_plot(); legend boxoff; 
 
     subplot(325)
@@ -55,12 +81,26 @@ function plot_hist(RCSXX, epoch, varargin)
 
         ylabel('MPQ: Somatic (0-33)'); 
 
+        text(4, height(RCSXX)/8,...
+               [num2str(mean(MPQ_som)),...
+               ' ',char(177),' ', ...
+               num2str(std(MPQ_som)),...
+               ],...
+               'Fontsize',14);
+
         format_plot;
         
      subplot(326)
-        histogram(nonzeros(MPQ_aff));    xlim([0 45])
+        histogram(MPQ_aff);    xlim([0 45])
         
         ylabel('MPQ: Affective (0-12)','FontWeight', 'bold');
+
+             text(4, height(RCSXX)/8,...
+               [num2str(mean(MPQ_aff)),...
+               ' ',char(177),' ', ...
+               num2str(std(MPQ_aff)),...
+               ],...
+               'Fontsize',14);
 
         format_plot();
 
@@ -69,7 +109,7 @@ function plot_hist(RCSXX, epoch, varargin)
 
     function format_plot()  
 
-        set(gca,'fontSize',16, 'TickLength', [0 0]); 
+        set(gca,'fontSize',14, 'TickLength', [0 0]); 
         grid on;    grid MINOR;      box off
         
     end
