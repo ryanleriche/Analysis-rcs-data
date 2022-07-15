@@ -1,4 +1,4 @@
-# Analysis-rcs-data
+# Pain Metric Analysis
 Matlab functions and scripts to extract and visualize pain and behavioral REDCAP survey data collected alongside Summit RC+S neural data. Initial processing includes
 extraction of REDCAP survey data and transformation of data into a data format for analysis, plotting, and visualization.
 
@@ -62,7 +62,8 @@ subsequent neurophy analysis.
 | Functions to edit/create  | Person Working on it |
 | ------------- | ------------- |
 | Color plot background according to stage| |
+| plot background according to stim group| |
 | Select a time window for plot|  |
-| Correlation analyses||
+| Correlation analyses| |
 | | |
 
