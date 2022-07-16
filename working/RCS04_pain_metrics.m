@@ -60,9 +60,10 @@ cfg.dates       = 'AllTime';
 
     plot_hist(cfg, pt_pain.RCS04);
 
-
+cfg            = [];
+cfg.dates      = 'AllTime';
 % SEE Table for easy access to common summary statistics
-RCS04_sum_stats      = calc_sum_stats(pt_pain.RCS04);
+RCS04_sum_stats      = calc_sum_stats(cfg, pt_pain.RCS04);
 
 %%
 % pain metric A "versus" pain metric B --> see how metrics visually covary
@@ -76,6 +77,13 @@ cfg.dates       = 'AllTime';
 % metric--visually creating planes which muddles visualization
     plot_versus(cfg, pt_pain.RCS04);
 
+%%
+
+cfg             = [];
+cfg.pt_id       = 'RCS05';
+cfg.dates       = 'AllTime';
+
+   plot_versus(cfg, pt_pain.RCS05);
 
 
 %% RCS04 Stim Plan

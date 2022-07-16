@@ -70,11 +70,14 @@ function plot_timeline(cfg, RCSXX)
 
         if strcmp(cfg.dates, 'AllTime') == 1
         
-            plot(RCSXX.time, movmean([MPQ_total, MPQ_som, MPQ_aff], 5),'LineWidth', 2);
+            plot(RCSXX.time, movmean(MPQ_total, 5),'LineWidth', 4.5);
+            hold on
+            plot(RCSXX.time, movmean([MPQ_som, MPQ_aff], 5),'LineWidth', 2);
 
-            hold on; set(gca,'ColorOrderIndex',1);
+             set(gca,'ColorOrderIndex',1);
 
-            plot(RCSXX.time, [MPQ_total, MPQ_som, MPQ_aff], '.', 'MarkerSize',5);
+            plot(RCSXX.time, MPQ_total, '.', 'MarkerSize',9);
+            plot(RCSXX.time, [MPQ_som, MPQ_aff], '.', 'MarkerSize',5);
 
         else
      
