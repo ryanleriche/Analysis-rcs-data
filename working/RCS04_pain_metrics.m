@@ -20,26 +20,78 @@ cd(github_dir);         addpath(genpath(github_dir));
 
 pt_pain                 = RCS_redcap_painscores(API_token);
 
-%% import RCS files
+
+%% align RCSdatabase stim parameters to REDcap pain metrics
+
+% RCS04L
+% import RCS files
 patientroot_dir = fullfile(rootdir,char(regexp(PATIENTIDside,...
                         '\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
 
-% scbs_dir        = [patientroot_dir,...
-%                     '/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside];
+[RCS04L_database, RCS04L_badsessions] = ...
+    makeDataBaseRCSdata(patientroot_dir, PATIENTIDside);
 
-[RCSdatabase_out, badsessions] = ...
-    makeDataBaseRCSdata(patientroot_dir, PATIENTIDside, 'ignoreold');
+% parse through and split stim parameters into their own columns
+for i_sess = 1 : height(RCS04L_database)
+
+    if length(RCS04L_database.stimparams{i_sess}) <= 1
+
+        i_para = strsplit(char(RCS04L_database.stimparams{i_sess}),',');
+    
+        if ~isempty(i_para{1})
+    
+            RCS04L_database.contacts{i_sess}    = i_para{1};
+            RCS04L_database.amp{i_sess}         = str2double(i_para{2}(2:end -2));
+            RCS04L_database.PW{i_sess}          = str2double(i_para{3}(2:end -2));
+            RCS04L_database.freq{i_sess}        = str2double(i_para{4}(2:end -2));
+    
+        else % without stim parameters 
+            RCS04L_database.contacts{i_sess}    = '';
+            RCS04L_database.amp{i_sess}         = NaN;
+            RCS04L_database.PW{i_sess}          = NaN;
+            RCS04L_database.freq{i_sess}        = NaN;
+
+        end
+
+    else
+        RCS04L_database.contacts{i_sess}    = 'stim sweep';
+        RCS04L_database.amp{i_sess}         = 'stim sweep';
+        RCS04L_database.PW{i_sess}          = 'stim sweep';
+        RCS04L_database.freq{i_sess}        = 'stim sweep';
+    end
+end
+
+
+
+
+
+
+nearest_beh_to_sess = interp1(pt_pain.RCS04.time, pt_pain.RCS04.time,...
+        RCS04L_database.time, 'nearest');
+
+i_wn_30_min = le(abs(nearest_beh_to_sess - RCS04L_database.time),...
+                 '00:30:00');
+
+
+RCSXX_paintable = RCS04L_database(i_wn_30_min,:);
+
+
+
 
 
 %% RCS04 plot daily metrics
 
 % Specify, cfg before calling functions--see below for examples.
-cfg             = [];
-cfg.pt_id       = 'RCS04';
-cfg.dates       = 'AllTime';
-cfg.stage_dates = {'13-May-2021', '12-Jul-2021'}; % starts at Stage 1
+cfg                     = [];
+cfg.pt_id               = 'RCS04';
+
+cfg.dates               = 'AllTime';
+cfg.stage_dates         = {'13-May-2021', '12-Jul-2021'}; % starts at Stage 1
+cfg.subplot             = false;
+
+cfg.stim_parameter      = 'contacts';
    
-    plot_timeline(cfg, pt_pain.RCS04);
+    plot_timeline(cfg, pt_pain.RCS04, RCS04L_database);
 
 
 cfg.dates       = 'DateRange';
@@ -49,7 +101,8 @@ cfg.date_range  = {'01-Jun-2022'; '30-Jun-2022'};
 
 
 cfg.dates       = 'DateRange';
-cfg.date_range  = {'13-Jul-2022'; '16-Jul-2022'};
+cfg.date_range  = {'13-Jul-2022'; '18-Jul-2022'};
+cfg.subplot     = true;
     plot_timeline(cfg, pt_pain.RCS04) ;
 
 
@@ -65,7 +118,6 @@ cfg.dates      = 'AllTime';
 % SEE Table for easy access to common summary statistics
 RCS04_sum_stats      = calc_sum_stats(cfg, pt_pain.RCS04);
 
-%%
 % pain metric A "versus" pain metric B --> see how metrics visually covary
 cfg             = [];
 cfg.pt_id       = 'RCS04';
@@ -77,13 +129,34 @@ cfg.dates       = 'AllTime';
 % metric--visually creating planes which muddles visualization
     plot_versus(cfg, pt_pain.RCS04);
 
-%%
+%% 07/16/22 Lab Meeting
 
+% 'plot_timeline' demo
 cfg             = [];
-cfg.pt_id       = 'RCS05';
+cfg.pt_id       = 'RCS02';
 cfg.dates       = 'AllTime';
+cfg.stage_dates = {'08-Sep-2021', '31-Jan-2021'; '31-May-2022'}; % starts at Stage 1
+   
+    plot_timeline(cfg, pt_pain.RCS02);
 
-   plot_versus(cfg, pt_pain.RCS05);
+% 'plot_hist' demo
+
+   plot_hist(cfg, pt_pain.RCS02);
+
+
+cfg.pt_id       = 'RCS04';       plot_hist(cfg, pt_pain.RCS04);
+cfg.pt_id       = 'RCS05';       plot_hist(cfg, pt_pain.RCS05);
+
+% 'plot_versus' demo
+
+cfg.pt_id       = 'RCS02';       plot_versus(cfg, pt_pain.RCS02);
+
+cfg.pt_id       = 'RCS04';       plot_versus(cfg, pt_pain.RCS04);
+
+cfg.pt_id       = 'RCS05';       plot_versus(cfg, pt_pain.RCS05);
+
+
+
 
 
 %% RCS04 Stim Plan

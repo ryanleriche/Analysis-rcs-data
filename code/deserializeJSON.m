@@ -14,7 +14,7 @@ addpath(genpath(fullfile(filePath,'toolboxes', 'turtle_json','src')))
 start = tic;
 try
     data = json.load(filename);
-    fprintf('File loaded in %.2f seconds\n',toc(start));
+    % fprintf('File loaded in %.2f seconds\n',toc(start));
 catch
     [~,jsonFileName,~]=fileparts(filename);
     

@@ -1,75 +1,76 @@
 function [RCSdatabase_out, varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside,varargin)
-% function database_out = makeDataBaseRCSdata(dirname)
-%
-%
-% This function creates a database of rcs data
-%
-% INPUT:   DIRNAME should be the root folder of the Session Files (e.g. SCBS folder)
-%               e.g. DIRNAME = '/Desktop/[PATIENTID]/'
-%               e.g. DIRNAME = '/Volumes/Prasad_X5/RCS02/;
-%
-%
-%           PATIENTIDside = should specify what the Patient ID name is, and
-%           should be same as subfolder (e.g. 'RCS02R')
-%
-%           (OPTIONAL INPUT) 'ignoreold' will ignore old databases and
-%           start fresh. Third input should be lowercase as written.
-%
-%
-%
-% OUTPUT:   RCSdatabase_out is a table with fields ordered in importance, which will
-%            be saved as a mat file and csv to DIRNAME
-%
-%           (OPTIONAL)
-%           SECOND OUTPUT could be provided to collect list of bad sessions
-%           (e.g. those with no data in Jsons)
-%
-%          Included fields are:
-%     'rec',[],...
-%     'time',[],...
-%     'sessname',[],...
-%     'duration',[],...
-%     'battery',[],...
-%     'TDfs',[],...
-%     'fft',[],...
-%     'power',[],...
-%     'stim',[],...
-%     'stimName',[],...
-%     'stimparams',[],...
-%     'matExist',[],...
-%     'path',[],...
-%     'powerbands',[],...
-%     'aDBS',[],...
-%     'adaptive_threshold',[],...
-%     'adaptive_onset_dur',[],...
-%     'adaptive_termination_dur',[],...
-%     'adaptive_states',[],...
-%     'adaptive_weights',[],...
-%     'adaptive_updaterate',[],...
-%     'adaptive_pwrinputchan',[]);
-% %
-% ***** NOTE THAT ONLY LD0 data is populated in the adaptive fields ******
-%
-%
-%  USING CELL DATA IN THE TABLE:
-%       to concatenate all cell variables in the table (such as duration)
-%       use:
-%           alldurations =cat(1,database_out.duration{:})
-%
-%
-%  **** This will check to see if there is an existing database, if so, it will
-%  update that database table.
-%  *****
-%
-%
-%
-% Depedencies:
-% https://github.com/JimHokanson/turtle_json
-% in the a folder called "toolboxes" in the same directory as the processing scripts
-%
-%
-% Prasad Shirvalkar Sep 13,2021
+%{
+function database_out = makeDataBaseRCSdata(dirname)
 
+
+This function creates a database of rcs data
+
+INPUT:   DIRNAME should be the root folder of the Session Files (e.g. SCBS folder)
+              e.g. DIRNAME = '/Desktop/[PATIENTID]/'
+              e.g. DIRNAME = '/Volumes/Prasad_X5/RCS02/;
+
+
+          PATIENTIDside = should specify what the Patient ID name is, and
+          should be same as subfolder (e.g. 'RCS02R')
+
+          (OPTIONAL INPUT) 'ignoreold' will ignore old databases and
+          start fresh. Third input should be lowercase as written.
+
+
+
+OUTPUT:   RCSdatabase_out is a table with fields ordered in importance, which will
+           be saved as a mat file and csv to DIRNAME
+
+          (OPTIONAL)
+          SECOND OUTPUT could be provided to collect list of bad sessions
+          (e.g. those with no data in Jsons)
+
+             Included fields are:
+                'rec',[],...
+                'time',[],...
+                'sessname',[],...
+                'duration',[],...
+                'battery',[],...
+                'TDfs',[],...
+                'fft',[],...
+                'power',[],...
+                'stim',[],...
+                'stimName',[],...
+                'stimparams',[],...
+                'matExist',[],...
+                'path',[],...
+                'powerbands',[],...
+                'aDBS',[],...
+                'adaptive_threshold',[],...
+                'adaptive_onset_dur',[],...
+                'adaptive_termination_dur',[],...
+                'adaptive_states',[],...
+                'adaptive_weights',[],...
+                'adaptive_updaterate',[],...
+                'adaptive_pwrinputchan',[]);
+
+******* NOTE THAT ONLY LD0 data is populated in the adaptive fields *******
+
+
+ USING CELL DATA IN THE TABLE:
+      to concatenate all cell variables in the table (such as duration)
+      use:
+          alldurations =cat(1,database_out.duration{:})
+
+
+ **** This will check to see if there is an existing database, if so, it will
+ update that database table.
+ *****
+
+
+Depedencies:
+https://github.com/JimHokanson/turtle_json
+in the a folder called "toolboxes" in the same directory as the processing scripts
+
+
+Prasad Shirvalkar Sep 13,2021
+
+%}
 
 
 tic
@@ -110,17 +111,23 @@ dbout = struct('rec',[],...
 % insert section here to load old database, and just add rows to it if
 % needed, so as not to replicate whole thing.
 % Can be turned off with third input 'ignoreold'
-[~,PtIDside]=fileparts(scbsdir);
-outputFileName = fullfile(dirname,[PtIDside '_database.mat']);
+
+[~, PtIDside]=fileparts(scbsdir);
+
+proc_dirname = [dirname(1:end-9), 'processed/databases/'];
+
+outputFileName = fullfile(proc_dirname,[PtIDside '_database.mat']);
 
 
-if isfile(outputFileName) && nargin<3
+if isfile(outputFileName) && nargin < 3
     disp('Loading previously saved database');
     D = load(outputFileName,'RCSdatabase_out','badsessions');
+
     old_database = D.RCSdatabase_out;
     old_badsessions = D.badsessions;
     oldsess = D.RCSdatabase_out.sessname;
     oldbadsess = D.badsessions.sessname;
+    
     olddirs = contains(dirsdata,oldsess) | contains(dirsdata,oldbadsess) ;
     dirsdata(olddirs)= [];
 
@@ -343,105 +350,122 @@ for rowidx = 1:size(sorted_database, 1)
 end
 
 % expand all variables for each row and make 'Disabled' values in TDfs to NaN
-idx_disabled=strcmp(expanded_database.TDfs,'Disabled');
-expanded_database.TDfs(idx_disabled)={nan};
+if ~isempty(expanded_database)
 
-idx_emptyfft = cellfun(@isempty, expanded_database.fft);
-expanded_database.fft(idx_emptyfft)={nan};
-
-%  convert cells to string or double to remove cell structure
-cellvars = {'time', 'duration', 'TDfs','battery','fft'};
-for n = 1:numel(cellvars)
-
-    if n >= 4
-        expanded_database.(cellvars{n}) = cell2mat(expanded_database.(cellvars{n}));
-    else
-        expanded_database.(cellvars{n}) =[expanded_database.(cellvars{n}){:}]';
+    idx_disabled = strcmp(expanded_database.TDfs,'Disabled');
+    expanded_database.TDfs(idx_disabled)={nan};
+    
+    idx_emptyfft = cellfun(@isempty, expanded_database.fft);
+    expanded_database.fft(idx_emptyfft)={nan};
+    
+    %  convert cells to string or double to remove cell structure
+    cellvars = {'time', 'duration', 'TDfs','battery','fft'};
+    for n = 1:numel(cellvars)
+    
+        if n >= 4
+            expanded_database.(cellvars{n}) = cell2mat(expanded_database.(cellvars{n}));
+        else
+            expanded_database.(cellvars{n}) =[expanded_database.(cellvars{n}){:}]';
+        end
+    
     end
+    
+    expanded_database = movevars(expanded_database, {'TDchan0', 'TDchan1', 'TDchan2', 'TDchan3'}, 'After', 'TDfs');
+    RCSdatabase_out = table2timetable(expanded_database); % rename output for clarity
 
 end
 
-expanded_database = movevars(expanded_database, {'TDchan0', 'TDchan1', 'TDchan2', 'TDchan3'}, 'After', 'TDfs');
-RCSdatabase_out = table2timetable(expanded_database); % rename output for clarity
+
 
 
 %% COMBINE WITH OLD DATABASE
 % IF the old database existed, recombine with new database and sort it
 % but first fix cell/ mat class issues
 
-if exist(old_database,1)
+if exist('old_database','var')
     disp('combining with old database...');
 
-    %make cells to mat for some fields
-    if iscell(RCSdatabase_out.matExist)
-        % format some columns so they are not cells
-        RCSdatabase_out.matExist = cell2mat(RCSdatabase_out.matExist);
-        badsessions.matExist = cell2mat(badsessions.matExist);
-    end
+    if exist('RCAdatabaseout', 'var')
 
-    if iscell(old_database.matExist)
-        old_database.matExist = cell2mat(old_database.matExist);
-        old_badsessions.matExist = cell2mat(old_badsessions.matExist);
-    end
+        %make cells to mat for some fields
+        if iscell(RCSdatabase_out.matExist)
+            % format some columns so they are not cells
+            RCSdatabase_out.matExist = cell2mat(RCSdatabase_out.matExist);
+            badsessions.matExist = cell2mat(badsessions.matExist);
+        end
+    
+        if iscell(old_database.matExist)
+            old_database.matExist = cell2mat(old_database.matExist);
+            old_badsessions.matExist = cell2mat(old_badsessions.matExist);
+        end
+    
+    
+        if iscell(old_database.TDfs)
+            idx_disabled=strcmp(old_database.TDfs,'Disabled');
+            old_database.TDfs(idx_disabled)={nan};
+    
+    
+            old_database.TDfs = cell2mat(old_database.TDfs);
+    
+        end
+    
+    
+        if isa(RCSdatabase_out.adaptive_onset_dur,'double')
+            RCSdatabase_out.adaptive_onset_dur =  num2cell(RCSdatabase_out.adaptive_onset_dur);
+            RCSdatabase_out.adaptive_termination_dur =  num2cell(RCSdatabase_out.adaptive_termination_dur);
+            RCSdatabase_out.adaptive_updaterate =  num2cell(RCSdatabase_out.adaptive_updaterate);
+    
+    
+            badsessions.adaptive_onset_dur =  num2cell(badsessions.adaptive_onset_dur);
+            badsessions.adaptive_termination_dur =  num2cell(badsessions.adaptive_termination_dur);
+            badsessions.adaptive_updaterate =  num2cell(badsessions.adaptive_updaterate);
+    
+    
+        end
+    
+    
+        %     COMBINE HERE
+        RCSdatabase_out.rec = RCSdatabase_out.rec + old_database.rec(end);
+    
+        new_database_out = [old_database;RCSdatabase_out];
+    
+        if ~isempty(badsessions)
+            badsessions = [old_badsessions;badsessions];
+        else
+            badsessions = old_badsessions;
+        end
+    
+        clear RCSdatabase_out
+        RCSdatabase_out = new_database_out;  %already a timetable
 
 
-    if iscell(old_database.TDfs)
-        idx_disabled=strcmp(old_database.TDfs,'Disabled');
-        old_database.TDfs(idx_disabled)={nan};
+        % OUTPUTS =========================================================
+        
+        
+        if nargout == 2
+            varargout{1} = badsessions;
+        end
+        
+        % Rename file to include patient ID
+        writetimetable(RCSdatabase_out,fullfile(proc_dirname,[PtIDside...
+            '_database.csv']));
+        
+        save(fullfile(proc_dirname,[PtIDside '_database.mat']),...
+            'RCSdatabase_out','badsessions');
 
+        fprintf('csv and mat of database saved as %s to %s \n',...
+            [PtIDside '_database.mat'],proc_dirname);
 
-        old_database.TDfs = cell2mat(old_database.TDfs);
-
-    end
-
-
-    if isa(RCSdatabase_out.adaptive_onset_dur,'double')
-        RCSdatabase_out.adaptive_onset_dur =  num2cell(RCSdatabase_out.adaptive_onset_dur);
-        RCSdatabase_out.adaptive_termination_dur =  num2cell(RCSdatabase_out.adaptive_termination_dur);
-        RCSdatabase_out.adaptive_updaterate =  num2cell(RCSdatabase_out.adaptive_updaterate);
-
-
-        badsessions.adaptive_onset_dur =  num2cell(badsessions.adaptive_onset_dur);
-        badsessions.adaptive_termination_dur =  num2cell(badsessions.adaptive_termination_dur);
-        badsessions.adaptive_updaterate =  num2cell(badsessions.adaptive_updaterate);
-
-
-    end
-
-
-    %     COMBINE HERE
-    RCSdatabase_out.rec = RCSdatabase_out.rec + old_database.rec(end);
-
-    new_database_out = [old_database;RCSdatabase_out];
-
-    if ~isempty(badsessions)
-        badsessions = [old_badsessions;badsessions];
+        %==================================================================
     else
-        badsessions = old_badsessions;
+        RCSdatabase_out = old_database;
+        varargout{1}     = old_badsessions;
+
+        disp(['Old database as of ', datestr(old_database.time(end)), '; ',...
+            old_database.sessname{end}])
+
     end
 
-    clear RCSdatabase_out
-    RCSdatabase_out = new_database_out;  %already a timetable
 
 end
-
-
-
-
-% ======================================
-% OUTPUTS!
-
-
-if nargout == 2
-    varargout{1} = badsessions;
-end
-%
-
-% Rename file to include patient ID
-writetimetable(RCSdatabase_out,fullfile(dirname,[PtIDside '_database.csv']))
-
-save(fullfile(dirname,[PtIDside '_database.mat']),'RCSdatabase_out','badsessions')
-fprintf('csv and mat of database saved as %s to %s \n',[PtIDside '_database.mat'],dirname);
-
-
 end

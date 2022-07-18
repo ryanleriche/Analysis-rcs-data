@@ -70,12 +70,12 @@ elseif nargin == 1
         {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new',...
         'RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING',...
         'RCS04_STREAMING_v2','RCS05_STREAMING', 'RCS_Weekly', 'RCS_Monthly'};
-    plotval = 0;
+    
 
-elseif nargin == 3
+elseif nargin == 2
     TOKEN      = varargin{1};
     pt_id_list = varargin{2};
-    plotval    = varargin{3};   
+      
 
 end
 
@@ -203,6 +203,9 @@ for p = 1:numel(pt_id_list)
         
         %%%%%%%%% Define Time and Pain Scores %%%%%%%%%%%
         redcap_painscores.time = redcap_timestamp.alltimes;
+        % specify timezone for explicit datetime variable
+        redcap_painscores.time.TimeZone = '-07:00'; % corresponds to 'America/Los_Angeles' timezone;
+        
 %         dynamic field names for each subject
         varnames = clntable.Properties.VariableNames;
         nrs_field = varnames{contains(varnames,'intensity_nrs')};
@@ -321,55 +324,6 @@ newscores.RCS05_STREAMING = oldscores.RCS05_STREAMING;
 
 % OUTPUT
 painscores_out = newscores;
-
-
-
-
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %         PLOT
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   
-        if plotval == 1
-           
-            PATIENTnum = ['01';'02';'04';'05'];
-            
-            for p = 1:4
-                
-               pt_ref = ['RCS' PATIENTnum(p,:)];
-               
-            set(0,'defaultAxesFontSize',16)
-            time_X  = datetime(painscores_out.(pt_ref).time);  % set x = start of dataset of interest
- 
-            figure
-            % subplot 311
-            % plot(redcap_timestamp.vasnrs(x:(end-1)),(redcap_painscores.mayoNRS(x:(end-1))), '.', 'MarkerSize', 25, 'color','b');
-            % ylabel('NRS (0-10)')
-            % ylim([0, 10])
-            % yticks([0 5 10])
-            % title([PATIENTID ' Pain Intensity NRS'])
-            subplot 211
-          
-            plot(time_X,painscores_out.(pt_ref).painVAS, '.', 'MarkerSize', 10, 'color','black'); hold on;
-            plot(time_X,movmean(painscores_out.(pt_ref).painVAS, 10, 'Endpoints','fill'),'LineWidth', 2); 
-
-            ylabel('Intensity VAS (0-100)')
-            ylim([0 100])
-            yticks([0 50 100])
-            title([pt_ref ' Pain Intensity VAS'])
-            
-            subplot 212
-            
-            plot(time_X,painscores_out.(pt_ref).MPQsum, '.', 'MarkerSize', 10, 'color','black'); hold on;
-            plot(time_X,movmean(painscores_out.(pt_ref).MPQsum, 10, 'Endpoints','fill'),'LineWidth', 2);
-
-            ylabel('MPQ Sum (0-45)')
-            ylim([0, 45])
-            yticks([0 15 30 45])
-            title([pt_ref ' McGill Pain Questionnaire'])
-            end
-            
-            
-        end
 
 
 
