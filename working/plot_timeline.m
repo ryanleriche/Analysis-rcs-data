@@ -1,8 +1,8 @@
-function plot_timeline(cfg, RCSXX, RCSXXX_database)
+function plot_timeline(cfg, redcap_RCSXX, db_RCSXXX)
 
     figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
 
-    [RCSXX, date_range] = date_parser(cfg, RCSXX);
+    [redcap_RCSXX, date_range] = date_parser(cfg, redcap_RCSXX);
     
     ds =        datestr(date_range,'dd-mmm-yyyy');
 
@@ -13,23 +13,25 @@ function plot_timeline(cfg, RCSXX, RCSXXX_database)
 
     else
         title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
+        hold on
     end
+
 
     if strcmp(cfg.dates, 'AllTime') == 1
     
-        plot(RCSXX.time, movmean([RCSXX.mayoNRS,RCSXX.worstNRS], 5),...
+        plot(redcap_RCSXX.time, movmean([redcap_RCSXX.mayoNRS,redcap_RCSXX.worstNRS], 5),...
             'LineWidth', 2);
 
         hold on; set(gca,'ColorOrderIndex',1);
 
-        plot(RCSXX.time, [RCSXX.mayoNRS,RCSXX.worstNRS], '.', 'MarkerSize',5);
+        plot(redcap_RCSXX.time, [redcap_RCSXX.mayoNRS,redcap_RCSXX.worstNRS], '.', 'MarkerSize',5);
     
 
     else
 
    
-        scatter(RCSXX.time, RCSXX.mayoNRS, 150, 'filled');   hold on;
-        scatter(RCSXX.time, RCSXX.worstNRS, 75, 'filled');
+        scatter(redcap_RCSXX.time, redcap_RCSXX.mayoNRS, 150, 'filled');   hold on;
+        scatter(redcap_RCSXX.time, redcap_RCSXX.worstNRS, 75, 'filled');
 
 
     end
@@ -39,7 +41,7 @@ function plot_timeline(cfg, RCSXX, RCSXXX_database)
      legend({'NRS Intensity', 'NRS Worst Intensity'}, 'Location','northeastoutside'); 
      
      hold on
-     overlay_stim(cfg.stim_parameter, RCSXXX_database);
+     overlay_stim(gca, cfg.stim_parameter, db_RCSXXX);
      format_plot();
      
 %% VAS
@@ -47,26 +49,27 @@ function plot_timeline(cfg, RCSXX, RCSXXX_database)
         subplot(312)
     else
         figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
-        title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
+        title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16); 
+        hold on
 
     end
 
 
     if strcmp(cfg.dates, 'AllTime') == 1
     
-        plot(RCSXX.time, movmean([RCSXX.painVAS,RCSXX.unpleasantVAS,RCSXX.worstVAS], 5),...
+        plot(redcap_RCSXX.time, movmean([redcap_RCSXX.painVAS,redcap_RCSXX.unpleasantVAS,redcap_RCSXX.worstVAS], 5),...
             'LineWidth', 2);
 
              hold on; set(gca,'ColorOrderIndex',1);
 
-        plot(RCSXX.time, [RCSXX.painVAS,RCSXX.unpleasantVAS,RCSXX.worstVAS], '.', 'MarkerSize',5);
+        plot(redcap_RCSXX.time, [redcap_RCSXX.painVAS,redcap_RCSXX.unpleasantVAS,redcap_RCSXX.worstVAS], '.', 'MarkerSize',5);
     
     else
         
-        scatter(RCSXX.time, RCSXX.painVAS, 150, 'filled');   
+        scatter(redcap_RCSXX.time, redcap_RCSXX.painVAS, 150, 'filled');   
         hold on;
-        scatter(RCSXX.time, RCSXX.unpleasantVAS, 100, 'filled');
-        scatter(RCSXX.time, RCSXX.worstVAS, 75, 'filled');
+        scatter(redcap_RCSXX.time, redcap_RCSXX.unpleasantVAS, 100, 'filled');
+        scatter(redcap_RCSXX.time, redcap_RCSXX.worstVAS, 75, 'filled');
 
         
     end
@@ -74,7 +77,9 @@ function plot_timeline(cfg, RCSXX, RCSXXX_database)
      ylabel('Visual Analog Scale');         ylim([0,100]);  yticks(0:20:100);
 
      legend({'VAS Intensity',  'VAS Worst Intensity', 'VAS Unpleasantness'}, ...
-         'Location','northeastoutside');    
+         'Location','northeastoutside'); 
+
+     overlay_stim(gca, cfg.stim_parameter, db_RCSXXX);
      format_plot();
             
 %% MPQ
@@ -83,31 +88,32 @@ function plot_timeline(cfg, RCSXX, RCSXXX_database)
         subplot(313)
     else
         figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
-        title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
+        title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16); 
+        hold on
 
     end
     
-    MPQ_total     = RCSXX.MPQsum;
-    MPQ_aff       = sum([RCSXX.MPQsickening, RCSXX.MPQfearful, RCSXX.MPQcruel],2,'omitnan');
+    MPQ_total     = redcap_RCSXX.MPQsum;
+    MPQ_aff       = sum([redcap_RCSXX.MPQsickening, redcap_RCSXX.MPQfearful, redcap_RCSXX.MPQcruel],2,'omitnan');
     MPQ_som       = MPQ_total - MPQ_aff;
 
     if strcmp(cfg.dates, 'AllTime') == 1
     
-        plot(RCSXX.time, movmean(MPQ_total, 5),'LineWidth', 4.5);
+        plot(redcap_RCSXX.time, movmean(MPQ_total, 5),'LineWidth', 4.5);
         hold on
-        plot(RCSXX.time, movmean([MPQ_som, MPQ_aff], 5),'LineWidth', 2);
+        plot(redcap_RCSXX.time, movmean([MPQ_som, MPQ_aff], 5),'LineWidth', 2);
 
          set(gca,'ColorOrderIndex',1);
 
-        plot(RCSXX.time, MPQ_total, '.', 'MarkerSize',9);
-        plot(RCSXX.time, [MPQ_som, MPQ_aff], '.', 'MarkerSize',5);
+        plot(redcap_RCSXX.time, MPQ_total, '.', 'MarkerSize',9);
+        plot(redcap_RCSXX.time, [MPQ_som, MPQ_aff], '.', 'MarkerSize',5);
 
     else
  
-        scatter(RCSXX.time, MPQ_total, 100, 'filled');   
+        scatter(redcap_RCSXX.time, MPQ_total, 100, 'filled');   
         hold on;
-        scatter(RCSXX.time, MPQ_som, 50, 'filled');
-        scatter(RCSXX.time, MPQ_aff, 50, 'filled');
+        scatter(redcap_RCSXX.time, MPQ_som, 50, 'filled');
+        scatter(redcap_RCSXX.time, MPQ_aff, 50, 'filled');
 
     end
     
@@ -118,20 +124,22 @@ function plot_timeline(cfg, RCSXX, RCSXXX_database)
 
    % overlay_stim(cfg.stim_parameter)
     format_plot();
+    overlay_stim(gca, cfg.stim_parameter, db_RCSXXX);
 
-    function overlay_stim(stim, RCSXXX_database)
+%% local functions
+
+    function overlay_stim(ax, stim, RCSXXX_database)
         if strcmp(stim, 'contacts')
             
-            contact_pairs = unique(RCSXXX_database.contacts);
+            cont_pairs = unique(RCSXXX_database.contacts);
 
             c = [colororder; colororder; colororder; colororder;...
                     colororder; colororder; colororder; colororder];
 
-            for i = 2: length(contact_pairs) - 1
+            for i = 2: length(cont_pairs) - 1            
 
-                con_pair = contact_pairs{i};              
-
-                i_given_pair = strcmp(con_pair, RCSXXX_database.contacts);
+                i_given_pair = strcmp(cont_pairs{i}, RCSXXX_database.contacts) &...
+                                   RCSXXX_database.amp ~=0;
 
                 starts = find(diff(i_given_pair)==1) + 1;
                 ends   = find(diff(i_given_pair)==-1);
@@ -139,19 +147,36 @@ function plot_timeline(cfg, RCSXX, RCSXXX_database)
                 % based of transitions plot every shading of a given
                 % contact by itself
 
+                if i_given_pair(end)
 
+                    ends = [ends; length(i_given_pair)];
+
+                end
+
+               
                 for j = 1:length(starts)
 
                     x = [RCSXXX_database.time(starts(j)), RCSXXX_database.time(ends(j)),...
-                        RCSXXX_database.time(starts(j)), RCSXXX_database.time(ends(j))];
+                         RCSXXX_database.time(ends(j)), RCSXXX_database.time(starts(j))];
+    
+                    y = [0,0,ax.YLim(2), ax.YLim(2)];
 
-                    y = [0,0,10,10];
+                    if j == 1
 
-                    patch(x, y, c(i,:),'FaceAlpha', .3,...
-                        'HandleVisibility','off');
+                        patch(x, y, c(i,:),'FaceAlpha', .3);
+
+                        ax.Legend.String{end} = cont_pairs{i};
+
+                    else
+
+                        patch(x, y, c(i,:),'FaceAlpha', .3,...
+                            'HandleVisibility','off');
+                    end
+
                     hold on
-
                 end
+
+                
             end
         end
     end
@@ -161,16 +186,18 @@ function plot_timeline(cfg, RCSXX, RCSXXX_database)
         set(gca,'FontSize',16, 'xlim', date_range , 'TickLength', [0 0]); 
         grid on;    grid MINOR;   legend boxoff;    box off;
 
+        t = datetime(cfg.stage_dates, 'TimeZone', '-07:00');
+
         if length(cfg.stage_dates) == 1
-            xline(datetime(cfg.stage_dates), 'LineWidth', 2, 'Stage 1',...
+            xline(t, 'LineWidth', 2, 'Stage 1',...
                 'HandleVisibility','off');
 
         elseif length(cfg.stage_dates) == 2
-            xline(datetime(cfg.stage_dates), '-', {'Stage 1', 'Stage 2'},...
+            xline(t, '-', {'Stage 1', 'Stage 2'},...
                 'HandleVisibility','off');
 
         else
-            xline(datetime(cfg.stage_dates), '-', ...
+            xline(t, '-', ...
                 {'Stage 1', 'Stage 2', 'Stage 3'},...
                 'HandleVisibility','off');
         

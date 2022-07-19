@@ -1,6 +1,4 @@
 %% user-inputs
-% the patient's ID and specific side as outputted by RCS
-PATIENTIDside         = 'RCS04L';
 
 % where RCS files are saved from PIA server
 rootdir               = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/raw';
@@ -23,57 +21,41 @@ pt_pain                 = RCS_redcap_painscores(API_token);
 
 %% align RCSdatabase stim parameters to REDcap pain metrics
 
-% RCS04L
 % import RCS files
+
+% the patient's ID and specific side as outputted by RCS
+PATIENTIDside         = 'RCS04L';
+
 patientroot_dir = fullfile(rootdir,char(regexp(PATIENTIDside,...
                         '\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
 
-[RCS04L_database, RCS04L_badsessions] = ...
+[db.RCS04L, db.RCS04L_badsessions] = ...
     makeDataBaseRCSdata(patientroot_dir, PATIENTIDside);
 
-% parse through and split stim parameters into their own columns
-for i_sess = 1 : height(RCS04L_database)
-
-    if length(RCS04L_database.stimparams{i_sess}) <= 1
-
-        i_para = strsplit(char(RCS04L_database.stimparams{i_sess}),',');
-    
-        if ~isempty(i_para{1})
-    
-            RCS04L_database.contacts{i_sess}    = i_para{1};
-            RCS04L_database.amp{i_sess}         = str2double(i_para{2}(2:end -2));
-            RCS04L_database.PW{i_sess}          = str2double(i_para{3}(2:end -2));
-            RCS04L_database.freq{i_sess}        = str2double(i_para{4}(2:end -2));
-    
-        else % without stim parameters 
-            RCS04L_database.contacts{i_sess}    = '';
-            RCS04L_database.amp{i_sess}         = NaN;
-            RCS04L_database.PW{i_sess}          = NaN;
-            RCS04L_database.freq{i_sess}        = NaN;
-
-        end
-
-    else
-        RCS04L_database.contacts{i_sess}    = 'stim sweep';
-        RCS04L_database.amp{i_sess}         = 'stim sweep';
-        RCS04L_database.PW{i_sess}          = 'stim sweep';
-        RCS04L_database.freq{i_sess}        = 'stim sweep';
-    end
-end
+PATIENTIDside         = 'RCS04R';
+[db.RCS04R, db.RCS04R_badsessions] = ...
+    makeDataBaseRCSdata(patientroot_dir, PATIENTIDside);
 
 
 
+%% parse through and split stim parameters into their own columns
+
+db.RCS04R = parse_db(db.RCS04R);
+
+db.RCS04L = parse_db(db.RCS04L);
 
 
+
+%% exploring how to best align "nearest" REDcap report to pain metrics
 
 nearest_beh_to_sess = interp1(pt_pain.RCS04.time, pt_pain.RCS04.time,...
-        RCS04L_database.time, 'nearest');
+        db_RCSXXX.time, 'nearest');
 
-i_wn_30_min = le(abs(nearest_beh_to_sess - RCS04L_database.time),...
+i_wn_30_min = le(abs(nearest_beh_to_sess - db_RCSXXX.time),...
                  '00:30:00');
 
 
-RCSXX_paintable = RCS04L_database(i_wn_30_min,:);
+RCSXX_paintable = db_RCSXXX(i_wn_30_min,:);
 
 
 
@@ -91,7 +73,7 @@ cfg.subplot             = false;
 
 cfg.stim_parameter      = 'contacts';
    
-    plot_timeline(cfg, pt_pain.RCS04, RCS04L_database);
+    plot_timeline(cfg, pt_pain.RCS04, db_RCSXXX);
 
 
 cfg.dates       = 'DateRange';
@@ -129,15 +111,26 @@ cfg.dates       = 'AllTime';
 % metric--visually creating planes which muddles visualization
     plot_versus(cfg, pt_pain.RCS04);
 
-%% 07/16/22 Lab Meeting
+
+%% 07/21/22 Lab Meeting 
 
 % 'plot_timeline' demo
-cfg             = [];
-cfg.pt_id       = 'RCS02';
-cfg.dates       = 'AllTime';
-cfg.stage_dates = {'08-Sep-2021', '31-Jan-2021'; '31-May-2022'}; % starts at Stage 1
+cfg                     = [];
+cfg.pt_id               = 'RCS04L';
+
+cfg.dates               = 'AllTime';
+cfg.stage_dates         = {'13-May-2021', '12-Jul-2021'}; % starts at Stage 1
+cfg.subplot             = false;
+
+cfg.stim_parameter      = 'contacts';
    
-    plot_timeline(cfg, pt_pain.RCS02);
+    plot_timeline(cfg, pt_pain.RCS04, db.RCS04L);
+
+cfg.pt_id               = 'RCS04R';
+
+    plot_timeline(cfg, pt_pain.RCS04, db.RCS04R);
+
+
 
 % 'plot_hist' demo
 
@@ -154,7 +147,6 @@ cfg.pt_id       = 'RCS02';       plot_versus(cfg, pt_pain.RCS02);
 cfg.pt_id       = 'RCS04';       plot_versus(cfg, pt_pain.RCS04);
 
 cfg.pt_id       = 'RCS05';       plot_versus(cfg, pt_pain.RCS05);
-
 
 
 
@@ -197,29 +189,49 @@ RACC
 
     *w/ option to decrease amplitude
 
-    If lowering the amplitude 0.1-0.5 mA does not help after 5-6 hours
+    Q: If lowering the amplitude 0.1-0.5 mA does not help after 5-6 hours
     -->
         Lower amplitude further (min of 0.5 mA)?
         Keep waiting?
-        Turn off stim? 
+        Turn off stim?
 
-07/20/22, Stim Sweep
+    Q: Min N of days per contact-pair?
+
+        Q: Within given contact-pair min N of days at given
+           amplitude, pulse width, frequency?
+
+
+Stim Sweeps as therapy (originally IJ's idea)
+
+
     
-    IF pain was controlled at given amplitude (given expected compliance of
-    2 mA max w/ option to decrease amplitude).
+   analgesic effect of:
+
+        *cumulative regular stim sweeps (daily, weekly, etc.)
+    
+            LCaudB:     C+10-    1 mA     125 Hz     300 mcs     60s/20s 
+
+
+        "meditation-like" calming by focusing on internal state
+
+            Q: Try double-blinded sham stim sweeps?
+
+        
+
+07/22/22, Stim Sweep
+    
+    (Program right C for reference)
+    RACC
+            C:     0+3-     2 mA     100 Hz     300 mcs     60s/20s
     -->
-        sweep
+        freq:
         [80, 0, 90, 0, 100, 0, 110, 0, 100, 0, 90, 100, 0, 110]
 
-    Else
-    -->
-        sweep
-        [0, 2, 0, 3, 0, 2.5, 0, 2.75, 0, 3, 0, 2.5, 0, 2, 0, 2.75]
+        PW:
+        [0, 200, 0, 250, 0, 300, 0, 200, 0, 300, 0, 250, 0]
 
 
-    What other sweep should we try?
-        IJ mentioned
-
+        * 2 w/ PW & freq values shuffled while maintaining zeros btwn.
 
 
 
@@ -244,23 +256,35 @@ cumalative effect of stim
 
 %}
 
+%% local functions
+function db_RCSXXX = parse_db(db_RCSXXX)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    for i_sess = 1 : height(db_RCSXXX)
+    
+        if length(db_RCSXXX.stimparams{i_sess}) <= 1
+    
+            i_para = strsplit(char(db_RCSXXX.stimparams{i_sess}),',');
+        
+            if ~isempty(i_para{1})
+        
+                db_RCSXXX.contacts{i_sess}    = i_para{1};
+                db_RCSXXX.amp(i_sess)         = str2double(i_para{2}(2:end -2));
+                db_RCSXXX.PW(i_sess)          = str2double(i_para{3}(2:end -2));
+                db_RCSXXX.freq(i_sess)        = str2double(i_para{4}(2:end -2));
+        
+            else % without stim parameters 
+                db_RCSXXX.contacts{i_sess}    = '';
+                db_RCSXXX.amp(i_sess)         = NaN;
+                db_RCSXXX.PW(i_sess)          = NaN;
+                db_RCSXXX.freq(i_sess)        = NaN;
+    
+            end
+    
+        else
+            db_RCSXXX.contacts{i_sess}    = 'MANY';
+            db_RCSXXX.amp(i_sess)         = NaN;
+            db_RCSXXX.PW(i_sess)          = NaN;
+            db_RCSXXX.freq(i_sess)        = NaN;
+        end
+    end
+end

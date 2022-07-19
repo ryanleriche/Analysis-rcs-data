@@ -316,6 +316,8 @@ else
 end
 
 badsessions = sorted_database(loc,:);
+varargout{1} = badsessions;
+
 sorted_database(loc,:) = [];
 
 %% expanding all fields within each struct
@@ -385,7 +387,7 @@ end
 if exist('old_database','var')
     disp('combining with old database...');
 
-    if exist('RCAdatabaseout', 'var')
+    if exist('RCSdatabase_out', 'var')
 
         %make cells to mat for some fields
         if iscell(RCSdatabase_out.matExist)
