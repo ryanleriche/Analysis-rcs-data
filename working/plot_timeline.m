@@ -129,12 +129,28 @@ function plot_timeline(cfg, redcap_RCSXX, db_RCSXXX)
 %% local functions
 
     function overlay_stim(ax, stim, RCSXXX_database)
+        
+        pompadour          = [104  2  63];
+        deep_sea           = [0  70 60];
+        deep_pink          = [192  11  111];
+        persian_rose       = [239   0  150];
+        persian_green      = [0  160  144];
+        aqua_marine        = [0  220  181];
+        carissma           = [255  149  186];
+        dark_olive         = [61  60   4];
+        aqua               = [95  255  222 ];
+        royal_blue         = [0  60  134];
+        indigo             = [89  10 135];
+        vivid_purple       = [148   0 230];
+
+        cb_colors   = [deep_pink; pompadour ; persian_rose ; persian_green;...
+                      aqua_marine ; carissma ; deep_sea; dark_olive ;...
+                      aqua ; royal_blue ; indigo ; vivid_purple ]./255;
         if strcmp(stim, 'contacts')
             
             cont_pairs = unique(RCSXXX_database.contacts);
 
-            c = [colororder; colororder; colororder; colororder;...
-                    colororder; colororder; colororder; colororder];
+            c = [colororder; cb_colors];
 
             for i = 2: length(cont_pairs) - 1            
 

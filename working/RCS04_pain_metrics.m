@@ -24,6 +24,17 @@ pt_pain                 = RCS_redcap_painscores(API_token);
 % import RCS files
 
 % the patient's ID and specific side as outputted by RCS
+% RCS02
+PATIENTIDside         = 'RCS02R';
+patientroot_dir = fullfile(rootdir,char(regexp(PATIENTIDside,...
+                        '\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
+
+
+[db.RCS02R, db.RCS02_badsessions] = ...
+    makeDataBaseRCSdata(patientroot_dir, PATIENTIDside);
+
+
+% RCS04
 PATIENTIDside         = 'RCS04L';
 
 patientroot_dir = fullfile(rootdir,char(regexp(PATIENTIDside,...
@@ -35,6 +46,21 @@ patientroot_dir = fullfile(rootdir,char(regexp(PATIENTIDside,...
 PATIENTIDside         = 'RCS04R';
 [db.RCS04R, db.RCS04R_badsessions] = ...
     makeDataBaseRCSdata(patientroot_dir, PATIENTIDside);
+
+
+% RCS05
+PATIENTIDside         = 'RCS05L';
+
+patientroot_dir = fullfile(rootdir,char(regexp(PATIENTIDside,...
+                        '\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
+
+[db.RCS05L, db.RCS05L_badsessions] = ...
+    makeDataBaseRCSdata(patientroot_dir, PATIENTIDside);
+
+PATIENTIDside         = 'RCS05R';
+[db.RCS05R, db.RCS05R_badsessions] = ...
+    makeDataBaseRCSdata(patientroot_dir, PATIENTIDside);
+
 
 
 
@@ -131,13 +157,12 @@ cfg.pt_id               = 'RCS04R';
     plot_timeline(cfg, pt_pain.RCS04, db.RCS04R);
 
 
-
 % 'plot_hist' demo
 
-   plot_hist(cfg, pt_pain.RCS02);
-
+cfg.pt_id       = 'RCS02';       plot_hist(cfg, pt_pain.RCS02);
 
 cfg.pt_id       = 'RCS04';       plot_hist(cfg, pt_pain.RCS04);
+
 cfg.pt_id       = 'RCS05';       plot_hist(cfg, pt_pain.RCS05);
 
 % 'plot_versus' demo

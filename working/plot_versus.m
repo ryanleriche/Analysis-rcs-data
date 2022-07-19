@@ -5,7 +5,8 @@ function plot_versus(cfg, RCSXX)
     [RCSXX, date_range] = date_parser(cfg, RCSXX);
 
     ds  =    datestr(date_range,'dd-mmm-yyyy');
-    sgtitle([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
+    title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
+    hold on
 
     RCSXX.MPQtotal    = RCSXX.MPQsum;
     RCSXX.MPQaff       = sum([RCSXX.MPQsickening, RCSXX.MPQfearful, RCSXX.MPQcruel],2,'omitnan');
@@ -13,13 +14,33 @@ function plot_versus(cfg, RCSXX)
 
 
 
-    RCSXX_trim = RCSXX(RCSXX.unpleasantVAS ~= 50 &...
-                   RCSXX.painVAS ~= 50 & RCSXX.worstVAS ~= 50,:);
+    RCSXX_trim_VAS_all = RCSXX(RCSXX.unpleasantVAS ~= 50 &...
+                            RCSXX.painVAS ~= 50 & RCSXX.worstVAS ~= 50,:);
 
-    n_remain = sum(RCSXX.unpleasantVAS ~= 50 &...
+
+
+    RCSXX_rmv_VAS_all = RCSXX(RCSXX.unpleasantVAS == 50 &...
+                   RCSXX.painVAS == 50 & RCSXX.worstVAS == 50,:);
+
+    RCSXX_rmv_VAS_any = RCSXX(RCSXX.unpleasantVAS == 50 |...
+                   RCSXX.painVAS == 50 | RCSXX.worstVAS == 50,:);
+
+
+
+
+    n_any_VAS_remain = sum(RCSXX.unpleasantVAS ~= 50 &...
                    RCSXX.painVAS ~= 50 & RCSXX.worstVAS ~= 50);
 
-    prop_remain = n_remain /height(RCSXX);
+    prop_any_VAS_remain = n_any_VAS_remain /height(RCSXX);
+
+
+    n_all_VAS_remain = sum(RCSXX.unpleasantVAS ~= 50 |...
+                   RCSXX.painVAS ~= 50 | RCSXX.worstVAS ~= 50);
+
+    prop_all_VAS_remain = n_all_VAS_remain /height(RCSXX);
+
+
+    
 
 %     plotmatrix([RCSXX.mayoNRS, RCSXX.worstNRS, RCSXX.painVAS,...
 %         RCSXX.unpleasantVAS, RCSXX.worstVAS, MPQ_som, MPQ_aff]);
@@ -30,7 +51,7 @@ function plot_versus(cfg, RCSXX)
 %         RCSXX.unpleasantVAS, RCSXX.worstVAS])
 
 %%
-    scatter3(RCSXX_trim,'unpleasantVAS','painVAS','MPQsom','filled', ...
+    scatter3(RCSXX_trim_VAS_all,'unpleasantVAS','painVAS','MPQsom','filled', ...
         'ColorVariable', 'mayoNRS');
 
 
@@ -39,8 +60,21 @@ function plot_versus(cfg, RCSXX)
     c = colorbar;
     c.Label.String = 'mayoNRS';                 c.Limits = [1,10];
 
-    text(15, 15, 40, ['Prop(remain w/o VAS 50s): ', num2str(prop_remain)],...
-        'FontSize',14)
+    text(50, 15, 40, ...
+        [...
+            'Prop(remain w/o ANY VAS = 50s): ', num2str(prop_any_VAS_remain),...
+            newline,...
+            'Prop(remain w/o ALL VAS = 50): ', num2str(prop_all_VAS_remain)...
+        ],...
+        'FontSize',14);
+
+    
+    scatter3(RCSXX_rmv_VAS_any,'unpleasantVAS','painVAS','MPQsom','filled','MarkerFaceColor',[.7 .7 .7]);
+
+    scatter3(RCSXX_rmv_VAS_all,'unpleasantVAS','painVAS','MPQsom','filled','MarkerFaceColor','k');
+
+  
+
 
     format_plot()
   
