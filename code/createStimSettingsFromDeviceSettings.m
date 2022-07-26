@@ -97,10 +97,55 @@ switch currentSettings.GeneralData.therapyStatusData.activeGroup
 end
 therapyStatus = currentSettings.GeneralData.therapyStatusData.therapyStatus;
 
-stimSettingsOut.HostUnixTime(entryNumber) = HostUnixTime;
-stimSettingsOut.activeGroup{entryNumber} = activeGroup;
-stimSettingsOut.therapyStatus(entryNumber) = therapyStatus;
+stimSettingsOut.HostUnixTime(entryNumber)             = HostUnixTime;
+stimSettingsOut.activeGroup{entryNumber}              = activeGroup;
+stimSettingsOut.therapyStatus(entryNumber)            = therapyStatus;
 stimSettingsOut.therapyStatusDescription{entryNumber} = convertTherapyStatus(therapyStatus);
+
+
+stimSettingsOut.cyclingEnabled{entryNumber}           = currentSettings.TherapyConfigGroup0.cyclingEnabled;
+
+
+% see'Medtronic.NeuroStim.Olympus.DataTypes.Therapy.CyclingUnits' w/n
+% Summit API HTML 
+
+% cycling unit "0" means in 100 ms
+if currentSettings.TherapyConfigGroup0.cycleOnTime.units == 0
+
+    stimSettingsOut.cycleOnTime{entryNumber} = currentSettings.TherapyConfigGroup0.cycleOnTime.time /10;
+    
+
+% cycling unit "1" means in 1s
+elseif currentSettings.TherapyConfigGroup0.cycleOnTime.units == 1
+
+    stimSettingsOut.cycleOnTime{entryNumber} = currentSettings.TherapyConfigGroup0.cycleOnTime.time;
+
+% cycling unit "2" means in 10s
+elseif currentSettings.TherapyConfigGroup0.cycleOnTime.units == 2
+
+    stimSettingsOut.cycleOnTime{entryNumber} = currentSettings.TherapyConfigGroup0.cycleOnTime.time * 10;
+end
+
+
+% repeat for cycleOff
+if currentSettings.TherapyConfigGroup0.cycleOffTime.units == 0
+
+    stimSettingsOut.cycleOffTime{entryNumber} = currentSettings.TherapyConfigGroup0.cycleOffTime.time /10;
+    
+
+% cycling unit "1" means in 1s
+elseif currentSettings.TherapyConfigGroup0.cycleOffTime.units == 1
+
+    stimSettingsOut.cycleOffTime{entryNumber} = currentSettings.TherapyConfigGroup0.cycleOffTime.time;
+
+% cycling unit "2" means in 10s
+elseif currentSettings.TherapyConfigGroup0.cycleOffTime.units == 2
+
+    stimSettingsOut.cycleOffTime{entryNumber} = currentSettings.TherapyConfigGroup0.cycleOffTime.time * 10;
+end
+ 
+ 
+
 
 previousActiveGroup = activeGroup;
 previousTherapyStatus = therapyStatus;
@@ -149,6 +194,13 @@ for iRecord = 1:length(DeviceSettings)
         toAdd.activeGroup = activeGroup;
         toAdd.therapyStatus = therapyStatus;
         toAdd.therapyStatusDescription = convertTherapyStatus(therapyStatus);
+
+        toAdd.cyclingEnabled = currentSettings.TherapyConfigGroup0.cyclingEnabled;
+        toAdd.cycleOnOff    =[currentSettings.TherapyConfigGroup0.cycleOnTime.time,...
+                                  currentSettings.TherapyConfigGroup0.cycleOffTime.time];
+
+
+
         stimSettingsOut = [stimSettingsOut; struct2table(toAdd)];
         
         clear toAdd

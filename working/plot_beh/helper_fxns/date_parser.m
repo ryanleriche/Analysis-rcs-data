@@ -1,5 +1,6 @@
 function [RCSXX, date_range] = date_parser(cfg, RCSXX)
 
+
     if strcmp(cfg.dates, 'AllTime') == 1
 
         date_range           = [RCSXX.time(1), RCSXX.time(end)];
@@ -7,7 +8,7 @@ function [RCSXX, date_range] = date_parser(cfg, RCSXX)
     % takes current time and finds the nearest report 
     elseif strcmp(cfg.dates, 'PreviousDays') == 1
         
-        [~, i_date_start] = min(abs(RCSXX.time - (datetime('now') - days(cfg.ndays))));
+        [~, i_date_start] = min(abs(RCSXX.time - (datetime('now','TimeZone','America/Los_Angeles') - days(cfg.ndays))));
         
         date_range         = [RCSXX.time(i_date_start), RCSXX.time(end)];
 

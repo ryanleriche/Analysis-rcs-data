@@ -8,7 +8,8 @@ function plot_versus(cfg, RCSXX)
     title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
     hold on
 
-    RCSXX.MPQtotal    = RCSXX.MPQsum;
+
+    RCSXX.MPQtotal     = RCSXX.MPQsum;
     RCSXX.MPQaff       = sum([RCSXX.MPQsickening, RCSXX.MPQfearful, RCSXX.MPQcruel],2,'omitnan');
     RCSXX.MPQsom       = RCSXX.MPQtotal - RCSXX.MPQaff;
 
@@ -51,7 +52,7 @@ function plot_versus(cfg, RCSXX)
 %         RCSXX.unpleasantVAS, RCSXX.worstVAS])
 
 %%
-    scatter3(RCSXX_trim_VAS_all,'unpleasantVAS','painVAS','MPQsom','filled', ...
+    scatter3(RCSXX_trim_VAS_all,'unpleasantVAS','painVAS','MPQtotal','filled', ...
         'ColorVariable', 'mayoNRS');
 
 
@@ -78,7 +79,29 @@ function plot_versus(cfg, RCSXX)
 
     format_plot()
   
+%%
 
+figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
+
+    [RCSXX, date_range] = date_parser(cfg, RCSXX);
+
+    ds  =    datestr(date_range,'dd-mmm-yyyy');
+    title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:),...
+        newline, ' z-scored'], 'Fontsize',16);
+    hold on
+
+    pain_metrics = RCSXX.Properties.VariableNames;
+    z_RCSXX      = RCSXX;
+
+    for i = 2 : length(pain_metrics)
+    
+       z_RCSXX.(pain_metrics{i}) = zscore(RCSXX.(pain_metrics{i}));
+
+
+    end
+
+ scatter3(z_RCSXX,'unpleasantVAS','painVAS','MPQtotal','filled', ...
+        'ColorVariable', 'mayoNRS');
     
 
 function format_plot()  

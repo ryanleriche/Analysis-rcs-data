@@ -139,3 +139,9 @@ fn = [PATIENTIDside '_textlogs.mat'];
 save(fullfile(rootdir,PATIENTID,fn),'textlog')
 fprintf('mat of Text Logs (Log structure) saved to \n %s \n',fullfile(rootdir,PATIENTID,fn));
 
+%{
+RBL
+find state changes--aDBS and/or pt changes
+
+
+%}
