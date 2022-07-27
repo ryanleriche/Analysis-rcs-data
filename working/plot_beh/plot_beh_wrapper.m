@@ -195,7 +195,7 @@ cfg.pt_id       = 'RCS05';       plot_versus(cfg, pt_pain.RCS05);
 LCaud
     open-loop
         A:     9+11-    1 mA     125 Hz     300 mcs     60s/20s
-        B:     C+10-    1 mA     125 Hz     300 mcs     60s/20s  
+        B:     C+10-    2 mA     125 Hz     300 mcs     60s/20s  
         C:     C+9-     1 mA     125 Hz     300 mcs     60s/20s
 
     closed-loop
@@ -225,8 +225,8 @@ duty_cycle      = t_on / (t_off + t_on);
 t_in_min        = t_in_sec / 60
 
 % logrhythmically spaced frequencies
-freq_start       = 10;
-freq_stop        = 150;
+freq_start       = 50;
+freq_stop        = 175;
 
 freq_exp_start   = log10(freq_start);
 freq_exp_stop    = log10(freq_stop);
@@ -235,17 +235,17 @@ log_freqs        = floor(logspace(freq_exp_start, freq_exp_stop, n_runs))
 
 lin_freqs        = floor(linspace(freq_start, freq_stop, n_runs))
 
-amp              = repmat(2, 1, n_runs)
+% amp              = repmat(2, 1, n_runs)
 pw               = repmat(300, 1, n_runs)
 
 % element-wise multiplication based on percent of time stim-sweep is on
-TEED             = amp.^2 .* lin_freqs .* pw * (duty_cycle)
+% TEED             = amp.^2 .* lin_freqs .* pw * (duty_cycle)
 
 % need impendance to find mean total electrical energy delievered (TEED) per sec
 
 TEED_now         = 2.^2 * 100 * 300 * 60/(60+20)
 
-TEED_stim_sweep_percentage   = TEED ./ TEED_now
+amp              = sqrt(TEED_now ./ (lin_freqs.* pw .* duty_cycle))
 
 
 
