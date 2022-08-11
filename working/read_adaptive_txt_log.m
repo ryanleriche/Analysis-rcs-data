@@ -1,4 +1,8 @@
-function [adaptiveLogTable, rechargeSessions, groupChanges,adaptiveDetectionEvents] = read_adaptive_txt_log(fn)
+function ...
+[u_events, ...
+    vargout] ...
+    = ...
+    read_adaptive_txt_log(fn, cfg)
 
 %This is used to extract ambulatory program changes, adaptive stim events
 %battery recharge etc
@@ -21,7 +25,7 @@ str = fileread( fn );
 
 if ~isempty(str)  % only continue if the file is not empty
     
-    newBlocks = regexp(str, {'\n\r'});
+    newBlocks     = regexp(str, {'\n\r'});
     newBlockLines = newBlocks{1};
     newBlockLines = [1 newBlockLines];
     
@@ -32,21 +36,26 @@ if ~isempty(str)  % only continue if the file is not empty
         events{cntBlock} = str(newBlockLines(cntBlock) : newBlockLines(cntBlock+1));
         cntBlock = cntBlock + 1;
     end
+
     eventsRaw = events;
     
     
     %% get all event types
     xpruse1 = '(';
-    cac1 = cellfun(@(x) regexp(x, xpruse1),events,'UniformOutput',false);
+    cac1 = cellfun(@(x) regexp(x, xpruse1), events,'UniformOutput',false);
     xpruse1 = ')';
-    cac2 = cellfun(@(x) regexp(x, xpruse1),events,'UniformOutput',false);
+    cac2 = cellfun(@(x) regexp(x, xpruse1), events,'UniformOutput',false);
     
     strraw = cellfun(@(x,a,b) x(a(2)+1:b(2)-1),events,cac1,cac2,'UniformOutput',false);
+    
     adaptiveLogEvents.EventID = strraw;
     
     allEvents = eventsRaw;
+
+    u_events = unique(adaptiveLogEvents.EventID);
     
-    
+if cfg.pull_adpt_logs
+
     %% AdaptiveTherapyStateChange
     idxuse = strcmp(adaptiveLogEvents.EventID,'AdaptiveTherapyStateChange');
     
@@ -129,40 +138,10 @@ if ~isempty(str)  % only continue if the file is not empty
     %       strraw = str(cac1:cac2-4);
     strtmp = erase(strraw,{xpruse1,')'});
     adaptiveLogTable.EventID = string(cellfun(@(x) x(1:end-3),strtmp,'UniformOutput',false))';
-    
-    
-    
-    %%
-    
-    
-    
-    %% Recharge sessions
-    
-    idxuse = strcmp(adaptiveLogEvents.EventID,'RechargeSesson');
-    allEvents = eventsRaw;
-    events = allEvents(idxuse);
-    rechargeSessions = table('Size', [length(events) 2], 'VariableTypes', {'datetime','cell'}, 'VariableNames', {'time','status'});
-    
-    startTimeDt  = get_date_from_hexstring(events); % see subfunction below
-    rechargeSessions.time = startTimeDt;
-    
-    
-    % get type
-    xpr = 'RechargeSessionEventLogEntry.RechargeSessionStatus = ';
-    cac1 =  cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
-    xpr = 'RechargeSessionEventLogEntry.Unused';
-    cac2 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
-    
-    status =  cellfun(@(x,a,b) x(a+59:b-12),events,cac1,cac2,'UniformOutput',false);
-    
-    rechargeSessions.status = status';
-    
-    %%
-    
-    
-    
-    
+
     %% Adaptive therapy status
+
+ 
     idxuse = strcmp(adaptiveLogEvents.EventID,'AdaptiveTherapyStatusChanged');
     allEvents = eventsRaw;
     events = allEvents(idxuse);
@@ -182,38 +161,8 @@ if ~isempty(str)  % only continue if the file is not empty
     clear status
     status = cellfun(@(x,a,b) x(a+57:b-12),events,cac1,cac2,'UniformOutput',false);
     adaptiveStatus.status = status';
-    % end
     
-    
-    
-    
-    %% Group Changes - i.e. ActiveDeviceChanged
-    idxuse = strcmp(adaptiveLogEvents.EventID,'ActiveDeviceChanged');
-    allEvents = eventsRaw;
-    events = allEvents(idxuse);
-    groupChanges = table('Size', [length(events) 2], 'VariableTypes', {'datetime','string'}, 'VariableNames', {'time','group'});
-    % if ~isempty(events)
-    
-    startTimeDt  = get_date_from_hexstring(events); % see subfunction below
-    groupChanges.time = startTimeDt;
-    
-    % get type
-    xpr = 'TherapyActiveGroupChangedEventLogEntry.NewGroup = ';
-    cac1 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
-    xpr = 'TherapyActiveGroupChangedEventLogEntry.Unused   = ';
-    cac2 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
-    
-    clear status
-    status = cellfun(@(x,a,b) x(a+56:b-12),events,cac1,cac2,'UniformOutput',false);
-    
-    groupUse = replace(status,{'Group0','Group1','Group2','Group3'},{'A','B','C','D'});
-    groupChanges.group = groupUse';
-    % end
-    
-    %%
-    
-    
-    
+
     %% LD detection events
     idxuse = strcmp(adaptiveLogEvents.EventID,'LdDetectionEvent');
     allEvents = eventsRaw;
@@ -236,7 +185,7 @@ if ~isempty(str)  % only continue if the file is not empty
     xprP = 'LdDetectionEntry.PreviousDetectionState = ';
     cac2 = cellfun(@(x) regexp(x, xprP),events,'UniformOutput',false);
     
-    % a few states possible
+    % a sfew states possible
     tempstr = cellfun(@(x,a,b) x(a:b),events,cac1,cac2,'UniformOutput',false);
     detectionNum  = get_detection_Num(tempstr);
     % get string event
@@ -261,7 +210,56 @@ if ~isempty(str)  % only continue if the file is not empty
     
     adaptiveDetectionEvents.previousDetectionStatus = detectionNum;
     adaptiveDetectionEvents.previousDetectionText = newstr';
-    % end
+
+end
+    
+
+    
+if cfg.pull_event_logs
+    %% Recharge sessions
+    
+    idxuse = strcmp(adaptiveLogEvents.EventID,'RechargeSesson');
+    allEvents = eventsRaw;
+    events = allEvents(idxuse);
+    rechargeSessions = table('Size', [length(events) 2], 'VariableTypes', {'datetime','cell'}, 'VariableNames', {'time','status'});
+    
+    startTimeDt  = get_date_from_hexstring(events); % see subfunction below
+    rechargeSessions.time = startTimeDt;
+    
+    
+    % get type
+    xpr = 'RechargeSessionEventLogEntry.RechargeSessionStatus = ';
+    cac1 =  cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
+    xpr = 'RechargeSessionEventLogEntry.Unused';
+    cac2 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
+    
+    status =  cellfun(@(x,a,b) x(a+59:b-12),events,cac1,cac2,'UniformOutput',false);
+    
+    rechargeSessions.status = status';
+    
+    %% Group Changes - i.e. ActiveDeviceChanged
+    idxuse = strcmp(adaptiveLogEvents.EventID,'ActiveDeviceChanged');
+    allEvents = eventsRaw;
+    events = allEvents(idxuse);
+    groupChanges = table('Size', [length(events) 2], 'VariableTypes', {'datetime','string'}, 'VariableNames', {'time','group'});
+    % if ~isempty(events)
+    
+    startTimeDt  = get_date_from_hexstring(events); % see subfunction below
+    groupChanges.time = startTimeDt;
+    
+    % get type
+    xpr = 'TherapyActiveGroupChangedEventLogEntry.NewGroup = ';
+    cac1 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
+    xpr = 'TherapyActiveGroupChangedEventLogEntry.Unused   = ';
+    cac2 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
+    
+    clear status
+    status = cellfun(@(x,a,b) x(a+56:b-12),events,cac1,cac2,'UniformOutput',false);
+    
+    groupUse = replace(status,{'Group0','Group1','Group2','Group3'},{'A','B','C','D'});
+    groupChanges.group = groupUse';
+end
+    
     %%
     
     % COMMENTED OUT by prasad because this is redundant with above, except for the 'AdaptiveTherapyStateWritten' Index
@@ -308,18 +306,18 @@ if ~isempty(str)  % only continue if the file is not empty
     
     
     
-    
-    if size(adaptiveLogTable,1) > 30
-        at = adaptiveLogTable(1:20,:);
-        idxzero = at.newstate==0;
-        unique(at.prog0(idxzero));
-    end
+%     if size(adaptiveLogTable,1) > 30
+%         at = adaptiveLogTable(1:20,:);
+%         idxzero = at.newstate==0;
+%         unique(at.prog0(idxzero));
+%     end
 else
     fprintf('Empty Log file detected../n')
     adaptiveLogTable=[];
     rechargeSessions=[];
     groupChanges=[];
     adaptiveDetectionEvents=[];
+    u_events = [];
     return
 end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -356,8 +354,5 @@ end
         date_out = datetime(datevec(rawsecs0./86400 + datenum(2000,3,1,0,0,0))); % medtronic time - LSB is seconds
         
     end
-
-
-
 %%
 end

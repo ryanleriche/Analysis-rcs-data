@@ -1,8 +1,8 @@
-function plot_timeline(cfg, redcap_RCSXX, db_RCSXXL, db_RCSXXR)
+function plot_timeline(cfg, redcap_RCSXX, db_beh_RCSXX)
 
     figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
 
-    [redcap_RCSXX, date_range] = date_parser(cfg, redcap_RCSXX);
+    [db_beh_RCSXX, redcap_RCSXX, date_range] = date_parser(cfg, redcap_RCSXX, db_beh_RCSXX);
     
     ds =        datestr(date_range,'dd-mmm-yyyy');
 
@@ -41,7 +41,11 @@ function plot_timeline(cfg, redcap_RCSXX, db_RCSXXL, db_RCSXXR)
      legend({'NRS Intensity', 'NRS Worst Intensity'}, 'Location','northeastoutside'); 
      
      hold on
-     overlay_stim(gca, cfg.stim_parameter, db_RCSXXL,db_RCSXXR);
+
+     if ~strcmp(cfg.stim_parameter, '')
+         overlay_stim(gca, cfg.stim_parameter, db_beh_RCSXX);   
+     end
+
      format_plot();
      
 %% VAS
@@ -79,7 +83,9 @@ function plot_timeline(cfg, redcap_RCSXX, db_RCSXXL, db_RCSXXR)
      legend({'VAS Intensity',  'VAS Worst Intensity', 'VAS Unpleasantness'}, ...
          'Location','northeastoutside'); 
 
-     overlay_stim(gca, cfg.stim_parameter, db_RCSXXL, db_RCSXXR);
+     if ~strcmp(cfg.stim_parameter, '')
+         overlay_stim(gca, cfg.stim_parameter, db_beh_RCSXX);   
+     end
      format_plot();
             
 %% MPQ
@@ -124,114 +130,68 @@ function plot_timeline(cfg, redcap_RCSXX, db_RCSXXL, db_RCSXXR)
 
    % overlay_stim(cfg.stim_parameter)
     format_plot();
-    overlay_stim(gca, cfg.stim_parameter, db_RCSXXL, db_RCSXXR);
-
+    
+     if ~strcmp(cfg.stim_parameter, '')
+         overlay_stim(gca, cfg.stim_parameter, db_beh_RCSXX);   
+     end
 %% local functions
 
-    function overlay_stim(ax, stim, db_RCSXXL, db_RCSXXR)
-        if strcmp(stim, '')
-            db_RCSXXL = parse_db(db_RCSXXL);
-    
-            db_RCSXXR = parse_db(db_RCSXXR);
-    
-        elseif strcmp(stim, 'contacts')
-                
-    
-                cont_pairs_L = unique(db_RCSXXL.contacts);
-    
-                cont_pairs_R = unique(db_RCSXXR.contacts);
-    
-                c1 = brewermap(length(cont_pairs_L) - 1 ,'Set3');
-    
-                c2 = brewermap(length(cont_pairs_R) - 1 ,'Set1');
-    
-    
-                for i = 2: length(cont_pairs_L) - 1            
-    
-                    L_given_pair = strcmp(cont_pairs_L{i}, db_RCSXXL.contacts) &...
-                                       db_RCSXXL.amp ~=0;
-    
-                    L_starts = find(diff(L_given_pair)==1) + 1;
-                    L_stops   = find(diff(L_given_pair)== -1);
-    
-                    % based of transitions plot every shading of a given
-                    % contact by itself
-    
-                    if L_given_pair(end)
-    
-                        L_stops = [L_stops; length(L_given_pair)];
-    
-                    end
-    
-                   
-                    for j = 1:length(L_starts)
-    
-                        x = [db_RCSXXL.timeStart(L_starts(j)), db_RCSXXL.timeStop(L_stops(j)),...
-                             db_RCSXXL.timeStop(L_stops(j)), db_RCSXXL.timeStart(L_starts(j))];
-        
-                        y = [0,0,ax.YLim(2), ax.YLim(2)];
-    
-                        if j == 1
-    
-                            patch(x, y, c1(i,:),'FaceAlpha', .3);
-    
-                            ax.Legend.String{end} = [db_RCSXXL.stimName{L_starts(j)}, ': ' cont_pairs_L{i}];
-    
-                        else
-    
-                            patch(x, y, c1(i,:),'FaceAlpha', .3,...
-                                'HandleVisibility','off');
-                        end
-    
-                        hold on
-                    end
-    
-                    
+function overlay_stim(ax, stim, db_beh_RCSXX)
+    if strcmp(stim, '')
+        return
+
+
+    elseif strcmp(stim, 'contacts')
+
+        cont_pairs = unique(db_beh_RCSXX.stimRegOn(~strcmp(db_beh_RCSXX.stimRegOn,'')));
+
+
+        c1 = brewermap(length(cont_pairs) ,'Set1');
+
+
+        for i = 1: length(cont_pairs)           
+
+            given_pair = strcmp(cont_pairs{i}, db_beh_RCSXX.stimRegOn);
+
+            starts  = find(diff(given_pair)==1) + 1;
+            stops   = find(diff(given_pair)== -1);
+
+            % based of transitions plot every shading of a given
+            % contact by itself
+
+            if given_pair(end)
+
+                stops = [stops; length(given_pair)];
+
+            end
+
+           
+            for j = 1:length(starts)
+
+                x = [db_beh_RCSXX.timeStart(starts(j)), db_beh_RCSXX.timeStop(stops(j)),...
+                     db_beh_RCSXX.timeStop(stops(j)), db_beh_RCSXX.timeStart(starts(j))];
+
+                y = [0,0,ax.YLim(2), ax.YLim(2)];
+
+                if j == 1
+
+                    patch(x, y, c1(i,:),'FaceAlpha', .3);
+
+                    ax.Legend.String{end} = cont_pairs{i};
+
+                else
+
+                    patch(x, y, c1(i,:),'FaceAlpha', .3,...
+                        'HandleVisibility','off');
                 end
-            
-                for i = 2: length(cont_pairs_R) - 1            
-    
-                    R_given_pair = strcmp(cont_pairs_R{i}, db_RCSXXR.contacts) &...
-                                       db_RCSXXR.amp ~=0;
-    
-                    R_starts = find(diff(R_given_pair)==1) + 1;
-                    R_stops   = find(diff(R_given_pair)== -1);
-    
-                    % based of transitions plot every shading of a given
-                    % contact by itself
-    
-                    if R_given_pair(end)
-    
-                        R_stops = [R_stops; length(R_given_pair)];
-    
-                    end
-    
-                   
-                    for j = 1:length(R_starts)
-    
-                        x = [db_RCSXXR.timeStart(R_starts(j)), db_RCSXXR.timeStop(R_stops(j)),...
-                             db_RCSXXR.timeStop(R_stops(j)), db_RCSXXR.timeStart(R_starts(j))];
-        
-                        y = [0,0,ax.YLim(2), ax.YLim(2)];
-    
-                        if j == 1
-    
-                            patch(x, y, c2(i,:),'FaceAlpha', .5);
-    
-                            ax.Legend.String{end} = [db_RCSXXR.stimName{R_starts(j)}, ': ' cont_pairs_R{i}];
-    
-                        else
-    
-                            patch(x, y, c2(i,:),'FaceAlpha', .5,...
-                                'HandleVisibility','off');
-                        end
-    
-                        hold on
-                    end
-    
-                    
-                end
-            
+
+                hold on
+            end
+        end
+    end
+end
+
+
     %         elseif strcmp(stim, 'freq')
     %             
     %             cont_pairs = unique(db_RCSXXL.contacts);
@@ -279,10 +239,6 @@ function plot_timeline(cfg, redcap_RCSXX, db_RCSXXL, db_RCSXXR)
     %                 end
     %             end
             
-        
-
-        end
-    end
 
     function format_plot()  
 

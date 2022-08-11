@@ -1,6 +1,6 @@
 function RCSXX_sum_stats = calc_sum_stats(cfg, RCSXX)
 
-    [RCSXX, ~] = date_parser(cfg, RCSXX);
+    [~, RCSXX, ~] = date_parser(cfg, RCSXX, []);
 
     % Simple sub-function to rearrange RCSXX table (from REDcap),
     % and calculate summary statistics (option for CI).

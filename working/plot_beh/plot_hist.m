@@ -2,7 +2,7 @@ function plot_hist(cfg, RCSXX)
 
     figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
 
-    [RCSXX, date_range] = date_parser(cfg, RCSXX);
+    [~, RCSXX, date_range] = date_parser(cfg, RCSXX, []);
 
     ds  =    datestr(date_range,'dd-mmm-yyyy');
     sgtitle([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);

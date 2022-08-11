@@ -15,7 +15,7 @@ end
 %%
 stimLogSettings = table;
 
-numRecords = size(stimLog,1);
+numRecords = size(stimLog,2);
 recordCounter = 1;
 addEntry = 0;
 GroupA = struct;
@@ -164,7 +164,7 @@ while recordCounter <= numRecords
     if addEntry == 1
         [newEntry] = addNewEntry_StimSettings(currentSettings,updatedActiveGroup,...
             updatedTherapyStatus, updatedGroupA, updatedGroupB, updatedGroupC, updatedGroupD, stimParamsString, updatedParameters);
-        stimLogSettings = addRowToTable(newEntry,stimLogSettings);
+        stimLogSettings = addRowToTable(newEntry, stimLogSettings);
     end
     addEntry = 0;
     recordCounter = recordCounter + 1;
