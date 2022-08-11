@@ -99,24 +99,23 @@ function plot_timeline(cfg, redcap_RCSXX, db_beh_RCSXX)
 
     end
     
-    MPQ_total     = redcap_RCSXX.MPQsum;
     MPQ_aff       = sum([redcap_RCSXX.MPQsickening, redcap_RCSXX.MPQfearful, redcap_RCSXX.MPQcruel],2,'omitnan');
-    MPQ_som       = MPQ_total - MPQ_aff;
+    MPQ_som       = redcap_RCSXX.MPQtotal - MPQ_aff;
 
     if strcmp(cfg.dates, 'AllTime') == 1
     
-        plot(redcap_RCSXX.time, movmean(MPQ_total, 5),'LineWidth', 4.5);
+        plot(redcap_RCSXX.time, movmean(redcap_RCSXX.MPQtotal , 5),'LineWidth', 4.5);
         hold on
         plot(redcap_RCSXX.time, movmean([MPQ_som, MPQ_aff], 5),'LineWidth', 2);
 
          set(gca,'ColorOrderIndex',1);
 
-        plot(redcap_RCSXX.time, MPQ_total, '.', 'MarkerSize',9);
+        plot(redcap_RCSXX.time, redcap_RCSXX.MPQtotal , '.', 'MarkerSize',9);
         plot(redcap_RCSXX.time, [MPQ_som, MPQ_aff], '.', 'MarkerSize',5);
 
     else
  
-        scatter(redcap_RCSXX.time, MPQ_total, 100, 'filled');   
+        scatter(redcap_RCSXX.time, redcap_RCSXX.MPQtotal , 100, 'filled');   
         hold on;
         scatter(redcap_RCSXX.time, MPQ_som, 50, 'filled');
         scatter(redcap_RCSXX.time, MPQ_aff, 50, 'filled');

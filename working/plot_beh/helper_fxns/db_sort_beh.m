@@ -115,8 +115,6 @@ prop_ge_30 =length(find(ge(beh_RCSXX.duration, '00:30:00'))) ./ height(beh_RCSXX
 prop_ge_60 = length(find(ge(beh_RCSXX.duration, '01:00:00'))) ./ height(beh_RCSXX);
 
 
-
-    
 figure('Units', 'Inches', 'Position', [0, 0, 12, 7])
 histogram(beh_RCSXX.duration,'BinWidth', duration('00:10:00')); xlim(duration({'00:00:00', '03:00:00'}))
 
@@ -134,31 +132,64 @@ t.FontSize = 12;
 
 set(gca,'FontSize',12, 'TickLength', [0 0]); 
 
-
+%%
 % mean session time as better estimate of pain report
-sess_time_mean = mean([beh_RCSXX.timeStart, beh_RCSXX.timeStop] ,2);
+% sess_time_mean = mean([beh_RCSXX.timeStart, beh_RCSXX.timeStop] ,2);
 
 % visualze "nearest" REDcap report
 for j = 1 : height(beh_RCSXX)
 
-    diff_vec = REDcap.time - beh_RCSXX.timeStart(j); % + duration('0:05:00');
+    btwn_start_and_stop = ...
+        find(ge(REDcap.time, beh_RCSXX.timeStart(j)) & le(REDcap.time, beh_RCSXX.timeStop(j)));
 
-    diff_vec = diff_vec(ge(diff_vec, 0));
 
-    [time_diff, j_near]  = min(diff_vec);
+    if ~isempty(btwn_start_and_stop)
 
-    nearest_REDcap_time  = REDcap.time(find(diff_vec == time_diff));
+        beh_RCSXX.REDcap_in_sess{j}     = 'within_session';
+        beh_RCSXX.REDcap_lat_wrt_sess_start{j}...
+                                        = duration(REDcap.time(btwn_start_and_stop)...
+                                            - beh_RCSXX.timeStart(j));
 
-    if ge(nearest_REDcap_time, beh_RCSXX.timeStop(j))
+        beh_RCSXX.REDcap_lat_wrt_sess_stop{j}...
+                                        = duration(beh_RCSXX.timeStop(j)...
+                                            - REDcap.time(btwn_start_and_stop));
+
         
+        beh_RCSXX.REDcap_reports{j}     = REDcap(btwn_start_and_stop,:);
+        beh_RCSXX.i_REDcap(j)           = {btwn_start_and_stop};
+
+
+    else
+
+         beh_RCSXX.REDcap_in_sess{j}     = 'no_report_within_session';
 
     end
-    % beh_RCSXX.REDcap{j}             = REDcap(j_near,:);
-    beh_RCSXX.REDcap_after_start(j)   = time_diff;
-    beh_RCSXX.i_REDcap(j)           = j_near;
-
-
 end
+
+i_wn_sess       = strcmp(beh_RCSXX.REDcap_in_sess, 'within_session') &...
+                    cellfun(@(x) length(x)==1, beh_RCSXX.REDcap_lat_wrt_sess_start);
+
+n_wn_sess       = sum(i_wn_sess);
+
+prop_wn_sess    = n_wn_sess ./ height(beh_RCSXX);
+
+start_lat       = [beh_RCSXX.REDcap_lat_wrt_sess_start{i_wn_sess}]';
+
+stop_lat        =  [beh_RCSXX.REDcap_lat_wrt_sess_stop{i_wn_sess}]';
+
+
+alignment_check = sum(...
+    beh_RCSXX.duration(i_wn_sess) == start_lat + stop_lat);
+
+if alignment_check ~= n_wn_sess
+
+    disp('possible error in REDcap to RCS session file alignment')
+end
+
+
+
+
+
 % plotting code that does not consider absolute session duration when
 % comparing time difference with REDcap report
 %{
@@ -177,7 +208,8 @@ text(duration('02:00:00'), height(beh_RCSXX)/6,...
 %}
 
 % see proportion of time diff btw. REDcap report and Session time for
-% sessions of different min duration
+%{
+ sessions of different min duration
 
 SD_ge_15_le_3hrs = beh_RCSXX.REDcap_time_diff((...
     ge(beh_RCSXX.duration, '00:15:00') & le(beh_RCSXX.duration, '03:00:00')));
@@ -220,6 +252,34 @@ t = TextLocation(...
 t.FontSize = 12;
 
 set(gca,'FontSize',12, 'TickLength', [0 0]); 
+%}
+
+
+figure('Units', 'Inches', 'Position', [0, 0, 12, 7])
+
+
+histogram(start_lat, 'BinWidth', duration({'0:10:00'})); 
+hold on
+histogram(stop_lat, 'BinWidth', duration({'0:10:00'})); 
+
+xlim(duration({'0:00:00', '04:00:00'}));
+
+title([cfg.pt_id, newline, ...
+    'REDcap latencies'], 'Fontsize',16);
+
+t = TextLocation(...
+    [...
+    'prop(REDcap w/n Start/Stop): ', num2str(prop_wn_sess)],...
+   'Location', 'Best');
+
+legend({'REDcap wrt Session Start',...
+        'REDcap wrt Session Stop'})
+
+t.FontSize = 12;
+
+set(gca,'FontSize',12, 'TickLength', [0 0]); 
+grid on;    grid MINOR;   legend boxoff;    box off;
+
 
 
 %% local fxns
