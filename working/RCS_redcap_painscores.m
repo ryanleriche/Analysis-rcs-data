@@ -197,7 +197,7 @@ for p = 1:numel(pt_id_list)
         %%%%%%%%% Define Time and Pain Scores %%%%%%%%%%%
         redcap_painscores.time = redcap_timestamp.alltimes;
         % specify timezone for explicit datetime variable
-        redcap_painscores.time.TimeZone = '-07:00'; % corresponds to 'America/Los_Angeles' timezone;
+        redcap_painscores.time.TimeZone = 'America/Los_Angeles'; % corresponds to 'America/Los_Angeles' timezone;
    
     
          varnames = clntable.Properties.VariableNames;

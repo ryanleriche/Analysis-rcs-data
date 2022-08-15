@@ -165,7 +165,7 @@ if isfile(outputFileName) && ~cfg.ignoreold
     old_sess             = D.RCSdatabase_out.sess_name;
     old_badsess          = D.badsessions.sess_name;
     
-    olddirs = contains(sess_dirs,old_sess) | contains(sess_dirs,old_badsess) ;
+    olddirs = contains(sess_dirs, old_sess) | contains(sess_dirs, old_badsess) ;
     sess_dirs(olddirs)= [];
 
     if isempty(sess_dirs)

@@ -53,22 +53,7 @@ cfg.ignoreold          = true;
 [db.RCS02R, bs.RCS02R] = ...
     makeDatabaseRCS_Ryan(pia_raw_dir, 'RCS02R',cfg);
 
-%% *****Note Ryan is still figuring out how to best match pain reports to sessions
-
-%{
-* creates db_beh.RCSXX with timestamps, contacts, amp, PW, freq, cycling,
-  group, and laterality (unilateral vs bilateral stim)
-
-    -manually inspect laterality to handle edge cases
-
-* align nearest REDcap report as row in db_beh.RCSXX 
-
-To do:
-for RCS05 and RCS02 especially look at pain reports within session 5 - 15 minutes
- 
-
-%}
-
+%% sort RCS DataBase into human readable format (so-called behavioral database)
 
 cfg       = [];
 cfg.pt_id = 'RCS04';
@@ -85,6 +70,8 @@ cfg.pt_id = 'RCS02';
 
 
 %% RCS04 plot daily metrics
+% Note leave 'cfg.stim_parameter' blank as alignment lacks INS log data
+% right now
 
 % Specify, cfg before calling functions--see below for examples.
 cfg                     = [];
@@ -94,9 +81,9 @@ cfg.dates               = 'AllTime';
 cfg.stage_dates         = stage_dates{4}; % starts at Stage 1
 cfg.subplot             = false;
 
-cfg.stim_parameter      = 'contacts';
+cfg.stim_parameter      = '';
    
-    plot_timeline(cfg, REDcap.RCS04, []);
+    plot_timeline(cfg, REDcap.RCS04, db_beh.RCS04);
 
 %% last 7 days for all pts
 cfg                     = [];
@@ -104,7 +91,7 @@ cfg.pt_id               = 'RCS04';
 cfg.stage_dates         = stage_dates{4}; % starts at Stage 1
 cfg.subplot             = true;
 
-cfg.stim_parameter      = 'contacts';
+cfg.stim_parameter      = '';
 
 cfg.dates               = 'PreviousDays';
 cfg.ndays               = 7;

@@ -42,6 +42,7 @@ cfg.ignoreold          = false;
 [db.RCS04R, bs.RCS04R] = ...
     makeDatabaseRCS_Ryan(pia_raw_dir, 'RCS04R', cfg);
 
+
 % RCS05
 [db.RCS05L, bs.RCS05L] = ...
     makeDatabaseRCS_Ryan(pia_raw_dir, 'RCS05L',cfg);
@@ -96,18 +97,32 @@ for RCS05 and RCS02 especially look at pain reports within session 5 - 15 minute
 %}
 
 
-cfg       = [];
-cfg.pt_id = 'RCS04';
 
-    db_beh.RCS04 = db_sort_beh(cfg, db.RCS04L, db.RCS04R, REDcap.RCS04);
+cfg                 = [];
+cfg.pt_id           = 'RCS04';
+cfg.pia_raw_dir     = pia_raw_dir;
+
+   [db_beh.RCS04, api_REDcap.RCS04] = db_sort_beh(cfg, db.RCS04L, db.RCS04R, REDcap.RCS04);
+
+
+
+% db_RCSXXL    = db.RCS05L;
+% db_RCSXXR    = db.RCS05R;
+% REDcap       = REDcap.RCS05;
 
 
 cfg.pt_id = 'RCS05';
-    db_beh.RCS05 = db_sort_beh(cfg,db.RCS05L, db.RCS05R, REDcap.RCS05);
+    [db_beh.RCS05, api_REDcap.RCS05] = db_sort_beh(cfg,db.RCS05L, db.RCS05R, REDcap.RCS05);
 
+
+
+% db_RCSXXR    = db.RCS02R;
+% redcap       = REDcap.RCS02;
+% 
+% api_redcap   = api_REDcap.RCS02;
 
 cfg.pt_id = 'RCS02';
-    db_beh.RCS02 = db_sort_beh(cfg,[], db.RCS02R, REDcap.RCS02);
+    [db_beh.RCS02, api_REDcap.RCS02] = db_sort_beh(cfg,[], db.RCS02R, REDcap.RCS02);
 
 %%
 %{
@@ -235,28 +250,8 @@ RCS04 stats framework:
 * follow-up with a Wilconxin signed rank test (?) for signifigant groups 
 
 
-
-
-for i 1: height(
- eventLogTable               = addRowToTable(newEntry,eventLogTable); 
- cellfun(@x , sII.('L Caud: 9+11-'){1}.REDcap)
 %}
 
-% was hoping more detailed API was here:
-%{
-api_log_root        = [pia_raw_dir,'/','RCS04','/logs/'];
-api_log_files       = dir([api_log_root,'*.log']);
-
-for i = 1 : height(api_log_files)
-
-    api_log = readtable([api_log_root, api_log_files(i).name]);
-
-    api_log.Properties.VariableNames = {'time', 'event','d'};
-
-    all_webpage = api_log(cellfun(@(x) contains(x,'WebPage') ,api_log.event),:)
-
-end
-%}
 
 
 

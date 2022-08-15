@@ -1,4 +1,4 @@
-function beh_RCSXX = db_sort_beh(cfg, db_RCSXXL, db_RCSXXR, REDcap)
+function [beh_RCSXX, api_redcap] = db_sort_beh(cfg, db_RCSXXL, db_RCSXXR, redcap)
 
 %% handle unilateral implants
 if isempty(db_RCSXXR)
@@ -27,7 +27,7 @@ beh_RCSXX.stimRegOn = ...
 beh_RCSXX.stimRegOn(beh_RCSXX.stimAmp > 0) = ...
     beh_RCSXX.stimContacts(beh_RCSXX.stimAmp > 0);
 
-beh_RCSXX           = beh_RCSXX(ge(beh_RCSXX.duration, '00:03:00'),:);
+% beh_RCSXX           = beh_RCSXX(ge(beh_RCSXX.duration, '00:03:00'),:);
 
 for j = 1 : height(beh_RCSXX) - 1
 
@@ -132,15 +132,226 @@ t.FontSize = 12;
 
 set(gca,'FontSize',12, 'TickLength', [0 0]); 
 
+
+
+%%
+
+api_log_root        = [cfg.pia_raw_dir,'/',cfg.pt_id,'/logs/'];
+api_log_files       = dir([api_log_root,'*.log']);
+
+logs = table();
+
+for h = 1: height(api_log_files)
+
+    api_log = readtable([api_log_root, api_log_files(h).name]);
+
+    if size(api_log,2) > 2
+ 
+        n_column = size(api_log,2);
+        event = ...
+             table2array(mergevars(api_log(:,3: n_column), ...
+                         api_log.Properties.VariableNames(3:n_column)));
+
+         api_log = api_log(:, 1:3);
+         
+         for j = 1: height(event)
+
+            api_log{j,3} = {strjoin(event(j,:))};
+
+         end
+    end
+
+    logs.api_log_date{h} = api_log_files(h).name(5:end-4);
+    logs.data{h} = api_log;
+
+    if ~isempty(logs.data{h}) && iscellstr(table2array(logs.data{h}(:,2))) %#ok<ISCLSTR> 
+    
+        i_invok_act = cellfun(@(x) contains(x,'Invoking Action: WebPage'),...
+            table2array(logs.data{h}(:,2)));
+        
+        logs.invoked_act_name{h} = table2array(logs.data{h}(i_invok_act, 2));
+        logs.invoked_act_time{h} = table2array(logs.data{h}(i_invok_act, 1));
+        
+    end
+end
+
+% filter out empty logs and then expand logs w/ multiple entries
+i_log_act           = cellfun(@(x) ~isempty(x) , logs.invoked_act_name);
+temp_WebPage        = logs(i_log_act, [1, 3, 4]);
+
+
+api_log_WebPage                     = table();
+                              
+api_log_WebPage.api_log_date        = {''};
+api_log_WebPage.invoked_act_name    = {''};
+api_log_WebPage.invoked_act_time    = {''};
+
+for i = 1 : height(temp_WebPage)
+
+     tmp_row = temp_WebPage(i, :);
+
+  if length(tmp_row.invoked_act_name{1}) > 1
+
+    for new_row = 1 : length(temp_WebPage.invoked_act_name{i})
+
+         
+       api_log_WebPage{end+1,:} = [{tmp_row.api_log_date,...
+                                    tmp_row.invoked_act_name{1}{new_row},...
+                                    tmp_row.invoked_act_time{1}(new_row)}];
+    end
+
+  else
+      api_log_WebPage = [api_log_WebPage; tmp_row];
+
+  end
+
+end
+
+% pull datetime out of cell
+% return only 'WebPageOne' (i.e., the "Pain Report" Link)
+api_redcap   = api_log_WebPage(...
+                cellfun(@(x) contains(x, 'WebPageOne'), api_log_WebPage.invoked_act_name),...
+                              :);
+
+api_redcap.invoked_act_time           = cellfun(@(x) x, api_redcap.invoked_act_time);
+api_redcap.invoked_act_time.TimeZone  = 'America/Los_Angeles';
+
+% with all WebPage entries expanded, find nearest REDcap report and Session
+% start and stops for time cross-validation
+
+
+
+%%
+%{
+check for API logs that occured btwn timeStart and timeStop
+
+if one exists, find nearest REDcap report --> which ever API log is closest
+in time to the REDcap report (of course check performance afterwards) treat
+that as the true time
+
+
+see proportion of sessions w/ WebPage one pressed
+
+%}
+
+
+
+for j = 1 : height(beh_RCSXX)
+
+    btwn_start_and_stop = ...
+        find(ge(api_redcap.invoked_act_time, beh_RCSXX.timeStart(j)) &...
+        le(api_redcap.invoked_act_time, beh_RCSXX.timeStop(j)));
+    
+    if ~isempty(btwn_start_and_stop)
+
+        beh_RCSXX.log_wn_sess{j} = 'api_log_wn_sess';
+
+        wn_sess_api = api_redcap.invoked_act_time(btwn_start_and_stop);
+
+
+        % min logic is diff for single log (i.e., scalar by vector
+        % subtraction rather than vector by vector subtraction)
+        if length(wn_sess_api) == 1
+
+            beh_RCSXX.api_WebPage(j)  =  wn_sess_api;
+
+            % min reflects nearest REDcap report
+            [REDcap_lat, i_REDcap] = ...
+            min(abs(redcap.time - wn_sess_api));
+            
+            
+            beh_RCSXX.REDcap_lat(j)  =  REDcap_lat;
+            beh_RCSXX.REDcap_ind(j)  =  i_REDcap;
+
+
+        % finding nearest log to REDcap for many logs w/n sess
+        else
+        
+            % min reflects nearest api log to column-wise REDcap reports
+            [REDcap_lat, i_log] = ...
+                min(abs(redcap.time' - wn_sess_api));
+    
+    
+            % return smallest diff btwn REDcap and logs w/n session
+            beh_RCSXX.REDcap_lat(j)  =  min(REDcap_lat); 
+            
+    
+            % return timestamp of nearest log to REDcap report w/n session
+            i_near_log                = i_log(min(REDcap_lat) == REDcap_lat);
+            beh_RCSXX.api_WebPage(j)  =  wn_sess_api(i_near_log(1)); % in-case duplicate log timestamps
+            
+            % min reflects nearest api log to column-wise REDcap reports
+            [~, i_REDcap] = ...
+                min(abs(wn_sess_api' - redcap.time));
+    
+            beh_RCSXX.REDcap_ind(j) = i_REDcap(1);
+
+        end
+
+    else
+        beh_RCSXX.log_wn_sess{j} = 'no_api_log_wn_sess';
+
+    end
+end
+
+
+i_wn_sess = strcmp(beh_RCSXX.log_wn_sess, 'api_log_wn_sess');
+
+le_5min = beh_RCSXX.REDcap_lat(i_wn_sess & ...
+                               le(beh_RCSXX.REDcap_lat, '0:10:00'));
+
+ge_55min_le_65min = beh_RCSXX.REDcap_lat(i_wn_sess & ...
+                               ge(beh_RCSXX.REDcap_lat, '0:50:00') &...
+                               le(beh_RCSXX.REDcap_lat, '1:10:00'));
+
+% visualize API Log to REDcap Server Lag
+figure('Units', 'Inches', 'Position', [0, 0, 12, 7])
+
+beh_RCSXX           = beh_RCSXX(ge(beh_RCSXX.duration, '00:03:00'),:);
+
+
+histogram(beh_RCSXX.REDcap_lat(ge(beh_RCSXX.REDcap_lat, '0:00:01')),...
+    'BinWidth', duration({'0:15:00'})); 
+
+
+title([cfg.pt_id, newline, ...
+        'REDcap Server to API Log latencies'], 'Fontsize',16);
+
+
+t = TextLocation(...
+    [...
+    'prop(API Log "WebPage" w/n Session): ', num2str(sum(i_wn_sess) ./ height(beh_RCSXX)),...
+    newline, newline...
+    'prop(latency < 5 min): ', num2str(length(le_5min)./ sum(i_wn_sess)),...
+    newline,...
+    'prop(55 min < latency < 65 min): ', num2str(length(ge_55min_le_65min)./ sum(i_wn_sess))],...
+   'Location', 'Best');
+
+
+t.FontSize = 12;
+
+set(gca,'FontSize',12, 'TickLength', [0 0]); 
+grid on;    grid MINOR;      box off;
+
 %%
 % mean session time as better estimate of pain report
-% sess_time_mean = mean([beh_RCSXX.timeStart, beh_RCSXX.timeStop] ,2);
 
 % visualze "nearest" REDcap report
+
+%{
 for j = 1 : height(beh_RCSXX)
 
     btwn_start_and_stop = ...
         find(ge(REDcap.time, beh_RCSXX.timeStart(j)) & le(REDcap.time, beh_RCSXX.timeStop(j)));
+    
+    
+    [time_diff, i_rep] = min(abs(beh_RCSXX.timeStop(j) - REDcap.time));
+    
+    beh_RCSXX.i_REDcap_near_stop(j)  = i_rep;
+
+    beh_RCSXX.REDcap_near_stop(j)    = time_diff;
+
+
 
 
     if ~isempty(btwn_start_and_stop)
@@ -187,30 +398,54 @@ if alignment_check ~= n_wn_sess
 end
 
 
+figure('Units', 'Inches', 'Position', [0, 0, 12, 7])
 
+
+histogram(start_lat, 'BinWidth', duration({'0:10:00'})); 
+hold on
+histogram(stop_lat, 'BinWidth', duration({'0:10:00'})); 
+
+xlim(duration({'0:00:00', '04:00:00'}));
+
+title([cfg.pt_id, newline, ...
+    'REDcap latencies'], 'Fontsize',16);
+
+t = TextLocation(...
+    [...
+    'prop(REDcap w/n Start/Stop): ', num2str(prop_wn_sess)],...
+   'Location', 'Best');
+
+legend({'REDcap wrt Session Start',...
+        'REDcap wrt Session Stop'})
+
+t.FontSize = 12;
+
+set(gca,'FontSize',12, 'TickLength', [0 0]); 
+grid on;    grid MINOR;   legend boxoff;    box off;
 
 
 % plotting code that does not consider absolute session duration when
 % comparing time difference with REDcap report
-%{
-figure; histogram(beh_RCSXX.REDcap_time_diff, 'BinWidth', duration({'0:15:00'})); 
+
+
+figure; histogram(beh_RCSXX.REDcap_near_stop, 'BinWidth', duration({'0:15:00'})); 
 xlim(duration({'0:00:00', '06:00:00'}));
 
 title([cfg.pt_id, newline, 'Difference btwn. REDcap and mean Session Duration'], 'Fontsize',16);
 
 text(duration('02:00:00'), height(beh_RCSXX)/6,...
-    ['p(<30 min) : ', num2str(length(find(le(beh_RCSXX.REDcap_time_diff, '00:30:00'))) ./ length(beh_RCSXX.REDcap_time_diff)),...
+    ['p(<30 min) : ', num2str(length(find(le(beh_RCSXX.REDcap_near_stop, '00:30:00'))) ./ length(beh_RCSXX.REDcap_near_stop)),...
     newline,...
-    'p(<60 min) : ', num2str(length(find(le(beh_RCSXX.REDcap_time_diff, '01:00:00'))) ./ length(beh_RCSXX.REDcap_time_diff)),...
+    'p(<60 min) : ', num2str(length(find(le(beh_RCSXX.REDcap_near_stop, '01:00:00'))) ./ length(beh_RCSXX.REDcap_near_stop)),...
         newline,...
-    'p(<90 min) : ', num2str(length(find(le(beh_RCSXX.REDcap_time_diff, '01:30:00'))) ./ length(beh_RCSXX.REDcap_time_diff))],...
+    'p(<90 min) : ', num2str(length(find(le(beh_RCSXX.REDcap_near_stop, '01:30:00'))) ./ length(beh_RCSXX.REDcap_near_stop))],...
     'FontSize', 14);
-%}
+
 
 % see proportion of time diff btw. REDcap report and Session time for
-%{
- sessions of different min duration
+% nearest report
 
+%{
 SD_ge_15_le_3hrs = beh_RCSXX.REDcap_time_diff((...
     ge(beh_RCSXX.duration, '00:15:00') & le(beh_RCSXX.duration, '03:00:00')));
 
@@ -253,88 +488,60 @@ t.FontSize = 12;
 
 set(gca,'FontSize',12, 'TickLength', [0 0]); 
 %}
-
-
-figure('Units', 'Inches', 'Position', [0, 0, 12, 7])
-
-
-histogram(start_lat, 'BinWidth', duration({'0:10:00'})); 
-hold on
-histogram(stop_lat, 'BinWidth', duration({'0:10:00'})); 
-
-xlim(duration({'0:00:00', '04:00:00'}));
-
-title([cfg.pt_id, newline, ...
-    'REDcap latencies'], 'Fontsize',16);
-
-t = TextLocation(...
-    [...
-    'prop(REDcap w/n Start/Stop): ', num2str(prop_wn_sess)],...
-   'Location', 'Best');
-
-legend({'REDcap wrt Session Start',...
-        'REDcap wrt Session Stop'})
-
-t.FontSize = 12;
-
-set(gca,'FontSize',12, 'TickLength', [0 0]); 
-grid on;    grid MINOR;   legend boxoff;    box off;
-
-
-
+%}
 %% local fxns
 
 
 function beh_RCSXXX = db_parse(db_RCSXXX)
 % removes any empty or more than 1 timestamps per session
-db_RCSXXX               = db_RCSXXX(cellfun(@(x) length(x)==1,db_RCSXXX.timeStart),:);
+db_RCSXXX               = db_RCSXXX(cellfun(@(x) length(x)==1, db_RCSXXX.timeStart),:);
 
 beh_RCSXXX              = table;
 
-for i = 1:height(db_RCSXXX)
+for i_db = 1:height(db_RCSXXX)
 
-    beh_RCSXXX.timeStart(i)           = db_RCSXXX.timeStart{i};
+    beh_RCSXXX.timeStart(i_db)           = db_RCSXXX.timeStart{i_db};
     
-    beh_RCSXXX.timeStop(i)            = db_RCSXXX.timeStop{i};
+    beh_RCSXXX.timeStop(i_db)            = db_RCSXXX.timeStop{i_db};
     
-    beh_RCSXXX.duration(i)            = db_RCSXXX.duration{i};
+    beh_RCSXXX.duration(i_db)            = db_RCSXXX.duration{i_db};
 
-    beh_RCSXXX.rec(i)                  = db_RCSXXX.rec(i);
+    beh_RCSXXX.rec(i_db)                  = db_RCSXXX.rec(i_db);
 
-    if height(db_RCSXXX.stimLogSettings{i}) == 1
+    if height(db_RCSXXX.stimLogSettings{i_db}) == 1
 
-        beh_RCSXXX.stimSide{i}         = db_RCSXXX.stimReg{i,1}(1);
+        beh_RCSXXX.stimSide{i_db}         = db_RCSXXX.stimReg{i_db,1}(1);
 
      
-        stim_para = strsplit(char(db_RCSXXX.stimLogSettings{i}.stimParams_prog1),',');
+        stim_para = strsplit(char(db_RCSXXX.stimLogSettings{i_db}.stimParams_prog1),',');
 
-        beh_RCSXXX.stimContacts{i}     = [db_RCSXXX.stimReg{i}, ': ', stim_para{1}];
+        beh_RCSXXX.stimContacts{i_db}     = [db_RCSXXX.stimReg{i_db}, ': ', stim_para{1}];
         
-        beh_RCSXXX.stimAmp(i)          = str2double(stim_para{2}(2:end -2));
-        beh_RCSXXX.stimPW(i)           = str2double(stim_para{3}(2:end -2));
-        beh_RCSXXX.stimfreq(i)         = str2double(stim_para{4}(2:end -2));
+        beh_RCSXXX.stimAmp(i_db)          = str2double(stim_para{2}(2:end -2));
+        beh_RCSXXX.stimPW(i_db)           = str2double(stim_para{3}(2:end -2));
+        beh_RCSXXX.stimfreq(i_db)         = str2double(stim_para{4}(2:end -2));
 
-        beh_RCSXXX.stimGroup{i}        = db_RCSXXX.stimSettingsOut{i}.activeGroup{1};
+        beh_RCSXXX.stimGroup{i_db}        = db_RCSXXX.stimSettingsOut{i_db}.activeGroup{1};
 
-        beh_RCSXXX.stimCycleOnTime(i)     = db_RCSXXX.stimSettingsOut{i}.cycleOnTime{1};
-        beh_RCSXXX.stimCycleOffTime(i)    = db_RCSXXX.stimSettingsOut{i}.cycleOffTime{1};
+        beh_RCSXXX.stimCycleOnTime(i_db)     = db_RCSXXX.stimSettingsOut{i_db}.cycleOnTime{1};
+        beh_RCSXXX.stimCycleOffTime(i_db)    = db_RCSXXX.stimSettingsOut{i_db}.cycleOffTime{1};
     
 
     else
 
-        beh_RCSXXX.stimSide{i}              = '';
-        beh_RCSXXX.stimContacts{i}          = '';
+        beh_RCSXXX.stimSide{i_db}              = '';
+        beh_RCSXXX.stimContacts{i_db}          = '';
 
       
-        beh_RCSXXX.stimAmp(i)               = NaN;
-        beh_RCSXXX.stimPW(i)                = NaN;
-        beh_RCSXXX.stimfreq(i)              = NaN;
+        beh_RCSXXX.stimAmp(i_db)               = NaN;
+        beh_RCSXXX.stimPW(i_db)                = NaN;
+        beh_RCSXXX.stimfreq(i_db)              = NaN;
 
-        beh_RCSXXX.stimCycleOnTime(i)       = NaN;
-        beh_RCSXXX.stimCycleOffTime(i)      = NaN;
+        beh_RCSXXX.stimCycleOnTime(i_db)       = NaN;
+        beh_RCSXXX.stimCycleOffTime(i_db)      = NaN;
         
 
-        beh_RCSXXX.stimGroup{i}             = '';
+        beh_RCSXXX.stimGroup{i_db}             = '';
         
 
     end
