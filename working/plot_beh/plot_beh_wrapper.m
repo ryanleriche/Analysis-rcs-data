@@ -1,16 +1,20 @@
 %% user-inputs
 
 % where RCS files are saved from PIA server
+<<<<<<< Updated upstream
 pia_raw_dir               = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/raw';
+=======
+pia_raw_dir               = '/Users/joannalin/pia/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/raw/';
+>>>>>>> Stashed changes
 
 % where 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
-github_dir            = '/Users/Leriche/Github/Analysis-rcs-data/';
+github_dir            = '/Users/joannalin/Documents/Github/Analysis-rcs-data/';
 
 % application programming interface (API) token which is essentially a
 % password to access REDcap remotely, and is unique per researcher per
 % study (e.g., Ryan has a unique token for the RCS and PCS studies)
 
-API_token             = '95FDE91411C10BF91FD77328169F7E1B';
+API_token             = '59B583E42D85699524BDF5DA9A8D5D91';
 
 
 % pulls/organizes arms from REDcap (go into fxn to add new arms)
@@ -64,8 +68,13 @@ stage_dates             = [{''}, {'08-Sep-2020', '31-Jan-2021', '31-May-2022'},.
 nearest_beh_to_sess = interp1(pt_pain.RCS04.time, pt_pain.RCS04.time,...
         db_RCSXXX.time, 'nearest');
 
+<<<<<<< Updated upstream
 i_wn_30_min = le(abs(nearest_beh_to_sess - db_RCSXXX.time),...
                  '00:30:00');
+=======
+cfg       = [];
+cfg.pt_id = 'RCS02';
+>>>>>>> Stashed changes
 
 
 RCSXX_paintable = db_RCSXXX(i_wn_30_min,:);
@@ -78,9 +87,10 @@ RCSXX_paintable = db_RCSXXX(i_wn_30_min,:);
 
 % Specify, cfg before calling functions--see below for examples.
 cfg                     = [];
-cfg.pt_id               = 'RCS04';
+cfg.pt_id               = 'RCS02';
 
 cfg.dates               = 'AllTime';
+<<<<<<< Updated upstream
 cfg.stage_dates         = {'13-May-2021', '19-Jul-2021'}; % starts at Stage 1
 cfg.subplot             = true;
 
@@ -118,6 +128,14 @@ RCS04_sum_stats      = calc_sum_stats(cfg, pt_pain.RCS04);
 cfg             = [];
 cfg.pt_id       = 'RCS04';
 cfg.dates       = 'AllTime';
+=======
+cfg.stage_dates         = stage_dates{2}; % starts at Stage 1
+cfg.subplot             = false;
+
+cfg.stim_parameter      = '';
+   
+    plot_timeline(cfg, REDcap.RCS02, db_beh.RCS02);
+>>>>>>> Stashed changes
 
 % go into this fxn to change the pain metrics on each axis
 
