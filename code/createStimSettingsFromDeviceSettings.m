@@ -106,8 +106,7 @@ stimSettingsOut.therapyStatusDescription{entryNumber} = convertTherapyStatus(the
 stimSettingsOut.cyclingEnabled{entryNumber}           = currentSettings.TherapyConfigGroup0.cyclingEnabled;
 
 
-% see'Medtronic.NeuroStim.Olympus.DataTypes.Therapy.CyclingUnits' w/n
-% Summit API HTML 
+%% see'Medtronic.NeuroStim.Olympus.DataTypes.Therapy.CyclingUnits' w/n Summit API HTML 
 
 % cycling unit "0" means in 100 ms
 if currentSettings.TherapyConfigGroup0.cycleOnTime.units == 0
@@ -144,16 +143,18 @@ elseif currentSettings.TherapyConfigGroup0.cycleOffTime.units == 2
     stimSettingsOut.cycleOffTime{entryNumber} = currentSettings.TherapyConfigGroup0.cycleOffTime.time * 10;
 end
  
- 
+% rampTime LSB is 100 ms
+% (Medtronic.NeuroStim.Olympus.DataTypes.Therapy.TherapyGroup.RampTime)
+stimSettingsOut.rampTime{entryNumber} = currentSettings.TherapyConfigGroup0.rampTime /10;
 
-
+%%
 previousActiveGroup = activeGroup;
 previousTherapyStatus = therapyStatus;
-%%
+
 updateActiveGroup = 0;
 updateTherapyStatus = 0;
 % Determine if activeGroup and/or therapyStatus has changed
-for iRecord = 1:length(DeviceSettings)
+for iRecord = 1 : length(DeviceSettings)
     
     currentSettings = DeviceSettings{iRecord};
     HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
@@ -171,7 +172,7 @@ for iRecord = 1:length(DeviceSettings)
             case 3
                 activeGroup = 'D';
         end
-        if ~isequal(activeGroup,previousActiveGroup)
+        if ~isequal(activeGroup, previousActiveGroup)
             updateActiveGroup = 1;
         end
     end
@@ -181,7 +182,7 @@ for iRecord = 1:length(DeviceSettings)
             isfield(currentSettings.GeneralData.therapyStatusData, 'therapyStatus')
         
         therapyStatus = currentSettings.GeneralData.therapyStatusData.therapyStatus;
-        if ~isequal(therapyStatus,previousTherapyStatus)
+        if ~isequal(therapyStatus, previousTherapyStatus)
             updateTherapyStatus = 1;
         end
     end
@@ -211,6 +212,10 @@ for iRecord = 1:length(DeviceSettings)
         % Reset flags
         updateActiveGroup = 0;
         updateTherapyStatus = 0;
+
+
+
+      
     end
 end
 end

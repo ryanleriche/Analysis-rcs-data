@@ -1,4 +1,4 @@
-function [stimLogSettings] = createStimSettingsTable(folderPath,stimMetaData)
+function [stimLogSettings] = createStimSettingsTable(folderPath, stimMetaData)
 %%
 % Extract information from StimLog.json related to stimulation programs and
 % settings

@@ -10,6 +10,11 @@ function [updatedGroupData] = getStimParameters(currentGroupData, priorGroupData
 
 updatedGroupData = priorGroupData;
 
+% ratePeriod LBS is 10 us (Medtronic.NeuroStim.Olympus.DataTypes.Therapy.TherapyGroup.RatePeriod)
+if isfield(currentGroupData, 'ratePeriod')
+    updatedGroupData.ratePeriod = currentGroupData.ratePeriod;
+end
+
 if isfield(currentGroupData, 'RateInHz')
     updatedGroupData.RateInHz = currentGroupData.RateInHz;
 end

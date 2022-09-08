@@ -1,18 +1,18 @@
-function plot_hist(cfg, RCSXX)
+function plot_hist(cfg, redcap, db_beh_RCSXX)
 
     figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
 
-    [~, RCSXX, date_range] = date_parser(cfg, RCSXX, []);
+    [~, redcap, date_range] = date_parser(cfg, redcap, db_beh_RCSXX );
 
     ds  =    datestr(date_range,'dd-mmm-yyyy');
     sgtitle([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
 
-    RCSXX_sum = calc_sum_stats(cfg, RCSXX);
+    RCSXX_sum = calc_sum_stats(cfg, redcap, db_beh_RCSXX );
 
     
     subplot(3,2,[1,2])
 
-        histogram(RCSXX.mayoNRS);    hold on;   histogram(RCSXX.worstNRS);
+        histogram(redcap.mayoNRS);    hold on;   histogram(redcap.worstNRS);
 
          ylabel('Numeric Rating Scale'); xlim([0,10])
              
@@ -22,7 +22,7 @@ function plot_hist(cfg, RCSXX)
                ' ',char(177),' ', ...
                num2str(RCSXX_sum.mayoNRS(5)),')']...
                ...
-               ['NRS Unpleasantness (', ...
+               ['NRS worst (', ...
                num2str(RCSXX_sum.worstNRS(4)),...
                ' ',char(177),' ', ...
                num2str(RCSXX_sum.worstNRS(5)),')']
@@ -34,9 +34,9 @@ function plot_hist(cfg, RCSXX)
             
     subplot(3,2,[3,4])
 
-        histogram(RCSXX.painVAS, [0:3:48, 49:51, 52:3:100]);    
+        histogram(redcap.painVAS, [0:3:48, 49:51, 52:3:100]);    
         hold on;   
-        histogram(RCSXX.unpleasantVAS, [0:3:48, 49:51, 52:3:100]);
+        histogram(redcap.unpleasantVAS, [0:3:48, 49:51, 52:3:100]);
 
         ylabel('Visual Analog Scale');       xlim([0,100])
 
@@ -53,15 +53,15 @@ function plot_hist(cfg, RCSXX)
                } ...
                );
 
-        prop_50_painVAS       = sum(RCSXX.painVAS == 50)./...
+        prop_50_painVAS       = sum(redcap.painVAS == 50)./...
                                 length(...
-                                find(~isnan(RCSXX.painVAS)));
+                                find(~isnan(redcap.painVAS)));
 
-        prop_50_unpleasantVAS = sum(RCSXX.unpleasantVAS == 50)./...
+        prop_50_unpleasantVAS = sum(redcap.unpleasantVAS == 50)./...
                                 length(...
-                                find(~isnan(RCSXX.unpleasantVAS)));
+                                find(~isnan(redcap.unpleasantVAS)));
 
-        text(20, height(RCSXX)/6,...
+        text(20, height(redcap)/6,...
             ['prob(50) Intensity VAS : ', num2str(prop_50_painVAS),...
             newline, 'prob(50) Unpleasant VAS: ', ...
             num2str(prop_50_unpleasantVAS)],...
@@ -72,8 +72,8 @@ function plot_hist(cfg, RCSXX)
     subplot(3,2,[5, 6])
 
 
-        MPQ_total     = RCSXX.MPQsum;
-        MPQ_aff       = sum([RCSXX.MPQsickening, RCSXX.MPQfearful, RCSXX.MPQcruel],2,'omitnan');
+        MPQ_total     = redcap.MPQtotal;
+        MPQ_aff       = sum([redcap.MPQsickening, redcap.MPQfearful, redcap.MPQcruel, redcap.MPQtiring],2,'omitnan');
         MPQ_som       = MPQ_total - MPQ_aff;
 
 
@@ -81,7 +81,7 @@ function plot_hist(cfg, RCSXX)
         histogram(MPQ_som,'FaceAlpha', .5);    hold on; 
         histogram(MPQ_aff);
 
-        ylim([0, height(RCSXX)/3])
+        ylim([0, height(redcap)/3])
 
         
          legend({['MPQ Total (', ...
@@ -104,7 +104,7 @@ function plot_hist(cfg, RCSXX)
          ylabel('McGill Pain Questionnaire')
 
 
-         text(1, height(RCSXX)/4,...
+         text(1, height(redcap)/4,...
              [num2str(sum(MPQ_aff == 0)),' MPQ aff reports were "0"'],...
              'Fontsize', 14)
 

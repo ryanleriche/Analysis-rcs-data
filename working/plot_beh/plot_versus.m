@@ -1,25 +1,25 @@
 function [filt_fig, z_space_fig, dec_fig, cl_fig,...
-    z_RCSXX, vararout] = plot_versus(cfg, RCSXX)
+    z_RCSXX, vararout] = plot_versus(cfg, redcap)
 
 filt_fig = figure('Units', 'Inches', 'Position', [0, 0, 15, 10]);
 
-[~, RCSXX, date_range] = date_parser(cfg, RCSXX, []);
+[~, redcap, date_range] = date_parser(cfg, redcap, []);
 
 ds  =    datestr(date_range,'dd-mmm-yyyy');
 title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
 hold on
 
 
-RCSXX.MPQaff       = sum([RCSXX.MPQsickening, RCSXX.MPQfearful, RCSXX.MPQcruel],2,'omitnan');
-RCSXX.MPQsom       = RCSXX.MPQtotal - RCSXX.MPQaff;
+redcap.MPQaff       = sum([redcap.MPQsickening, redcap.MPQfearful, redcap.MPQcruel,  redcap.MPQtiring],2,'omitnan');
+redcap.MPQsom       = redcap.MPQtotal - redcap.MPQaff;
 
 
 % only KEEP if all VAS reports do NOT equal 50
 
-i_trim_VAS_any           = ~(RCSXX.unpleasantVAS == 50 | RCSXX.painVAS == 50 | RCSXX.worstVAS == 50);
+i_trim_VAS_any           = ~(redcap.unpleasantVAS == 50 | redcap.painVAS == 50 | redcap.worstVAS == 50);
 
-RCSXX_trim_VAS_any      = RCSXX(i_trim_VAS_any,:);
-RCSXX_rmv_VAS_any       = RCSXX(~i_trim_VAS_any,:);
+RCSXX_trim_VAS_any      = redcap(i_trim_VAS_any,:);
+RCSXX_rmv_VAS_any       = redcap(~i_trim_VAS_any,:);
                         
 
 
@@ -27,26 +27,26 @@ RCSXX_rmv_VAS_any       = RCSXX(~i_trim_VAS_any,:);
 % at least one VAS report equals 50 keep it ONLY if NRS equals 5 (i.e., a true
 % neutral report) AND none of the VAS reports are NaN
 
-i_trim_VAS_all   = ~(RCSXX.unpleasantVAS == 50 & RCSXX.painVAS == 50 & RCSXX.worstVAS == 50)...
+i_trim_VAS_all   = ~(redcap.unpleasantVAS == 50 & redcap.painVAS == 50 & redcap.worstVAS == 50)...
                     &...
                         ~(...
-                        (RCSXX.unpleasantVAS == 50 | RCSXX.painVAS == 50 | RCSXX.worstVAS == 50)...
-                        & RCSXX.mayoNRS ~= 5 ...
+                        (redcap.unpleasantVAS == 50 | redcap.painVAS == 50 | redcap.worstVAS == 50)...
+                        & redcap.mayoNRS ~= 5 ...
                         ...
-                        & sum(isnan([RCSXX.unpleasantVAS, RCSXX.painVAS == 50, RCSXX.worstVAS]),2) == 0);
+                        & sum(isnan([redcap.unpleasantVAS, redcap.painVAS == 50, redcap.worstVAS]),2) == 0);
 
 
-RCSXX_trim_VAS_all   = RCSXX(i_trim_VAS_all , :);
+RCSXX_trim_VAS_all   = redcap(i_trim_VAS_all , :);
 
-RCSXX_rmv_VAS_all    = RCSXX(~i_trim_VAS_all , :);
-
-
-prop_any_VAS_remain  = height(RCSXX_trim_VAS_any) / height(RCSXX);
-
-prop_all_VAS_remain  = height(RCSXX_trim_VAS_all) / height(RCSXX);
+RCSXX_rmv_VAS_all    = redcap(~i_trim_VAS_all , :);
 
 
-scatter3(RCSXX,'unpleasantVAS','painVAS','MPQtotal','filled', ...
+prop_any_VAS_remain  = height(RCSXX_trim_VAS_any) / height(redcap);
+
+prop_all_VAS_remain  = height(RCSXX_trim_VAS_all) / height(redcap);
+
+
+scatter3(redcap,'unpleasantVAS','painVAS','MPQtotal','filled', ...
     'ColorVariable', 'mayoNRS');
 
 
@@ -73,7 +73,7 @@ format_plot()
   
 %%
 
-pain_metrics = RCSXX.Properties.VariableNames;
+pain_metrics = redcap.Properties.VariableNames;
 
 % if unpleasantVAS, painVAS, and worstVAS are ALL 50s, ignore those reports
 

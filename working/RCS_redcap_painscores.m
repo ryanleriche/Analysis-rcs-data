@@ -46,25 +46,37 @@ if nargin == 0
     error('Token is required input')
 
 elseif nargin == 1
-    TOKEN = varargin{1};
+    rcs_TOKEN = varargin{1};
     pt_id_list = ...
         {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06',...
         ...
         'RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING',...
         'RCS04_STREAMING_v2','RCS05_STREAMING', 'RCS06_STREAMING',...
         ...
-        'RCS_Weekly', 'RCS_Monthly'};
+        'RCS_Weekly', 'RCS_Monthly',...
+        'FlUCT'};
     
 
 elseif nargin == 2
-    TOKEN      = varargin{1};
-    pt_id_list = varargin{2};
-      
+    rcs_TOKEN      = varargin{1};
+    pcs_TOKEN      = varargin{2};
+    pt_id_list = ...
+        {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06',...
+        ...
+        'RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING',...
+        'RCS04_STREAMING_v2','RCS05_STREAMING', 'RCS06_STREAMING',...
+        ...
+        'RCS_Weekly', 'RCS_Monthly',...
+        'FlUCT'};
+
+elseif nargin == 3
+
+    rcs_TOKEN      = varargin{1};
+    pcs_TOKEN      = varargin{2};
+    pt_id_list     = varargin{3};
+
 
 end
-
-
-
 for p = 1:numel(pt_id_list)
     
     
@@ -134,7 +146,7 @@ for p = 1:numel(pt_id_list)
             
         case 'FLUCT'
             PATIENT_ARM = 'dbs_and_nondbs_pat_arm_23';
-            reportid = '84060';
+            reportid    = '84060';
 
         case 'RCS_Weekly'
             
@@ -154,10 +166,26 @@ for p = 1:numel(pt_id_list)
     
     
     disp('************************');
-    
-    data = webwrite(...
+    if strcmp(reportid , '84060') % FLUCT study requires different API token
+        data = webwrite(...
+            SERVICE,...
+            'token', pcs_TOKEN, ...
+            'content', 'report',...
+            'report_id',reportid, ...
+            'format', 'csv',...
+            'type','flat',...
+            'rawOrLabelHeaders','label',...
+            'exportCheckboxLabel','false',...
+            'exportSurveyFields','true',...
+            'returnformat','csv');
+        
+        
+        alltable = data;
+
+    else
+        data = webwrite(...
         SERVICE,...
-        'token', TOKEN, ...
+        'token', rcs_TOKEN, ...
         'content', 'report',...
         'report_id',reportid, ...
         'format', 'csv',...
@@ -168,8 +196,8 @@ for p = 1:numel(pt_id_list)
         'returnformat','csv');
     
     
-    alltable = data;
-    
+        alltable = data;
+    end
    
     
     if ~contains(pt_id, {'STREAMING', 'Weekly', 'Monthly'}) 
@@ -199,8 +227,8 @@ for p = 1:numel(pt_id_list)
         % specify timezone for explicit datetime variable
         redcap_painscores.time.TimeZone = 'America/Los_Angeles'; % corresponds to 'America/Los_Angeles' timezone;
    
-    
-         varnames = clntable.Properties.VariableNames;
+              
+        varnames = clntable.Properties.VariableNames;
     
          if strcmp(pt_id, 'RCS06')
 

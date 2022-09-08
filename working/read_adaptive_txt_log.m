@@ -1,8 +1,16 @@
-function ...
-[u_events, ...
-    vargout] ...
-    = ...
-    read_adaptive_txt_log(fn, cfg)
+function [adaptiveLogTable,...
+    rechargeSessions, ...
+    group_changes,...
+    adaptiveDetectionEvents,...
+    mirrorLog] = read_adaptive_txt_log(fn,  cfg)
+
+
+
+%% RBL trouble-shooting as script rather than function
+
+% fn = fullfile(f.folder, f.name); % specified in 'RCS_logs()'
+% 
+% cfg;                             % specified in 'RCS_logs()'
 
 %This is used to extract ambulatory program changes, adaptive stim events
 %battery recharge etc
@@ -13,10 +21,13 @@ function ...
 % Optimized (removed almost all for loops) by Prasad Shirvalkar
 % July 28 2021
 
-
-close all;
-
 % initialize table
+
+    
+    rechargeSessions=[];
+    
+    adaptiveDetectionEvents=[];
+    mirrorLog = [];
 
 adaptiveLogTable = table();
 
@@ -25,7 +36,7 @@ str = fileread( fn );
 
 if ~isempty(str)  % only continue if the file is not empty
     
-    newBlocks     = regexp(str, {'\n\r'});
+    newBlocks = regexp(str, {'\n\r'});
     newBlockLines = newBlocks{1};
     newBlockLines = [1 newBlockLines];
     
@@ -36,30 +47,37 @@ if ~isempty(str)  % only continue if the file is not empty
         events{cntBlock} = str(newBlockLines(cntBlock) : newBlockLines(cntBlock+1));
         cntBlock = cntBlock + 1;
     end
-
     eventsRaw = events;
     
     
     %% get all event types
     xpruse1 = '(';
-    cac1 = cellfun(@(x) regexp(x, xpruse1), events,'UniformOutput',false);
+    cac1 = cellfun(@(x) regexp(x, xpruse1),events,'UniformOutput',false);
     xpruse1 = ')';
-    cac2 = cellfun(@(x) regexp(x, xpruse1), events,'UniformOutput',false);
+    cac2 = cellfun(@(x) regexp(x, xpruse1),events,'UniformOutput',false);
     
     strraw = cellfun(@(x,a,b) x(a(2)+1:b(2)-1),events,cac1,cac2,'UniformOutput',false);
-    
     adaptiveLogEvents.EventID = strraw;
     
     allEvents = eventsRaw;
 
-    u_events = unique(adaptiveLogEvents.EventID);
-    
-if cfg.pull_adpt_logs
 
-    %% AdaptiveTherapyStateChange
-    idxuse = strcmp(adaptiveLogEvents.EventID,'AdaptiveTherapyStateChange');
+
+
+    if cfg.pull_mirror_logs
+
+    %% MirrorLog
+
+
+
+
+    end
     
-    events = allEvents(idxuse);
+    if cfg.pull_adpt_logs
+    %% AdaptiveTherapyStateChange
+    i_ActiveDeviceChanged = strcmp(adaptiveLogEvents.EventID,'AdaptiveTherapyStateChange');
+    
+    events = allEvents(i_ActiveDeviceChanged);
     
     adaptiveLogTable = table('Size', [length(events) 10],'VariableTypes',{'datetime','double','double','double','double','double','double','double','double','cell'},'VariableNames',{'time','status','newstate','oldstate','prog0','prog1','prog2','prog3','rateHz','EventID'});
     
@@ -74,9 +92,9 @@ if cfg.pull_adpt_logs
     xpr = '(EmbeddedActive)';
     cac2 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
     
-    status = cellfun(@(x,a,b) x(a+68:b-3),events,cac1,cac2,'UniformOutput',false);
+    group_status = cellfun(@(x,a,b) x(a+68:b-3),events,cac1,cac2,'UniformOutput',false);
     
-    statusdec = hex2dec(status);
+    statusdec = hex2dec(group_status);
     adaptiveLogTable.status = statusdec;
     
     
@@ -138,13 +156,40 @@ if cfg.pull_adpt_logs
     %       strraw = str(cac1:cac2-4);
     strtmp = erase(strraw,{xpruse1,')'});
     adaptiveLogTable.EventID = string(cellfun(@(x) x(1:end-3),strtmp,'UniformOutput',false))';
-
-    %% Adaptive therapy status
-
- 
-    idxuse = strcmp(adaptiveLogEvents.EventID,'AdaptiveTherapyStatusChanged');
+    end
+    
+    
+    if cfg.pull_recharge_sess
+    %% Recharge sessions
+    
+    i_ActiveDeviceChanged = strcmp(adaptiveLogEvents.EventID,'RechargeSesson');
     allEvents = eventsRaw;
-    events = allEvents(idxuse);
+    events = allEvents(i_ActiveDeviceChanged);
+    rechargeSessions = table('Size', [length(events) 2], 'VariableTypes', {'datetime','cell'}, 'VariableNames', {'time','status'});
+    
+    startTimeDt  = get_date_from_hexstring(events); % see subfunction below
+    rechargeSessions.time = startTimeDt;
+    
+    
+    % get type
+    xpr = 'RechargeSessionEventLogEntry.RechargeSessionStatus = ';
+    cac1 =  cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
+    xpr = 'RechargeSessionEventLogEntry.Unused';
+    cac2 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
+    
+    group_status =  cellfun(@(x,a,b) x(a+59:b-12),events,cac1,cac2,'UniformOutput',false);
+    
+    rechargeSessions.status = group_status';
+    end
+    %%
+    
+    
+    
+    if cfg.pull_adpt_logs
+    %% Adaptive therapy status
+    i_ActiveDeviceChanged = strcmp(adaptiveLogEvents.EventID,'AdaptiveTherapyStatusChanged');
+    allEvents = eventsRaw;
+    events = allEvents(i_ActiveDeviceChanged);
     adaptiveStatus = table('Size', [length(events) 2], 'VariableTypes', {'datetime','cell'}, 'VariableNames', {'time','status'});
     
     % if ~isempty(events)
@@ -158,15 +203,92 @@ if cfg.pull_adpt_logs
     xpr = 'AdaptiveTherapyStatusChangedEventLogEntry.Unused = ';
     cac2 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
     
-    clear status
-    status = cellfun(@(x,a,b) x(a+57:b-12),events,cac1,cac2,'UniformOutput',false);
-    adaptiveStatus.status = status';
+    clear group_status
+    group_status = cellfun(@(x,a,b) x(a+57:b-12),events,cac1,cac2,'UniformOutput',false);
+    adaptiveStatus.status = group_status';
+    % end
+    end
     
+    
+    if cfg.pull_event_logs
+    %% Group ChangadaptiveLogEvents.EventIDes - i.e. ActiveDeviceChanged
+% unique(adaptiveLogEvents.EventID)
+
+    i_ActiveDeviceChanged = strcmp(adaptiveLogEvents.EventID,'ActiveDeviceChanged');
+% 
+    i_TherapyStatus       = strcmp(adaptiveLogEvents.EventID, 'TherapyStatus');
+
+    allEvents = eventsRaw;
+    events = allEvents(i_ActiveDeviceChanged);
+
+    ActiveGroup = table('Size', [length(events) 2], 'VariableTypes', {'datetime','string'}, 'VariableNames', {'time','event'});
+    % if ~isempty(events)
+    
+    startTimeDt  = get_date_from_hexstring(events); % see subfunction below
+    ActiveGroup.time = startTimeDt;
+    %%
+    % get type
+
+    xpr = 'TherapyActiveGroupChangedEventLogEntry.NewGroup = ';
+    cac1 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
+    
+    xpr = 'TherapyActiveGroupChangedEventLogEntry.Unused   = ';
+    cac2 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
+
+    clear group_status
+    group_status = cellfun(@(x,a,b) x(a+56:b-12), events, cac1, cac2,'UniformOutput',false);
+    
+    groupUse = replace(group_status,{'Group0','Group1','Group2','Group3'},{'A','B','C','D'});
+    ActiveGroup.event = groupUse';
+
+
+    xpr      = 'TherapyStatusEventLogEntry.TherapyStatus';
+    cac_3    = cellfun(@(x) regexp(x, xpr), eventsRaw(i_TherapyStatus), 'UniformOutput',false);
+
+    OnOff = cellfun(@(x,a) x(a(2):a(2)+57),  eventsRaw(i_TherapyStatus), cac_3, 'UniformOutput',false);
+ 
+    TherapyStatus = table;
+
+    % simplifies name and trims whitespace
+    TherapyStatus.event = regexprep(replace(OnOff,...
+        {'TherapyStatusEventLogEntry.TherapyStatus     = 0x01 (On)',...
+        'TherapyStatusEventLogEntry.TherapyStatus     = 0x00 (Off)'},{'on','off'})',...
+         '\s', '');
+
+  
+
+    TherapyStatus.time = get_date_from_hexstring(allEvents(i_TherapyStatus));
+
+    group_changes = sortrows([TherapyStatus; ActiveGroup],2);
+
+
+    % remove events that repeat
+    group_changes = [group_changes(1,:);...
+                        group_changes(...
+                            ~strcmp(group_changes.event(1:end -1),...
+                            group_changes.event(2:end)),:)...
+                            ];
+
+    % accounts for if first and second row repeat
+
+    if height(group_changes) > 1
+        if strcmp(group_changes.event(1), group_changes.event(2))
+    
+            group_changes(1,:) = [];
+    
+        end
+    end
+    % end
+    end
+    %%
+    
+    
+    if cfg.ld_detection_events
 
     %% LD detection events
-    idxuse = strcmp(adaptiveLogEvents.EventID,'LdDetectionEvent');
+    i_ActiveDeviceChanged = strcmp(adaptiveLogEvents.EventID,'LdDetectionEvent');
     allEvents = eventsRaw;
-    events = allEvents(idxuse);
+    events = allEvents(i_ActiveDeviceChanged);
     adaptiveDetectionEvents = table('Size', [length(events) 5], 'VariableTypes', {'datetime','double','cell','double','cell'}, 'VariableNames', {'time','detectionStatus','detectionText','previousDetectionStatus','previousDetectionText'});
     
     % for e = 1:length(events)
@@ -185,7 +307,7 @@ if cfg.pull_adpt_logs
     xprP = 'LdDetectionEntry.PreviousDetectionState = ';
     cac2 = cellfun(@(x) regexp(x, xprP),events,'UniformOutput',false);
     
-    % a sfew states possible
+    % a few states possible
     tempstr = cellfun(@(x,a,b) x(a:b),events,cac1,cac2,'UniformOutput',false);
     detectionNum  = get_detection_Num(tempstr);
     % get string event
@@ -210,56 +332,9 @@ if cfg.pull_adpt_logs
     
     adaptiveDetectionEvents.previousDetectionStatus = detectionNum;
     adaptiveDetectionEvents.previousDetectionText = newstr';
-
-end
-    
-
-    
-if cfg.pull_event_logs
-    %% Recharge sessions
-    
-    idxuse = strcmp(adaptiveLogEvents.EventID,'RechargeSesson');
-    allEvents = eventsRaw;
-    events = allEvents(idxuse);
-    rechargeSessions = table('Size', [length(events) 2], 'VariableTypes', {'datetime','cell'}, 'VariableNames', {'time','status'});
-    
-    startTimeDt  = get_date_from_hexstring(events); % see subfunction below
-    rechargeSessions.time = startTimeDt;
-    
-    
-    % get type
-    xpr = 'RechargeSessionEventLogEntry.RechargeSessionStatus = ';
-    cac1 =  cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
-    xpr = 'RechargeSessionEventLogEntry.Unused';
-    cac2 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
-    
-    status =  cellfun(@(x,a,b) x(a+59:b-12),events,cac1,cac2,'UniformOutput',false);
-    
-    rechargeSessions.status = status';
-    
-    %% Group Changes - i.e. ActiveDeviceChanged
-    idxuse = strcmp(adaptiveLogEvents.EventID,'ActiveDeviceChanged');
-    allEvents = eventsRaw;
-    events = allEvents(idxuse);
-    groupChanges = table('Size', [length(events) 2], 'VariableTypes', {'datetime','string'}, 'VariableNames', {'time','group'});
-    % if ~isempty(events)
-    
-    startTimeDt  = get_date_from_hexstring(events); % see subfunction below
-    groupChanges.time = startTimeDt;
-    
-    % get type
-    xpr = 'TherapyActiveGroupChangedEventLogEntry.NewGroup = ';
-    cac1 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
-    xpr = 'TherapyActiveGroupChangedEventLogEntry.Unused   = ';
-    cac2 = cellfun(@(x) regexp(x, xpr),events,'UniformOutput',false);
-    
-    clear status
-    status = cellfun(@(x,a,b) x(a+56:b-12),events,cac1,cac2,'UniformOutput',false);
-    
-    groupUse = replace(status,{'Group0','Group1','Group2','Group3'},{'A','B','C','D'});
-    groupChanges.group = groupUse';
-end
-    
+    % end
+ 
+    end
     %%
     
     % COMMENTED OUT by prasad because this is redundant with above, except for the 'AdaptiveTherapyStateWritten' Index
@@ -303,21 +378,17 @@ end
     
     
     
-    
-    
-    
-%     if size(adaptiveLogTable,1) > 30
-%         at = adaptiveLogTable(1:20,:);
-%         idxzero = at.newstate==0;
-%         unique(at.prog0(idxzero));
-%     end
+    if size(adaptiveLogTable,1) > 30
+        at = adaptiveLogTable(1:20,:);
+        idxzero = at.newstate==0;
+        unique(at.prog0(idxzero));
+    end
 else
     fprintf('Empty Log file detected../n')
     adaptiveLogTable=[];
     rechargeSessions=[];
-    groupChanges=[];
+    ActiveGroup=[];
     adaptiveDetectionEvents=[];
-    u_events = [];
     return
 end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -351,8 +422,9 @@ end
         hexstr0 = cellfun(@(x,a,b) x(a+12:b-3),events_input,cac11,cac22,'UniformOutput',false);
         
         rawsecs0 = hex2dec(hexstr0);
-        date_out = datetime(datevec(rawsecs0./86400 + datenum(2000,3,1,0,0,0))); % medtronic time - LSB is seconds
+        date_out = datetime(datevec(rawsecs0./86400 + datenum(2000,3,1,0,0,0))); % medtronic time - least signififant bit (LSB) is seconds
         
     end
+
 %%
 end

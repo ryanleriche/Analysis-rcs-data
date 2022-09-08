@@ -1,4 +1,4 @@
-function [textlog] = RCS_logs(rootdir,PATIENTIDside, cfg)
+function [textlog] = RCS_logs(rootdir, PATIENTIDside, cfg)
 
 % RCS Database
 
@@ -54,6 +54,14 @@ function [textlog] = RCS_logs(rootdir,PATIENTIDside, cfg)
 
 % For OpenMind
 
+%% just RCS05 for development
+
+
+% rootdir                = pia_raw_dir;
+% PATIENTIDside          = 'RCS05R';
+% 
+
+
 %% create loop through all text files for adaptive_read_log_txt.m for database
 
 warning("off", "all"); 
@@ -66,11 +74,11 @@ else
     PATIENTID = PATIENTIDside;
 end
 
-fprintf('Compiling database for %s /n', PATIENTIDside)
+fprintf('Compiling RCS logsfor %s ', PATIENTIDside)
     
     
-scbs_dir = fullfile(rootdir,PATIENTID,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
-adbs_dir = fullfile(rootdir,PATIENTID,'/SummitData/StarrLab/', PATIENTIDside);
+scbs_dir = fullfile(rootdir, PATIENTID,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
+adbs_dir = fullfile(rootdir, PATIENTID,'/SummitData/StarrLab/', PATIENTIDside);
 
 filelist = dir(fullfile(scbs_dir,'**/*.txt')); % all txt files contains within session files
 % remove the files that start with ._  (some icloud issue of duplicate files to ignore)
@@ -83,28 +91,21 @@ GroupchangeData     = table();
 RechargeData        = table();
 AdaptiveDetect      = table();
 
-u_events = '';
 for i = 1:numel(filelist)
     f = filelist(i);
 
     if endsWith(f.name,"EventLog.txt")
-        [new_u_events] ...
+        [~, ~, groupChanges, ~, ~] ...
             ...
             = read_adaptive_txt_log(fullfile(f.folder, f.name), cfg);
 
-        u_events = [u_events, new_u_events];
 
-%         GroupchangeData = [GroupchangeData; groupChanges];
-%         RechargeData =[RechargeData; rechargeSessions];
+        GroupchangeData = [GroupchangeData; groupChanges];
+
         % fprintf("Done %s, %d/%d: %d\n", f.name, i, numel(filelist), size(groupChanges, 1));
+
     end
-    
 end
-
-unique(u_events)'
-
-
-
 
 
 
@@ -127,40 +128,33 @@ toc
 %% format Text Log tables and eliminate duplicates from overlap
 
 % make sure time is datetime
-AppLogData.time         = datetime(AppLogData.time);
+% AppLogData.time         = datetime(AppLogData.time);
 GroupchangeData.time    = datetime(GroupchangeData.time);
-AdaptiveDetect.time     = datetime(AdaptiveDetect.time);
-RechargeData.time       = datetime(RechargeData.time);
+% AdaptiveDetect.time     = datetime(AdaptiveDetect.time);
+% RechargeData.time       = datetime(RechargeData.time);
 
 % sort all rows by date
-sorted_ALD              = sortrows(AppLogData, 1);
-sorted_ELD              = sortrows(GroupchangeData, 1);
-sorted_AD               = sortrows(AdaptiveDetect, 1); 
-sorted_RD               = sortrows(RechargeData, 1);
+% sorted_ALD              = sortrows(AppLogData, 1);
+sorted_ELD              = sortrows(GroupchangeData, 2);
+% sorted_AD               = sortrows(AdaptiveDetect, 1); 
+% sorted_RD               = sortrows(RechargeData, 1);
 
-% remove all duplicate timestamps
-[~, ALD_ind]            = unique(sorted_ALD.time);
-[~, ELD_ind]            = unique(sorted_ELD.time);
-[~, AD_ind]             = unique(sorted_AD.time);  %comment out if detections may occur at below 1sec timescale
-[~, RD_ind]             = unique(sorted_RD.time); %ok to remove dups since we only care about recharging on minute scale.
+% remove all duplicate entries
+% [~, ALD_ind]            = unique(sorted_ALD.time);
+% [~, ELD_ind]            = unique(sorted_ELD.time);
+% [~, AD_ind]             = unique(sorted_AD.time);  %comment out if detections may occur at below 1sec timescale
+% [~, RD_ind]             = unique(sorted_RD.time); %ok to remove dups since we only care about recharging on minute scale.
 
-unique_sorted_ALD       = table2timetable(sorted_ALD(ALD_ind, :));
-unique_sorted_ELD       = table2timetable(sorted_ELD(ELD_ind, :));
-unique_sorted_AD        =  table2timetable(sorted_AD(AD_ind, :));
-unique_sorted_RD        = table2timetable(sorted_RD(RD_ind, :));
+% unique_sorted_ALD       = table2timetable(sorted_ALD(ALD_ind, :));
+unique_sorted_ELD         = sortrows(table2timetable(unique(sorted_ELD)));
+% unique_sorted_AD        =  table2timetable(sorted_AD(AD_ind, :));
+% unique_sorted_RD        = table2timetable(sorted_RD(RD_ind, :));
 
 % rename final variables for Text logs 
-textlog.app             = unique_sorted_ALD;
+% textlog.app             = unique_sorted_ALD;
 textlog.groupchange     = unique_sorted_ELD;
 textlog.groupchange.time.TimeZone = 'America/Los_Angeles'; % assign same time zone as ProcessRCS
-textlog.adaptive        = unique_sorted_AD;
-textlog.recharge        = unique_sorted_RD; 
-%% SAVE The Text Log structure
+% textlog.adaptive        = unique_sorted_AD;
+% textlog.recharge        = unique_sorted_RD; 
 
-fn                      = [PATIENTIDside '_textlogs.mat'];
-
-save(fullfile(rootdir,PATIENTID,fn),'textlog')
-
-fprintf('mat of Text Logs (Log structure) saved to \n %s \n',fullfile(rootdir,PATIENTID,fn));
-
-end
+ end

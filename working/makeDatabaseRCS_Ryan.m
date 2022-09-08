@@ -86,30 +86,25 @@ Add to DataBase:
     X session starts and stops
     X parsed stim parameters
 
-    * duty cycle
+    X duty cycle
         * (close, but) figure out unit conversion into seconds 
-        - "12, 12" could be unix time
+        - see Metronic.SummitAPI
 
-    * find impedance wrt to each stimparams output
+    X find impedance wrt to each stimparams output
+        - reported in EventLog.json each Lead Integrity check
 
-    * see below, but figure out sessions w/ multiple stim parameters and
+    X see below, but figure out sessions w/ multiple stim parameters and
     effective time stamping
+        - return as table w/ each change per session
 
     
-    * pain report timestamps
-        - search within the 'log.json' for when the "Complete Pain Report"
-        button w/n SCBS was pressed
-
-        - search for further time stamps
-
-        -> eventually, compare to REDcap timestamps (start, vas start, mpq
-        start (?))
-
-read through all information contained w/n the adaptive.json, log.json, and
-mirror.json
+    X pain report timestamps
+        - REDcap timestamps are darn close to API logs (see
+        'db_sort_beh()')
 
 
-Ryan Leriche Jul 20, 2022
+
+Ryan Leriche Aug 20, 2022
 
 %}
 
@@ -142,7 +137,9 @@ db_out      = struct('rec',[],...
                 'stimSettingsOut',[],...
                 'stimMetaData', [],...
                 'stimLogSettings', [],...
-                'eventLogTable', []...
+                'eventLogTable', [],...
+                'path', [],...
+                'stimReg', []...
                 );
 
 %%
@@ -200,12 +197,13 @@ for d = 1: length(sess_dirs)
 
     fprintf('Reading folder %d of %d  \n', d, length(sess_dirs))
 
-    if isempty(given_sess) % no data exists inside
+    json_files = dir([given_sess{:}, '/*.json']);
 
-        db_out(d).time = [];
-        db_out(d).matExist  = 0;
+    if isempty(json_files) % no data exists inside
+
+        db_out(d).timeStart = [];
         [~,fn] = fileparts(sess_dirs{d});
-        db_out(d).sessname = fn;
+        db_out(d).sess_name = fn;
         disp('no data.. moving on');
 
     else % data may exist, check for time domain data
@@ -225,7 +223,6 @@ for d = 1: length(sess_dirs)
 
             % extract times and .mat status
             % load device settings file
-
             settingsfile                 = findFilesBVQX(sess_dirs{d},'DeviceSettings.json');
             [devicepath,~,~]            = fileparts(settingsfile{1});
             try
@@ -248,7 +245,9 @@ for d = 1: length(sess_dirs)
                         timeStart = timeDomainSettings.timeStart / 1000;
 
                         timeStop = timeDomainSettings.timeStop / 1000;
-        
+                        
+                        % accounts for daylight savings and timezones based
+                        % off of UTC offset
                         timeFormat = sprintf('%+03.0f:00', metaData.UTCoffset);
         
                         timeStart = datetime(timeStart,...
@@ -289,27 +288,38 @@ for d = 1: length(sess_dirs)
             db_out(d).stimMetaData    = stimMetaData;
 
 
-            %Get stim information if STIM is on
-            if db_out(d).stimSettingsOut.therapyStatus == 1 
-    
-                stimfile          = findFilesBVQX(sess_dirs{d},'StimLog.json');
-                [stimpath,~,~]    = fileparts(stimfile{1});
-    
-    
-                [stimLogSettings] = createStimSettingsTable(stimpath,stimMetaData);
+            % load StimLog.json (stim parameters, active group and therapy status)
+            stimfile          = findFilesBVQX(sess_dirs{d},'StimLog.json');
+            [stimpath,~,~]    = fileparts(stimfile{1});
 
-                db_out(d).stimLogSettings = stimLogSettings;
-    
-                db_out(d).stimLogSettings.stimParams_prog1 = ...
-                    stimLogSettings.stimParams_prog1;
-                    
-                stimnamegroup        = {'A','B','C','D'; '1' , '5', '9','13'};
-                [~,j]                = find(contains(stimnamegroup,stimLogSettings.activeGroup));
-                stimname             =  metaData.stimProgramNames(str2double(stimnamegroup{2,j(1)}));
-    
-                db_out(d).stimReg   =  stimname{1};    
-    
-            end
+
+            [stimLogSettings] = createStimSettingsTable(stimpath, stimMetaData);
+
+             if ~isempty(timeDomainSettings) && ~isempty(powerSettings)
+
+                 % Get recording start time/ duration
+                time_stimLog = stimLogSettings.HostUnixTime / 1000;
+
+                % accounts for daylight savings and timezones based
+                % off of UTC offset
+                timeFormat = sprintf('%+03.0f:00', metaData.UTCoffset);
+                
+                stimLogSettings.time_stimLog = datetime(time_stimLog,...
+                'ConvertFrom','posixTime','TimeZone',timeFormat,...
+                'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+        
+             end
+
+            db_out(d).stimLogSettings = stimLogSettings;
+
+            db_out(d).stimLogSettings.stimParams_prog1 = ...
+                stimLogSettings.stimParams_prog1;
+                
+            stimnamegroup        = {'A','B','C','D'; '1' , '5', '9','13'};
+            [~,j]                = find(contains(stimnamegroup,stimLogSettings.activeGroup));
+            stimname             =  metaData.stimProgramNames(str2double(stimnamegroup{2,j(1)}));
+
+            db_out(d).stimReg   =  stimname{1};    
 
           
     
@@ -352,8 +362,12 @@ end
 
 
 database_out            = struct2table(db_out,'AsArray',true);
-database_out.rec        = [1:height(database_out)]';
 
+if ~cfg.ignoreold
+    database_out.rec        = [1:height(database_out)]' + height(old_database);
+else
+    database_out.rec        = [1:height(database_out)]';
+end
 
 % delete all rows with empty session names (WHY DOES THIS OCCUR?)
 database_out            = database_out(cellfun(@(x) ~isempty(x),database_out.sess_name),:);
@@ -380,21 +394,27 @@ if ~isempty(old_database)
 
         if ~isempty(RCSdatabase_out)
 
-        RCSdatabase_out = [old_database; RCSdatabase_out];
+            RCSdatabase_out = [old_database; RCSdatabase_out];
+        else
+            RCSdatabase_out  = old_database;
+
+            disp(['Database as of ', datestr(old_database.timeStart{end}), '; ',...
+            old_database.sess_name{end},'---new files since were empty'])
+        end
     
         if ~isempty(badsessions)
             badsessions = [old_badsessions; badsessions];
         else
             badsessions = old_badsessions;
-        end
+
         end
         
     else
         RCSdatabase_out  = old_database;
         varargout{1}     = old_badsessions;
 
-        disp(['Old database as of ', datestr(old_database.timeStart(end)), '; ',...
-            old_database.sessname{end}])
+        disp(['Old database as of ', datestr(old_database.timeStart{end}), '; ',...
+            old_database.sess_name{end}])
 
     end
 end

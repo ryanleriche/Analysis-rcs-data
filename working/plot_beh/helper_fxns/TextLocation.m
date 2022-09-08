@@ -6,6 +6,7 @@ t.String = textString;
 t.Position = l.Position;
 delete(l);
 t.LineStyle = 'None';
+t.FontSize = 12;
 
 if nargout
     hOut = t;

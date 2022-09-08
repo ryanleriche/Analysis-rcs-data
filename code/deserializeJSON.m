@@ -11,7 +11,7 @@ filePath = fileparts(pathToCode);
 addpath(genpath(fullfile(filePath,'toolboxes', 'turtle_json','src')))
 
 % Try loading json file - may need to have a closing bracket added
-start = tic;
+% start = tic;
 try
     data = json.load(filename);
     % fprintf('File loaded in %.2f seconds\n',toc(start));
