@@ -396,8 +396,8 @@ https://www.mathworks.com/help/stats/specify-the-response-and-design-matrices.ht
 
 cfg             = [];
 cfg.pt_id       = 'RCS04';
-cfg.stimRegL    = [{'LACC: ', ["0","1","2","3"]}; {'LCaud: ', ["8","9","10","11"]}];
-cfg.stimRegR    = [{'RACC: ', ["0","1","2","3"]}; {'RThal: ', ["8","9","10","11"]}];
+cfg.stimRegL    = [{'LACC ', ["0","1","2","3"]}; {'LCaud ', ["8","9","10","11"]}];
+cfg.stimRegR    = [{'RACC ', ["0","1","2","3"]}; {'RThal ', ["8","9","10","11"]}];
 
 [wrt_stim_REDcap.RCS04, stimGroup.RCS04, freq_amp_pq.RCS04] ...
     ...
