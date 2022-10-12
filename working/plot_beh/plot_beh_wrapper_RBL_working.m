@@ -20,7 +20,7 @@ REDcap                 = RCS_redcap_painscores(rcs_API_token);
 
 % fluct = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
 
-% Stage start dates I-III for RCS pts 1-6
+%% Stage start dates, home, and clinic visits for RCS pts 1-6
 stage_dates             = {{''}, {'08-Sep-2020'; '31-Jan-2021'; '31-May-2022'},... % RCS02
                            {''}, {'13-May-2021'; '12-Jul-2021'},... % RCS04
                            {'21-Jul-2021';'07-Sep-2021'},... % RCS05
@@ -882,3 +882,53 @@ t_in_sec        = n_iter * n_runs * (t_off+ t_on);
 duty_cycle      = t_on / (t_off + t_on);
 
 t_in_min        = t_in_sec / 60
+
+
+
+
+%%
+cont_I  = repmat(["c+1-", "c+2-", "1+2-", "c+1-", "c+2-", "1+2-"; ...
+                         "1", "1", "1", "2", "2", "2"], 1, 4);
+
+
+shuffled_cont_I  = cont_I(:,randperm(length(cont_I)))';
+
+
+cont_II  = repmat(["0+3-", "0+2-", "0+1-", "0+3-", "0+2-", "0+1-"; ...
+                         "1", "1", "1", "2", "2", "2"], 1, 4);
+
+
+shuffled_cont_II  = cont_II(:,randperm(length(cont_II)))';
+
+
+cont_III  = repmat(["X", "Y", "X", "Y"; "0", "0", "2", "2"], 1, 4);
+
+shuffled_cont_III  = cont_III(:,randperm(length(cont_III)))';
+
+
+
+
+length(shuffled_cont_I) + length(shuffled_cont_II) * 40* 2 / 60
+
+%%
+amps             = repmat([1 2], 1, 3);
+shuffled_amps    = amps(:,randperm(length(amps)))';
+
+shuffled_amps    = reshape([shuffled_amps' ; zeros(size(shuffled_amps'))],[],1);
+
+
+
+4*16*40 / 60
+
+
+
+
+((60 * 6) + (20 *5)) * 6 /60
+
+
+
+
+
+
+
+
