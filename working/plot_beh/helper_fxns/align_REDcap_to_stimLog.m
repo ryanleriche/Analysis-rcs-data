@@ -70,7 +70,8 @@ else
     
         if ~any(strcmp(db_RCSXXX.stimLogSettings{i,1}.Properties.VariableNames, 'time_stimLog'))
     
-            % finds proper timezone for StimLog.json
+            % finds proper timezone for StimLog.json based off of nearest
+            % metaData
             try
                 time_stimLog = db_RCSXXX.stimLogSettings{i,1}.HostUnixTime / 1000;
 

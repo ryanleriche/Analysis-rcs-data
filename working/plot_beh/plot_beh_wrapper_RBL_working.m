@@ -110,7 +110,7 @@ visits.RCS06.desc   = ...
 
 cfg                    = [];
 cfg.load_EventLog      = false;
-cfg.ignoreold          = false;
+cfg.ignoreold          = true;
 
 
 % RCS04
@@ -277,7 +277,7 @@ parameters btwn. that and the StimLog.json
 
 
 %}
-% code (commented as used for sanity check)
+% code (commented as used for sanity check btwn StimLog.json and DeviceSettings.json)
 %{
 i_stimLog_redcaps = cell2mat(stimLog.i_redcap);
 
@@ -389,7 +389,6 @@ https://www.mathworks.com/help/stats/specify-the-response-and-design-matrices.ht
 * for LCaud, RThal, and bilateral stim contacts look run run a Kruskal-Walis 
   test across amplitude w/n contacts 
 
-
 * follow-up with a Wilconxin signed rank test (?) for signifigant groups
 
 %}
@@ -467,7 +466,7 @@ cfg.subplot             = true;
 cfg.stim_parameter      = '';
 
 cfg.dates               = 'PreviousDays';
-cfg.ndays               = 7;
+cfg.ndays               = 10;
 cfg.subplot             = true;
 
     plot_timeline(cfg, REDcap.RCS04);

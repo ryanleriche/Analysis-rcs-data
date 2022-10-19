@@ -364,15 +364,33 @@ end
 database_out            = struct2table(db_out,'AsArray',true);
 
 if ~cfg.ignoreold
-    database_out.rec        = [1:height(database_out)]' + height(old_database);
+    database_out.rec        = (1:height(database_out))' + height(old_database);
 else
-    database_out.rec        = [1:height(database_out)]';
+    database_out.rec        = (1:height(database_out))';
 end
 
 % delete all rows with empty session names (WHY DOES THIS OCCUR?)
 database_out            = database_out(cellfun(@(x) ~isempty(x),database_out.sess_name),:);
 
 RCSdatabase_out         = sortrows(database_out, 'sess_name'); %sorting by session name
+
+% when database does not have any missing fields it is returned as a struct
+% array rather than a cell array of structures
+
+if isstruct(RCSdatabase_out.metaData)
+
+% -> meaning we need to convert to a cell array of structures before we
+% concatenate with the previous database
+
+    for i = 1: height(RCSdatabase_out)
+
+        RCSdatabase_out.metaData_new(i) = {RCSdatabase_out.metaData(i)};
+    end
+
+    RCSdatabase_out = removevars(RCSdatabase_out , 'metaData');
+
+    RCSdatabase_out = renamevars(RCSdatabase_out ,'metaData_new', 'metaData');
+end
 
 %% clear empty session rows and assign to new variable 'badsessions'
 if iscell(RCSdatabase_out.timeStart)
