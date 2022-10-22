@@ -594,12 +594,16 @@ while keep_going
         %for watching it, comment the scatter lines in the end, and
         %uncomment this line, however groups with one point won't be shown
         %scatter(xValues(subsetind),yValues(subsetind),PointStyle)
+
+
     end
     % advance in the while loop as long as the cutUp value is out of the
     % range of the points
-    keep_going=~(cutUp>max(yValues) || cutUp<min(yValues));
+    keep_going = ~(cutUp>=max(yValues) || cutUp<min(yValues));
     cutUp=cutUp+steps*cuts;
     subsetind= yValues<cutUp & yValues>cutUp-cuts;
+
+
 end
 end
 

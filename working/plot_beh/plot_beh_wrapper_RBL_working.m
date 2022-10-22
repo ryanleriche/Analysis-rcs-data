@@ -27,26 +27,6 @@ stage_dates             = {{''}, {'08-Sep-2020'; '31-Jan-2021'; '31-May-2022'},.
                            {'07-Jun-2022','18-Aug-2022'}}; % RCS06
 
 
-visits              = struct;
-visits.RCS05        = table;
-visits.RCS05.dates  = datetime(...
-   {'21-Jul-2021';   '22-Jul-2021';    '23-Jul-2021';...
-    '07-Sep-2021';   '08-Sep-2021';    '09-Sep-2021';...
-    '01-Dec-2021';   '02-Dec-2021';...
-    '10-Aug-2022';   '11-Aug-2022';...
-    '05-Sep-2022'},...
-    ...
-    'TimeZone', 'America/Los_Angeles');
-
-visits.RCS05.desc   = ...
-    {'s1_implant';      's1_inpatient_d1';   's1_inpatient_d2';...
-    's2_inclinic_d1';   's2_inclinic_d2' ;   's2_inclinic_d3';...
-    's2_home_d1'    ;   's2_home_d2';...
-    's2_inclinic_d1';   's2_inclinic_d2';...
-    's3_start'};
-
-
-
 
 visits.RCS02        = table;
 visits.RCS02.dates  = datetime(...
@@ -91,17 +71,37 @@ visits.RCS04.desc   = ...
      };
 
 
+visits              = struct;
+visits.RCS05        = table;
+visits.RCS05.dates  = datetime(...
+   {'21-Jul-2021';   '22-Jul-2021';    '23-Jul-2021';...
+    '07-Sep-2021';   '08-Sep-2021';    '09-Sep-2021';...
+    '01-Dec-2021';   '02-Dec-2021';...
+    '10-Aug-2022';   '11-Aug-2022';...
+    '05-Sep-2022'},...
+    ...
+    'TimeZone', 'America/Los_Angeles');
+
+visits.RCS05.desc   = ...
+    {'s1_implant';      's1_inpatient_d1';   's1_inpatient_d2';...
+    's2_inclinic_d1';   's2_inclinic_d2' ;   's2_inclinic_d3';...
+    's2_home_d1'    ;   's2_home_d2';...
+    's2_inclinic_d1';   's2_inclinic_d2';...
+    's3_start'};
+
+
+
 
 visits.RCS06        = table;
 visits.RCS06.dates  = datetime(...
-   {'01-Mar-2022';...   
-    '07-Jun-2021'}, ...
+   {'07-Jun-2022'; '08-Jun-2022'; '09-Jun-2022';...
+    '17-Aug-2022'; '18-Aug-2022'}, ...
     ...
     'TimeZone', 'America/Los_Angeles');
 
 visits.RCS06.desc   = ...
-    {'s1_implant';...
-     's2'};
+    {'s1_implant';  's1_inpatient_d1';  's1_inpatient_d2';...
+     's2_inclinic_d1';  's2_inclinic_d2'};
 
 %% import RCS Databases per pt side
 
@@ -110,7 +110,7 @@ visits.RCS06.desc   = ...
 
 cfg                    = [];
 cfg.load_EventLog      = false;
-cfg.ignoreold          = true;
+cfg.ignoreold          = false;
 
 
 % RCS04
@@ -183,9 +183,10 @@ determine when w/n streaming session REDcap survey occured
 
 %% concatenate StimLog.json outputs from RCS database
 
-cfg = [];
-cfg.stage_dates = stage_dates{2};
-cfg.pt_id       = 'RCS02';
+cfg                             = [];
+cfg.stage_dates                 = stage_dates{2};
+cfg.pt_id                       = 'RCS02';
+
 
 % RCS02
 [stimLog_w_redcap.RCS02R] = ...
@@ -393,53 +394,64 @@ https://www.mathworks.com/help/stats/specify-the-response-and-design-matrices.ht
 
 %}
 
-cfg             = [];
-cfg.pt_id       = 'RCS04';
-cfg.stimRegL    = [{'LACC ', ["0","1","2","3"]}; {'LCaud ', ["8","9","10","11"]}];
-cfg.stimRegR    = [{'RACC ', ["0","1","2","3"]}; {'RThal ', ["8","9","10","11"]}];
-
-[wrt_stim_REDcap.RCS04, stimGroup.RCS04, freq_amp_pq.RCS04] ...
+% RCS02
+[wrt_stim_REDcap.RCS02, stimGroups.RCS02] ...
     ...
-    = wrt_stim(...
+    = make_stim_groups(...
     ...
-    cfg, stimLog_w_redcap.RCS04L, stimLog_w_redcap.RCS04R, REDcap.RCS04, visits.RCS04);
-%%
+'RCS02', [], stimLog_w_redcap.RCS02R, REDcap.RCS02, visits.RCS02);
 
 
-% i_noise = find(strcmp(db.RCS06R.sess_name, 'Session1656375334214'))
-% i_noise = find(strcmp(db.RCS06R.sess_name, 'Session1656546304945'))
-% 
-% i_noise = find(strcmp(db.RCS06R.sess_name, 'Session1657147052311'))
-% 
-% 
-% 
-% 'L ACC'	'L ACC: c+2-'	0	100	50	'A'	1	1
-% 'R Thal'	'R Thal: c+2-'	0	200	100	'A'	1	1
-% 
-% 
-% find(min(abs(db.RCS06L.timeStart{
-%% organize Streaming Notes, clinic dates, etc
+cfg                          = [];
+cfg.pt_id                    ='RCS02';
+cfg.min_n_reports            = 5;
 
-
-%{
-
-RCS06
-
-    08/17/22 clinic visit
-
-    instructed on Streaming Notes to use HIS timezone 
-    
-    sliders on pt tablet "jumps"--needs to zoom in to get VAS right where he
-    wants it
-
-    CTM occasionally drops during sessions--probably the right side--not
-    100%
-
-    for MPQ "sickening" field has been answered--last 3-7 days Crohn's Flare
+    plted_stim_groups.RCS02  = plot_stim_groups(cfg, stimGroups.RCS02);
 
 
 
-%}
+% RCS04
+[wrt_stim_REDcap.RCS04, stimGroups.RCS04] ...
+    ...
+    = make_stim_groups(...
+    ...
+ 'RCS04', stimLog_w_redcap.RCS04L, stimLog_w_redcap.RCS04R, REDcap.RCS04, visits.RCS04);
+
+
+cfg                          = [];
+cfg.pt_id                    ='RCS04';
+cfg.min_n_reports            = 5;
+
+    plted_stim_groups.RCS04  = plot_stim_groups(cfg, stimGroups.RCS04);
+
+
+
+% RCS05
+[wrt_stim_REDcap.RCS05, stimGroups.RCS05] ...
+    ...
+    = make_stim_groups(...
+    ...
+'RCS05', stimLog_w_redcap.RCS05L, stimLog_w_redcap.RCS05R, REDcap.RCS05, visits.RCS05);
+
+cfg                          = [];
+cfg.pt_id                    ='RCS05';
+cfg.min_n_reports            = 5;
+
+    plted_stim_groups.RCS05  = plot_stim_groups(cfg, stimGroups.RCS05);
+
+
+% RCS06
+[wrt_stim_REDcap.RCS06, stimGroups.RCS06] ...
+    ...
+    = make_stim_groups(...
+    ...
+'RCS06', stimLog_w_redcap.RCS06L, stimLog_w_redcap.RCS06R, REDcap.RCS06, visits.RCS06);
+
+cfg                          = [];
+cfg.pt_id                    ='RCS06';
+cfg.min_n_reports            = 5;
+
+    plted_stim_groups.RCS06  = plot_stim_groups(cfg, stimGroups.RCS06);
 
 
 
@@ -455,7 +467,7 @@ cfg.subplot             = false;
 
 cfg.stim_parameters     = {'contacts'};
    
-    plot_timeline(cfg, REDcap.RCS04, db_beh.RCS04);
+    plot_timeline(cfg, REDcap.RCS04);
 
 %% last 7 days for all pts
 cfg                     = [];
@@ -708,6 +720,36 @@ end
 Chronback's coefficient alpha
 
 %}
+
+
+%% organize Streaming Notes, clinic dates, etc
+
+
+%{
+RCS06
+    08/17/22 clinic visit
+
+    instructed on Streaming Notes to use HIS timezone 
+    
+    sliders on pt tablet "jumps"--needs to zoom in to get VAS right where he
+    wants it
+
+    CTM occasionally drops during sessions--probably the right side--not
+    100%
+
+    for MPQ "sickening" field has been answered--last 3-7 days Crohn's Flare
+%}
+
+
+
+
+
+
+
+
+
+
+
 
 openfig([cd,'/plot_beh/figs/RCS02_z_space.fig'])
 
