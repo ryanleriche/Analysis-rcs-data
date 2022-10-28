@@ -10,8 +10,7 @@ function [stimLog_w_redcap] = align_REDcap_to_stimLog(cfg, db_RCSXXX, redcap)
 
 
 % only takes REDcap surverys from AFTER Stage I implant
-redcap   = redcap(ge(redcap.time, datetime(cfg.stage_dates(1),'TimeZone','America/Los_Angeles')),...
-                  :); 
+redcap   = redcap(ge(redcap.time, datetime(cfg.stage_dates.(cfg.pt_id)(1),'TimeZone','America/Los_Angeles')),:); 
 
 i_stimlog = cellfun(@(x) ~isempty(x), db_RCSXXX.stimLogSettings);
 

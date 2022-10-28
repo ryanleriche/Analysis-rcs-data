@@ -6,7 +6,7 @@ function plot_timeline(cfg, redcap, varargin)
 % cfg.stage_dates         = stage_dates{4}; % starts at Stage 1
 % cfg.subplot             = true;
 % 
-% cfg.stim_parameter      = 'all';
+% cfg.stim_parameters      = 'all';
 % 
 % cfg.dates               = 'DateRange';
 % cfg.date_range               = {'14-Jul-2022'; '6-Sep-2022'};
@@ -69,8 +69,8 @@ function plot_timeline(cfg, redcap, varargin)
      
      hold on
 
-     if ~strcmp(cfg.stim_parameter, '')
-         overlay_stim(gca, cfg.stim_parameter, redcap);   
+     if ~strcmp(cfg.stim_parameters, '')
+         overlay_stim(gca, cfg.stim_parameters, redcap);   
      end
 
      format_plot();
@@ -123,8 +123,8 @@ function plot_timeline(cfg, redcap, varargin)
 
      end
 
-     if ~strcmp(cfg.stim_parameter, '')
-         overlay_stim(gca, cfg.stim_parameter, redcap);   
+     if ~strcmp(cfg.stim_parameters, '')
+         overlay_stim(gca, cfg.stim_parameters, redcap);   
      end
      format_plot();
             
@@ -170,8 +170,8 @@ function plot_timeline(cfg, redcap, varargin)
    % overlay_stim(cfg.stim_parameter)
     format_plot();
     
-     if ~strcmp(cfg.stim_parameter, '')
-         overlay_stim(gca, cfg.stim_parameter, redcap);   
+     if ~strcmp(cfg.stim_parameters, '')
+         overlay_stim(gca, cfg.stim_parameters, redcap);   
      end
 %% local functions
 %{

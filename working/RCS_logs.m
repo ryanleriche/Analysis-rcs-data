@@ -54,12 +54,6 @@ function [textlog] = RCS_logs(rootdir, PATIENTIDside, cfg)
 
 % For OpenMind
 
-%% just RCS05 for development
-
-
-% rootdir                = pia_raw_dir;
-% PATIENTIDside          = 'RCS05R';
-% 
 
 
 %% create loop through all text files for adaptive_read_log_txt.m for database
@@ -74,7 +68,7 @@ else
     PATIENTID = PATIENTIDside;
 end
 
-fprintf('Compiling RCS logsfor %s ', PATIENTIDside)
+fprintf('Compiling RCS logs for %s ', PATIENTIDside)
     
     
 scbs_dir = fullfile(rootdir, PATIENTID,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
@@ -86,25 +80,34 @@ badfiles = arrayfun(@(x) contains(x.name,'._'),filelist);
 filelist(badfiles)=[];
 filelist = filelist(~[filelist.isdir]);
 
+
+
 AppLogData          = table(); % create empty tables
 GroupchangeData     = table();
 RechargeData        = table();
 AdaptiveDetect      = table();
 
+
+                    %  progress bar
+                    roundnum1 = round(numel(filelist),-1);
+                    denom1 = roundnum1/5;
+
+
+
 for i = 1:numel(filelist)
     f = filelist(i);
 
     if endsWith(f.name,"EventLog.txt")
-        [~, ~, groupChanges, ~, ~] ...
-            ...
-            = read_adaptive_txt_log(fullfile(f.folder, f.name), cfg);
+
+        [~, ~, groupChanges, ~, ~] = read_adaptive_txt_log(fullfile(f.folder, f.name), cfg);
+        GroupchangeData = [GroupchangeData; groupChanges];    
+    end 
 
 
-        GroupchangeData = [GroupchangeData; groupChanges];
-
-        % fprintf("Done %s, %d/%d: %d\n", f.name, i, numel(filelist), size(groupChanges, 1));
-
-    end
+        if mod(i,denom1)==0
+                        pct_done = i/numel(filelist) *100;
+                        fprintf('%0.3g %% done... \n',pct_done);           
+        end
 end
 
 
@@ -121,8 +124,6 @@ if cfg.pull_adpt_logs == true
     end
 end
 
-fprintf("Done!\n");
-toc
 
 
 %% format Text Log tables and eliminate duplicates from overlap
@@ -157,4 +158,13 @@ textlog.groupchange.time.TimeZone = 'America/Los_Angeles'; % assign same time zo
 % textlog.adaptive        = unique_sorted_AD;
 % textlog.recharge        = unique_sorted_RD; 
 
+
+%SAVE
+log.(PATIENTIDside) = textlog;
+save(fullfile(cfg.savedir,'textlogs.mat'),'log');
+
+
+
+fprintf("Done and saved in %s \n",cfg.savedir);
+toc
  end

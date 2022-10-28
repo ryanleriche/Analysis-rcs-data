@@ -12,6 +12,8 @@ INPUT:   DIRNAME should be the root folder of the Session Files (e.g. SCBS folde
 
           PATIENTIDside = should specify what the Patient ID name is, and
           should be same as subfolder (e.g. 'RCS02R')
+    
+          CFG is a variable contining pt_id and other config fields 
 
           (OPTIONAL INPUT) 'ignoreold' will ignore old databases and
           start fresh. Third input should be lowercase as written.
@@ -152,6 +154,13 @@ proc_dirname      = [dirname(1:end-4), 'processed/databases/'];
 outputFileName    = fullfile(proc_dirname,[ptIDside '_database.mat']);
 
 
+
+if ~isfolder(proc_dirname)
+    mkdir(proc_dirname);
+end
+
+
+
 if isfile(outputFileName) && ~cfg.ignoreold
 
     disp('Loading previously saved database');
@@ -181,7 +190,7 @@ elseif isfile(outputFileName) && cfg.ignoreold
 
 else
 
-    disp('Compiling database from scratch...')
+    disp('some error occured, Compiling database from scratch...')
     old_database= [];
 
 end
@@ -447,7 +456,7 @@ end
 %     '_database.csv']));
 % 
 save(fullfile(proc_dirname,[ptIDside '_database.mat']),...
-    'RCSdatabase_out','badsessions');
+    'RCSdatabase_out','badsessions','-nocompression','-v7.3');
 
 fprintf('csv and mat of database saved as %s to %s \n',...
     [ptIDside '_database.mat'],proc_dirname);

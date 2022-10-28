@@ -1,14 +1,14 @@
- function [redcap, stim_groups] ...
-     ...
-     =  make_stim_groups(...
-     ...
+function [redcap, stim_groups, sortedmetrics] =  make_stim_groups(...
      pt_id, stimLog_w_redcap_RCSXXL, stimLog_w_redcap_RCSXXR, redcap, visits_tbl)
 
 
 switch pt_id
+
+    case 'RCS01'
+         stimRegR      = [{'RACC ', ["0","1","2","3"]}; {'ROFC ', ["8","9","10","11"]}];
     
     case 'RCS02'
-        stimRegR      = [{'RACC ', ["0","1","2","3"]}; {'RThal ', ["8","9","10","11"]}];
+         stimRegR      = [{'RACC ', ["0","1","2","3"]}; {'RThal ', ["8","9","10","11"]}];
         
     case 'RCS04'
          stimRegL    = [{'LACC ', ["0","1","2","3"]}; {'LCaud ', ["8","9","10","11"]}];
@@ -22,23 +22,20 @@ switch pt_id
          stimRegL     = [{'LACC ', ["0","1","2","3"]}; {'LCaud ', ["8","9","10","11"]}];
          stimRegR     = [{'RThal ', ["0","1","2","3"]}; {'RSFG ', ["8","9","10","11"]}];
         
-    % case 'RCS07'
-
+    case 'RCS07'
+         stimRegL     = [{'LGP ', ["0","1","2","3"]}; {'LACC ', ["8","9","10","11"]}];
+         stimRegR     = [{'RThal ', ["0","1","2","3"]}; {'RACC ', ["8","9","10","11"]}];
 end
 
 % adding in side + region for unambiguous contacts when comparing both sides
 
 beh_stim_R      = timetable2table(stimLog_w_redcap_RCSXXR);
-
 i_con        = cellfun(@(x) ~isempty(x) , beh_stim_R.stimContacts);
-
 ind_contacts = cellfun(@(x) regexp(x,'\d*','Match'), beh_stim_R.stimContacts(i_con), 'UniformOutput', false);
-
 ind_contacts = cellfun(@(x) x(1), ind_contacts);
 
 i_small      = cellfun(@(x) any(strcmp(x, stimRegR{1,2})), ind_contacts);
 i_large      = cellfun(@(x) any(strcmp(x, stimRegR{2,2})), ind_contacts);
-
 i_con        = find(i_con);
 
 
@@ -53,18 +50,16 @@ beh_stim_R.stimContacts(i_con(i_large)) =...
     beh_stim_R.stimContacts(i_con(i_large)), 'UniformOutput', false);
 
 % all other pts have bilateral implants--repeat for left side
-if ~strcmp(pt_id, 'RCS02')
+if ~contains(pt_id, {'01','02'})
 
     beh_stim_L   = timetable2table(stimLog_w_redcap_RCSXXL);
     
     i_con        = cellfun(@(x) ~isempty(x), beh_stim_L.stimContacts);
-    
     ind_contacts = cellfun(@(x) regexp(x,'\d*','Match'), beh_stim_L.stimContacts(i_con), 'UniformOutput', false);
     ind_contacts = cellfun(@(x) x(1), ind_contacts);
-    
+  
     i_small      = cellfun(@(x) any(strcmp(x, stimRegL{1,2})), ind_contacts);
     i_large      = cellfun(@(x) any(strcmp(x, stimRegL{2,2})), ind_contacts);
-    
     i_con        = find(i_con);
     
     beh_stim_L.stimContacts(i_con(i_small)) =...
@@ -140,7 +135,7 @@ for i = 1 : height(redcap)
 
 
 
-        end
+        end   
     end
 
     % repeat for left side
@@ -180,10 +175,16 @@ for i = 1 : height(redcap)
     else
     
         redcap.visits(i)  = {'   '};
-    end    
+    end
+
+%      Progress counter bc takes so long 
+if mod(i,200)==0
+ fprintf('%0.3g %% done...\n',(i/height(redcap))*100);
+end
+
 end
 toc
-%% broadly define stim varianst: stim ON, stim OFF, stim @ 0 mA, bilateral stim, etc
+%% broadly define stim variants: stim ON, stim OFF, stim @ 0 mA, bilateral stim, etc
 % right side
 
 i_R_off            = ~strcmp(redcap.R_therapyStatusDescription, 'On');
@@ -405,40 +406,53 @@ elseif strcmp(pt_id, 'RCS02')
 
 
     stim_groups.('s1, week 1, both 0 mA')       = {redcap(i_s1_first_week & (i_R_off | i_R_eq0) ,:)};
-    
-
     stim_groups.('s1 0mA | Off')     = {redcap(i_s1 & (i_R_off | i_R_eq0) ,:)};
-
-
     stim_groups.('s2 Off')     = {redcap(i_R_off  & i_s2, :)};
-
     stim_groups.('s2 0mA')     = {redcap(i_R_eq0 & i_s2 & ...
                                   ~i_R_off & ~strcmp(redcap.R_activeGroup, 'D') ,:)};
-
     stim_groups.('washout testing')     = {redcap(i_washout ,:)};
-
     stim_groups.('s3')                  = {redcap(i_s3 ,:)};
 
 
-end
+end  
 
-    
 times       = cellfun(@(x) x.time, table2cell(stim_groups), 'UniformOutput', false);
 times       = vertcat(times{:});
-
-
 [~,ia] = setdiff(redcap.time, times);
-
 stim_groups.('inclinic, home visits, etc')   = {redcap(ia,:)};
-
 n_reports   = cellfun(@(x) height(x), table2cell(stim_groups));
-
 times       = cellfun(@(x) x.time, table2cell(stim_groups), 'UniformOutput', false);
 times       = vertcat(times{:});
 
 
 disp([pt_id, ': ', num2str(sum(n_reports)), ' reports assigned to stim_groups']);
-
 disp([pt_id, ': ', num2str(length(unique(times))), ' unique reports possible']);
 
+
+
+% SORT THE STIM GROUPS BY PAIN SCOREs
+nrs_by_contacts         = [];
+vas_by_contacts         = [];
+vas_unp_by_contacts     = [];
+mpq_tot_by_contacts     = [];
+
+for i = 1 : size(stimGroups,2) 
+        nrs_by_contacts         = [nrs_by_contacts, {stim_groups.(i){1}.mayoNRS}];   
+        vas_by_contacts         = [vas_by_contacts; {stim_groups.(i){1}.painVAS}];
+        vas_unp_by_contacts     = [vas_unp_by_contacts; {stim_groups.(i){1}.unpleasantVAS}];
+        mpq_tot_by_contacts     = [mpq_tot_by_contacts; {stim_groups.(i){1}.MPQtotal}];
 end
+
+nrs_by_contacts         = padcat(nrs_by_contacts{:});
+vas_by_contacts         = padcat(vas_by_contacts{:});
+vas_unp_by_contacts     = padcat(vas_unp_by_contacts{:});
+mpq_tot_by_contacts     = padcat(mpq_tot_by_contacts{:});
+
+
+[~, sortedmetrics.vas]         = sort(mean(vas_by_contacts,      'omitnan'));
+[~, sortedmetrics.mpq]     = sort(mean(mpq_tot_by_contacts,  'omitnan'));
+[~, sortedmetrics.vasunp]     = sort(mean(vas_unp_by_contacts,  'omitnan'));
+[~, sortedmetrics.nrs]         = sort(mean(nrs_by_contacts,      'omitnan')) ;
+
+sortedmetrics.nreports = n_reports;
+

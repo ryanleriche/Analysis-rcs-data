@@ -10,7 +10,7 @@ clear
 clc 
 
 
-PATIENTIDs = [2,4,5,6];
+PATIENTIDs = [2,4,5,6,7];
 
 % Current patients: 
 % CPRCS01R
@@ -20,8 +20,8 @@ PATIENTIDs = [2,4,5,6];
 % RCS06L/R
 
 
-% rootdir = '/Volumes/PrasadX5/' ;
-rootdir = '/Users/pshirvalkar/Desktop/';
+rootdir = '/Volumes/PrasadX5/spiritdata/raw/' ;
+% rootdir = '/Users/pshirvalkar/Desktop/';
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
 % patientrootdir = fullfile(rootdir,char(regexp(PATIENTIDside,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
 
@@ -29,11 +29,10 @@ cd(github_dir)
 addpath(genpath(github_dir))
 
 %% make database of all files
-for x=2 %which patient?
-patientrootdir = fullfile(rootdir,['RCS0' num2str(x) '.nosync'])
+for x=7 %which patient?
 
-[dbase.(['RCS0' num2str(x) 'L']),dbase.badL] = makeDataBaseRCSdata(patientrootdir,['RCS0' num2str(x) 'L'],'ignoreold'); 
-[dbase.(['RCS0' num2str(x) 'R']),dbase.badR] = makeDataBaseRCSdata(patientrootdir,['RCS0' num2str(x) 'R'],'ignoreold'); 
+[dbase.(['RCS0' num2str(x) 'L']),dbase.badL] = makeDataBaseRCSdata(rootdir,['RCS0' num2str(x) 'L']); 
+[dbase.(['RCS0' num2str(x) 'R']),dbase.badR] = makeDataBaseRCSdata(rootdir,['RCS0' num2str(x) 'R']); 
 
 % Combine 2 hemispheres into one database  
 RCSdatabaseBL = combine_Left_Right_databases(dbase.(['RCS0' num2str(x) 'L']),dbase.(['RCS0' num2str(x) 'R']),patientrootdir);
@@ -44,15 +43,18 @@ end
 
 disp('All patient databases done')
 %%  LOAD Database
-x=2
-patientrootdir = fullfile(rootdir,['RCS0' num2str(x) '.nosync'])
+x=7
+patientrootdir = fullfile(rootdir,['RCS0' num2str(x)])
 dbase1 = load(fullfile(patientrootdir,['RCS0' num2str(x) 'L_database.mat']));
 dbase2 = load(fullfile(patientrootdir,['RCS0' num2str(x) 'R_database.mat']));
 
 % Combine 2 hemispheres into one database  
 RCSdatabaseBL = combine_Left_Right_databases(dbase1.(['RCS0' num2str(x) 'L_database']),dbase2.(['RCS0' num2str(x) 'R_database']),patientrootdir);
-% Plot the 50 most recent subsessions
-% RCSdatabase_out(end-90:end,:)
+
+
+%%% Plot the 50 most recent subsessions
+
+RCSdatabaseBL
 
 
 %%  LOAD ABOVE FILES AND PLOT CHANNELS OF INTEREST
@@ -61,17 +63,17 @@ RCSdatabaseBL = combine_Left_Right_databases(dbase1.(['RCS0' num2str(x) 'L_datab
 %%%%%%%%%%%%%%
 % *** NOTE - only load INTEGER sessions, such as 201, 202, 207, etc.  no need to
 % load subsessions (e.g. 201.2) as these are all loaded automatically.
-
+PATIENTIDside = 'RCSS07';
 % recs_to_load =   D.rec(end-60:end-30)
-recs_to_load =  [1360:1363]
-sprintf('%s = %s',[PATIENTIDside '_database'],'RCSdatabase_out')
+recs_to_load = 49:52
+sprintf('%s = %s',[PATIENTIDside '_database'],'RCSdatabaseBL')
 %%%%%%%%%%%%%%
 
 rc = rcsPlotter();
 
 for d = 1:numel(recs_to_load)  %find the row indices corresponding to rec#
-    d_idx =  find(RCSdatabase_out.rec == recs_to_load(d));
-    diruse = [RCSdatabase_out.path{d_idx}];
+    d_idx =  find(RCSdatabaseBL.rec_LEFT == recs_to_load(d));
+    diruse = [RCSdatabaseBL.path_RIGHT{d_idx}];
     if ~isempty(diruse)
         rc.addFolder(diruse);
     end
@@ -83,10 +85,10 @@ rc.loadData()
 rc.reportStimSettings
 rc.reportPowerBands
 rc.reportDataQualityAndGaps(1)
-% SET your feature and stim channels
+% SET your feature and stim power channels
 % ========Change below =======
 pd.feature = 5;
-pd.stim = 4;
+pd.stim = 1;
 
 % RCS02R - feat/stim = 5/4  (ACC/Vp Thalamus)
 % RCS04L - 2/8
@@ -100,10 +102,10 @@ pwr_to_time_ch_idx = [1,1,2,2,3,3,4,4];
 td.feature = pwr_to_time_ch_idx(pd.feature);
 td.stim = pwr_to_time_ch_idx(pd.stim);
 
-fprintf('Feature = %s %s \nStim    = %s %s \n',rc.Data(1).timeDomainSettings.(['chan' num2str(td.feature)]){1}(1:5),...
-    rc.Data(1).powerSettings.powerBands(end).powerBandsInHz{pd.feature},...
-    rc.Data(1).timeDomainSettings.(['chan' num2str(td.stim)]){1}(1:5),...
-    rc.Data(1).powerSettings.powerBands(end).powerBandsInHz{pd.stim})
+% fprintf('Feature = %s %s \nStim    = %s %s \n',rc.Data(1).timeDomainSettings.(['chan' num2str(td.feature)]){1}(1:5),...
+%     rc.Data(1).powerSettings.powerBands(end).powerBandsInHz{pd.feature},...
+%     rc.Data(1).timeDomainSettings.(['chan' num2str(td.stim)]){1}(1:5),...
+%     rc.Data(1).powerSettings.powerBands(end).powerBandsInHz{pd.stim})
 %% - Plot time domain channels, spectrogram, LD, actigraphy etc. as you wish
 
 
@@ -121,7 +123,7 @@ rc.plotTdChannelSpectral(td.feature,hsb(2,1));
 rc.plotTdChannel(td.stim,hsb(3,1));
 rc.plotTdChannelSpectral(td.stim,hsb(4,1));
 rc.plotActigraphyRms(1,hsb(5,1));
-linkaxes(hsb,'x');
+% linkaxes(hsb,'x');
 
 %%            TD and Raw
 close all

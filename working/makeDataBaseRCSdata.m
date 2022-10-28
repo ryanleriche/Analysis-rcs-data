@@ -1,4 +1,4 @@
-function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside,varargin)
+function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PtIDside,varargin)
 % function database_out = makeDataBaseRCSdata(dirname)
 %
 %
@@ -77,9 +77,14 @@ function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside
 
 tic
 
+
+% match the PATIENTID up to 2 digits: ie RCS02
+pt_rootdir  = fullfile(dirname,char(regexp(ptIDside,...
+                        '\w*\d\d','match'))); 
+
 %  Define the directories to search in (SCBS and aDBS)
-scbsdir = fullfile(dirname,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
-adbsdir = fullfile(dirname, '/SummitData/StarrLab/', PATIENTIDside);
+scbsdir = fullfile(pt_rootdir,'/SummitData/SummitContinuousBilateralStreaming/', PtIDside);
+adbsdir = fullfile(pt_rootdir, '/SummitData/StarrLab/', PtIDside);
 
 dirsdata1 = findFilesBVQX(scbsdir,'Sess*',struct('dirs',1,'depth',1));
 dirsdata2 =  findFilesBVQX(adbsdir,'Sess*',struct('dirs',1,'depth',1));
@@ -122,8 +127,9 @@ dbout = struct('rec',[],...
 % insert section here to load old database, and just add rows to it if
 % needed, so as not to replicate whole thing.
 % Can be turned off with third input 'ignoreold'
-[~,PtIDside]=fileparts(scbsdir);
-outputFileName = fullfile(dirname,[PtIDside '_database.mat']);
+
+proc_dirname      = [dirname(1:end-4), 'processed/databases/'];
+outputFileName    = fullfile(proc_dirname,[PtIDside '_database.mat']);
 
 
 if isfile(outputFileName) && nargin<3
@@ -153,8 +159,7 @@ end
 
 
 %%
-for d = 500:700
-%     length(dirsdata)
+for d = 1:length(dirsdata)
     diruse = findFilesBVQX(dirsdata{d},'Device*',struct('dirs',1,'depth',1));
 
 %     if nargin==2 &&  d > numel(dirsdata1)
@@ -494,10 +499,11 @@ if nargout == 2
 end
 %
 eval(sprintf('%s = %s',[PtIDside '_database'],'RCSdatabase_out')); 
+
 % Rename file to include patient ID
-writetimetable(RCSdatabase_out,fullfile(dirname,[PtIDside '_database.csv']))
-save(fullfile(dirname,[PtIDside '_database.mat']),[PtIDside '_database'],'badsessions')
-fprintf('csv and mat of database saved as %s to %s \n',[PtIDside '_database.mat'],dirname);
+writetimetable(RCSdatabase_out,fullfile(proc_dirname,[PtIDside '_database.csv']))
+save(outputFileName,[PtIDside '_database'],'badsessions')
+fprintf('csv and mat of database saved as %s to %s \n',[PtIDside '_database.mat'],proc_dirname);
 
 
 end

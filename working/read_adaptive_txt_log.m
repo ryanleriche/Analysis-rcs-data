@@ -382,13 +382,15 @@ if ~isempty(str)  % only continue if the file is not empty
         at = adaptiveLogTable(1:20,:);
         idxzero = at.newstate==0;
         unique(at.prog0(idxzero));
-    end
+    end  
+
 else
-    fprintf('Empty Log file detected../n')
+    fprintf('Empty Log file detected... \n')
     adaptiveLogTable=[];
     rechargeSessions=[];
-    ActiveGroup=[];
+    group_changes = [];
     adaptiveDetectionEvents=[];
+    mirrorLog = [];
     return
 end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

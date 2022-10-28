@@ -1,31 +1,43 @@
-%% user-inputs
 
-% where RCS files are saved from PIA server
-pia_raw_dir               = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/raw/';
+%  RUN this general pain RC+S config file at the beginning of every script or wrapper for plotting
+%  or behavioral analysis 
+% 
+% 
 
+% 
+% 
+% 
+% 
+ 
+%%where RCS files are saved locally 
+
+% pia_raw_dir               = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/raw/';
+pia_raw_dir = '/Volumes/PrasadX5/spiritdata/raw/';
+ 
 % where 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
-github_dir            = '/Users/Leriche/Github/Analysis-rcs-data/';
+github_dir            = '/Users/pshirvalkar/Documents/GitHub/RyanAnalysis-rcs-data/';
 
-% application programming interface (API) token which is essentially a
-% password to access REDcap remotely, and is unique per researcher per
-% study (e.g., Ryan has a unique token for the RCS and PCS studies)
+%  REDCAP API token  for Ryan
+API_token             = '95FDE91411C10BF91FD77328169F7E1B';
 
-rcs_API_token             = '95FDE91411C10BF91FD77328169F7E1B';
-pcs_API_token             = 'DB65F8CB50CFED9CA5A250EFD30F10DB';
+% goto working path
+cd([github_dir, 'working']);        
+addpath(genpath(github_dir)); 
 
-% pulls/organizes arms from REDcap (go into fxn to add new arms)
-cd([github_dir, 'working']);         addpath(genpath(github_dir));
+load(fullfile(pia_raw_dir,'redcap_painscores.mat'))
+%% Load REDCAP scores if needed
+REDcap                 = RCS_redcap_painscores(API_token);
 
-REDcap                 = RCS_redcap_painscores(rcs_API_token);
-
-% fluct = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
+save(fullfile(pia_raw_dir,'redcap_painscores.mat'), 'REDcap');
 
 %% Stage start dates, home, and clinic visits for RCS pts 1-6
-stage_dates             = {{''}, {'08-Sep-2020'; '31-Jan-2021'; '31-May-2022'},... % RCS02
-                           {''}, {'13-May-2021'; '12-Jul-2021'},... % RCS04
-                           {'21-Jul-2021';'07-Sep-2021'},... % RCS05
-                           {'07-Jun-2022','18-Aug-2022'}}; % RCS06
+stage_dates.RCS02 = {'08-Sep-2020'; '31-Jan-2021'; '31-May-2022'}; % RCS02
+stage_dates.RCS04 =  {'13-May-2021'; '12-Jul-2021'}; % RCS04
+stage_dates.RCS05 =  {'21-Jul-2021';'07-Sep-2021'}; % RCS05
+stage_dates.RCS06 =   {'07-Jun-2022','18-Aug-2022'}; % RCS06
+stage_dates.RCS07 =   {'19-Oct-2022'}; % RCS07
 
+visits              = struct;
 
 
 visits.RCS02        = table;
@@ -71,7 +83,6 @@ visits.RCS04.desc   = ...
      };
 
 
-visits              = struct;
 visits.RCS05        = table;
 visits.RCS05.dates  = datetime(...
    {'21-Jul-2021';   '22-Jul-2021';    '23-Jul-2021';...
@@ -92,16 +103,17 @@ visits.RCS05.desc   = ...
 
 
 
+
 visits.RCS06        = table;
 visits.RCS06.dates  = datetime(...
-   {'07-Jun-2022'; '08-Jun-2022'; '09-Jun-2022';...
-    '17-Aug-2022'; '18-Aug-2022'}, ...
+   {'01-Mar-2022';...   
+    '07-Jun-2021'}, ...
     ...
     'TimeZone', 'America/Los_Angeles');
 
 visits.RCS06.desc   = ...
-    {'s1_implant';  's1_inpatient_d1';  's1_inpatient_d2';...
-     's2_inclinic_d1';  's2_inclinic_d2'};
+    {'s1_implant';...
+     's2'};
 
 %% import RCS Databases per pt side
 
@@ -112,6 +124,11 @@ cfg                    = [];
 cfg.load_EventLog      = false;
 cfg.ignoreold          = false;
 
+
+
+% RCS02
+[db.RCS02R, bs.RCS02R] = ...
+    makeDatabaseRCS_Ryan(pia_raw_dir, 'RCS02R', cfg);
 
 % RCS04
 [db.RCS04L, bs.RCS04L] = ...
@@ -149,31 +166,34 @@ cfg.pull_adpt_logs      = false;
 cfg.pull_event_logs     = true;
 cfg.ld_detection_events = false;
 cfg.pull_recharge_sess  = false;
-
 cfg.pull_mirror_logs    = false;
-
-%{
-X see how INS log changes compare to db_RCSXX.timeStarts
-    - 'timeStarts' are in 'PacketGenTime' (API estimate of packet was generated on
-       the INS as in Sellers et al., 2021 in Front. Hum. Neurosci.)
-
-    - INS logs are in 'timestamp' which is implemented in the INS firmware
-      which has 1s resolution (Sellers et al., 2021)
+cfg.savedir = '/Volumes/PrasadX5/spiritdata/processed/';
 
 
-determine when w/n streaming session REDcap survey occured
+% {  see how INS log changes compare to db_RCSXX.timeStarts
+%     - 'timeStarts' are in 'PacketGenTime' (API estimate of packet was generated on
+%        the INS as in Sellers et al., 2021 in Front. Hum. Neurosci.)
+%
+%     - INS logs are in 'timestamp' which is implemented in the INS firmware
+%       which has 1s resolution (Sellers et al., 2021)
+%
+%
+% determine when w/n streaming session REDcap survey occured
+%
+%     using RCS data start and stop times
+%
+%     go into 'read_adaptive_txt_log' and further deeper fxns for all needed
+%     fields
 
-    using RCS data start and stop times
-
-    go into 'read_adaptive_txt_log' and further deeper fxns for all needed
-    fields
-
-    
-    
+%     } TRY loading the textlogs  first,
+load(fullfile(cfg.savedir,'textlogs.mat'));
+textlog = log; 
+clear log
 
 
-%}
+%% Otherwise reimport them 
 
+[textlog.RCS02R]         = RCS_logs(pia_raw_dir,'RCS02R', cfg);
 [textlog.RCS04L]         = RCS_logs(pia_raw_dir,'RCS04L', cfg);
 
 [textlog.RCS04R]         = RCS_logs(pia_raw_dir,'RCS04R', cfg);
@@ -183,48 +203,46 @@ determine when w/n streaming session REDcap survey occured
 
 %% concatenate StimLog.json outputs from RCS database
 
-cfg                             = [];
-cfg.stage_dates                 = stage_dates{2};
-cfg.pt_id                       = 'RCS02';
-
-
 % RCS02
-[stimLog_w_redcap.RCS02R] = ...
-    align_REDcap_to_stimLog(cfg, db.RCS02R, REDcap.RCS02);
-
+cfg = [];
+cfg.pt_id       = 'RCS02R';
+cfg.stage_dates = stage_dates.(cfg.pt_id(1:end-1));
+[stimLog_w_redcap.(cfg.pt_id)] = align_REDcap_to_stimLog(cfg, db.(cfg.pt_id), REDcap.(cfg.pt_id(1:end-1)));
 
 % RCS04
-cfg.stage_dates = stage_dates{4};
-cfg.pt_id       = 'RCS04';
 
-[stimLog_w_redcap.RCS04L] = ...
-    align_REDcap_to_stimLog(cfg, db.RCS04L, REDcap.RCS04);
+cfg.pt_id       = 'RCS04L';
+cfg.stage_dates = stage_dates.(cfg.pt_id(1:end-1));
+[stimLog_w_redcap.(cfg.pt_id)] = align_REDcap_to_stimLog(cfg, db.(cfg.pt_id), REDcap.(cfg.pt_id(1:end-1)));
 
-[stimLog_w_redcap.RCS04R] = ...
-    align_REDcap_to_stimLog(cfg, db.RCS04R, REDcap.RCS04);
+cfg.pt_id       = 'RCS04R';
+cfg.stage_dates = stage_dates.(cfg.pt_id(1:end-1));
+[stimLog_w_redcap.(cfg.pt_id)] = align_REDcap_to_stimLog(cfg, db.(cfg.pt_id), REDcap.(cfg.pt_id(1:end-1)));
 
 
 % RCS05
-cfg.stage_dates = stage_dates{5};
-cfg.pt_id       = 'RCS05';
+cfg.pt_id       = 'RCS05L';
+cfg.stage_dates = stage_dates.(cfg.pt_id(1:end-1));
+[stimLog_w_redcap.(cfg.pt_id)] = align_REDcap_to_stimLog(cfg, db.(cfg.pt_id), REDcap.(cfg.pt_id(1:end-1)));
 
-[stimLog_w_redcap.RCS05L] = ...
-    align_REDcap_to_stimLog(cfg, db.RCS05L, REDcap.RCS05);
+cfg.pt_id       = 'RCS05R';
+cfg.stage_dates = stage_dates.(cfg.pt_id(1:end-1));
+[stimLog_w_redcap.(cfg.pt_id)] = align_REDcap_to_stimLog(cfg, db.(cfg.pt_id), REDcap.(cfg.pt_id(1:end-1)));
 
-[stimLog_w_redcap.RCS05R] = ...
-    align_REDcap_to_stimLog(cfg, db.RCS05R, REDcap.RCS05);
 
 % RCS06
-cfg.stage_dates = stage_dates{6};
-cfg.pt_id       = 'RCS06';
 
-[stimLog_w_redcap.RCS06L] = ...
-    align_REDcap_to_stimLog(cfg, db.RCS06L, REDcap.RCS06);
+cfg.pt_id       = 'RCS06L';
+cfg.stage_dates = stage_dates.(cfg.pt_id(1:end-1));
+[stimLog_w_redcap.(cfg.pt_id)] = align_REDcap_to_stimLog(cfg, db.(cfg.pt_id), REDcap.(cfg.pt_id(1:end-1)));
 
-[stimLog_w_redcap.RCS06R] = ...
-    align_REDcap_to_stimLog(cfg, db.RCS06R, REDcap.RCS06);
+cfg.pt_id       = 'RCS06R';
+cfg.stage_dates = stage_dates.(cfg.pt_id(1:end-1));
+[stimLog_w_redcap.(cfg.pt_id)] = align_REDcap_to_stimLog(cfg, db.(cfg.pt_id), REDcap.(cfg.pt_id(1:end-1)));
+
+
 %% stim parameters grouping based off of 'DeviceSettings.json' from 'StimSettingsOut' var in db.RCSXXX
-%{
+
 %{
 * creates db_beh.RCSXX with timestamps, contacts, amp, PW, freq, cycling,
   group, and laterality (unilateral vs bilateral stim)
@@ -240,12 +258,12 @@ for RCS05 and RCS02 especially look at pain reports within session 5 - 15 minute
 %}
 
 
-% cfg                 = [];
-% cfg.pt_id           = 'RCS04';
-% cfg.pia_raw_dir     = pia_raw_dir;
-% 
-% cfg.plot_sess_dur    = false;
-% 
+cfg                 = [];
+cfg.pia_raw_dir     = pia_raw_dir;
+cfg.plot_sess_dur    = false;
+cfg.pt_id = 'RCS02R';
+    [db_beh.(cfg.pt_id)] = db_sort_beh(cfg,[], db.(cfg.pt_id), REDcap.(cfg.pt_id(1:end-1)));
+
 
 cfg                 = [];
 cfg.pt_id           = 'RCS04';
@@ -259,8 +277,6 @@ cfg.pt_id = 'RCS05';
     db_beh.RCS05 = db_sort_beh(cfg, db.RCS05L, db.RCS05R, REDcap.RCS05, visits.RCS05);
 
 
-cfg.pt_id = 'RCS02';
-    db_beh.RCS02 = db_sort_beh(cfg,[], db.RCS02R, REDcap.RCS02);
 
 
 cfg.pt_id = 'RCS06';
@@ -394,64 +410,50 @@ https://www.mathworks.com/help/stats/specify-the-response-and-design-matrices.ht
 
 %}
 
-% RCS02
-[wrt_stim_REDcap.RCS02, stimGroups.RCS02] ...
-    ...
-    = make_stim_groups(...
-    ...
-'RCS02', [], stimLog_w_redcap.RCS02R, REDcap.RCS02, visits.RCS02);
+cfg             = [];
+cfg.pt_id       = 'RCS04';
+cfg.stimRegL    = [{'LACC ', ["0","1","2","3"]}; {'LCaud ', ["8","9","10","11"]}];
+cfg.stimRegR    = [{'RACC ', ["0","1","2","3"]}; {'RThal ', ["8","9","10","11"]}];
+
+[wrt_stim_REDcap.RCS04, stimGroup.RCS04, freq_amp_pq.RCS04] ...
+    = wrt_stim(cfg, stimLog_w_redcap.RCS04L, stimLog_w_redcap.RCS04R, REDcap.RCS04, visits.RCS04);
+%%
 
 
-cfg                          = [];
-cfg.pt_id                    ='RCS02';
-cfg.min_n_reports            = 5;
-
-    plted_stim_groups.RCS02  = plot_stim_groups(cfg, stimGroups.RCS02);
-
-
-
-% RCS04
-[wrt_stim_REDcap.RCS04, stimGroups.RCS04] ...
-    ...
-    = make_stim_groups(...
-    ...
- 'RCS04', stimLog_w_redcap.RCS04L, stimLog_w_redcap.RCS04R, REDcap.RCS04, visits.RCS04);
-
-
-cfg                          = [];
-cfg.pt_id                    ='RCS04';
-cfg.min_n_reports            = 5;
-
-    plted_stim_groups.RCS04  = plot_stim_groups(cfg, stimGroups.RCS04);
+% i_noise = find(strcmp(db.RCS06R.sess_name, 'Session1656375334214'))
+% i_noise = find(strcmp(db.RCS06R.sess_name, 'Session1656546304945'))
+% 
+% i_noise = find(strcmp(db.RCS06R.sess_name, 'Session1657147052311'))
+% 
+% 
+% 
+% 'L ACC'	'L ACC: c+2-'	0	100	50	'A'	1	1
+% 'R Thal'	'R Thal: c+2-'	0	200	100	'A'	1	1
+% 
+% 
+% find(min(abs(db.RCS06L.timeStart{
+%% organize Streaming Notes, clinic dates, etc
 
 
+%{
 
-% RCS05
-[wrt_stim_REDcap.RCS05, stimGroups.RCS05] ...
-    ...
-    = make_stim_groups(...
-    ...
-'RCS05', stimLog_w_redcap.RCS05L, stimLog_w_redcap.RCS05R, REDcap.RCS05, visits.RCS05);
+RCS06
 
-cfg                          = [];
-cfg.pt_id                    ='RCS05';
-cfg.min_n_reports            = 5;
+    08/17/22 clinic visit
 
-    plted_stim_groups.RCS05  = plot_stim_groups(cfg, stimGroups.RCS05);
+    instructed on Streaming Notes to use HIS timezone 
+    
+    sliders on pt tablet "jumps"--needs to zoom in to get VAS right where he
+    wants it
+
+    CTM occasionally drops during sessions--probably the right side--not
+    100%
+
+    for MPQ "sickening" field has been answered--last 3-7 days Crohn's Flare
 
 
-% RCS06
-[wrt_stim_REDcap.RCS06, stimGroups.RCS06] ...
-    ...
-    = make_stim_groups(...
-    ...
-'RCS06', stimLog_w_redcap.RCS06L, stimLog_w_redcap.RCS06R, REDcap.RCS06, visits.RCS06);
 
-cfg                          = [];
-cfg.pt_id                    ='RCS06';
-cfg.min_n_reports            = 5;
-
-    plted_stim_groups.RCS06  = plot_stim_groups(cfg, stimGroups.RCS06);
+%}
 
 
 
@@ -459,15 +461,15 @@ cfg.min_n_reports            = 5;
 
 % Specify, cfg before calling functions--see below for examples.
 cfg                     = [];
-cfg.pt_id               = 'RCS04';
+cfg.pt_id               = 'RCS02R';
 
 cfg.dates               = 'AllTime';
-cfg.stage_dates         = stage_dates{4}; % starts at Stage 1
+cfg.stage_dates         = stage_dates.(cfg.pt_id(1:end-1)); % starts at Stage 1
 cfg.subplot             = false;
 
 cfg.stim_parameters     = {'contacts'};
    
-    plot_timeline(cfg, REDcap.RCS04);
+    plot_timeline(cfg, REDcap.(cfg.pt_id(1:end-1)), db.(cfg.pt_id ));
 
 %% last 7 days for all pts
 cfg                     = [];
@@ -575,16 +577,16 @@ cfg.subplot             = false;
 %% visually inspect pain metric distributions
 
 cfg             = [];
-cfg.pt_id       = 'RCS04';
+cfg.pt_id       = 'RCS02R';
 cfg.dates       = 'AllTime';
 
-    plot_hist(cfg, REDcap.RCS04);
+    plot_hist(cfg, REDcap.(cfg.pt_id(1:end-1)),db.(cfg.pt_id));
 
 
 cfg            = [];
 cfg.dates      = 'AllTime';
 % SEE Table for easy access to common summary statistics
-RCS04_sum_stats      = calc_sum_stats(cfg, REDcap.RCS04);
+sum_stats      = calc_sum_stats(cfg, REDcap.(cfg.pt_id));
 
 % pain metric A "versus" pain metric B --> see how metrics visually covary
 cfg             = [];
@@ -595,7 +597,7 @@ cfg.dates       = 'AllTime';
 
 % RBL reccomends leaving NRS as the colorbar though, as it is a categorical
 % metric--visually creating planes which muddles visualization
-    plot_versus(cfg, REDcap.RCS04);
+    plot_versus(cfg, REDcap.(cfg.pt_id));
 
 
 
@@ -605,11 +607,12 @@ cfg.dates       = 'AllTime';
 
 % build intuition of beh distribution via histograms
 cfg             = [];
+cfg.pt_id       = 'RCS02R';       
 cfg.dates               = 'DateRange';
-cfg.date_range          = stage_dates{4}(1:2);
-cfg.pt_id       = 'RCS02';       
+cfg.date_range          = stage_dates.(cfg.pt_id(1:end-1))(1:2);
 
-plot_hist(cfg, REDcap.RCS02, db_beh.RCS05);
+
+plot_hist(cfg, REDcap.(cfg.pt_id(1:end-1)), db.(cfg.pt_id));
 
 saveas(gcf, [cd, '/plot_beh/figs/RCS02/', 'RCS02_beh_hist.png']);
 
@@ -720,36 +723,6 @@ end
 Chronback's coefficient alpha
 
 %}
-
-
-%% organize Streaming Notes, clinic dates, etc
-
-
-%{
-RCS06
-    08/17/22 clinic visit
-
-    instructed on Streaming Notes to use HIS timezone 
-    
-    sliders on pt tablet "jumps"--needs to zoom in to get VAS right where he
-    wants it
-
-    CTM occasionally drops during sessions--probably the right side--not
-    100%
-
-    for MPQ "sickening" field has been answered--last 3-7 days Crohn's Flare
-%}
-
-
-
-
-
-
-
-
-
-
-
 
 openfig([cd,'/plot_beh/figs/RCS02_z_space.fig'])
 
