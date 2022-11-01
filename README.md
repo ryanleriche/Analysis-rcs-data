@@ -14,8 +14,9 @@ Note: This research is funded by UH# HEAL Grant; IRB Study: G190160.
 
 | Functions to edit/create  | Person Working on it |
 | ------------- | ------------- |
-| Color plot background according to stage| |
-| plot background according to stim group| |
-| Select a time window for plot|  |
-| Correlation analyses| |
-| | |
+| stim groups by contacts-freq-amp-PW-cyc to motivate aDBS settings|Ryan |
+| ensuring quality of RCS neural data|  |
+| merging PNLprasad branch into PNL (this) branch | Ryan |
+| plot_timeline() with stim parameters as background colors| |
+| pain_versus() residual plots for correlations| |
+| pain_versus() linear mixed model w/ pts as random variables (group-analysis of relationships btwn pain metrics)| |
