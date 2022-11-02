@@ -11,13 +11,17 @@ extraction of REDCAP survey data and transformation of data into a data format f
 Note: This research is funded by UH# HEAL Grant; IRB Study: G190160.
 
 
-
-| Functions to edit/create  | Person Working on it |
+Currently:
+| Functions to edit/create  | Person |
 | ------------- | ------------- |
-| stim groups by contacts-freq-amp-PW-cyc to motivate aDBS settings|Ryan |
-| incrp RCS02's textlogs into stim group changes via 'RCS_logs()'
-| ensuring quality of RCS neural data|  |
-| merging PNLprasad branch into PNL (this) branch | Ryan |
+| stim groups by contacts-freq-amp-PW-cyc to motivate aDBS settings| Ryan |
+| incrp RCS02's textlogs into stim group changes via 'RCS_logs()'| Ryan|
+| ensuring quality of RCS neural data via rcsPlotter| Joanna |
+
+Up Next:
+| Functions to edit/create  | Person |
+| ------------- | ------------- |
+| merging Prasad's work into PNL (this) branch: 1) RCS pt visit dates (from PNLprasad) 2) makedatebaseRCS from openmind-consortium/prasad (rather than Ryan's compact version) 3) update all other functions to work w/ Prasad's version |  |
 | 'plot_timeline()' with stim parameters as background colors (wait for 'wrt_stim_REDcap' struc (how we format pain reports to given stim settings) to be finalized| |
 | 'pain_versus()' residual plots for correlations| |
 | 'pain_versus()' linear mixed model w/ pts as random variables (group-analysis of relationships btwn pain metrics)| |
