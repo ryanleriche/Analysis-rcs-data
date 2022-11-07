@@ -21,7 +21,8 @@ Currently:
 Up Next:
 | Functions to edit/create  | Person |
 | ------------- | ------------- |
-| merging Prasad's work into PNL (this) branch: 1) RCS pt visit dates (from PNLprasad) 2) makedatebaseRCS from openmind-consortium/prasad (rather than Ryan's compact version) 3) update all other functions to work w/ Prasad's version |  |
+| merge RCS pt visit dates as metadata call(from PNLprasad) into PNL (this) branch  |  |
+| have plotting fxns use makedatebaseRCS (from openmind-consortium/prasad) rather than makedatabaseRCS_Ryan |   |
 | 'plot_timeline()' with stim parameters as background colors (wait for 'wrt_stim_REDcap' struc (how we format pain reports to given stim settings) to be finalized| |
 | 'pain_versus()' residual plots for correlations| |
 | 'pain_versus()' linear mixed model w/ pts as random variables (group-analysis of relationships btwn pain metrics)| |
