@@ -48,10 +48,10 @@ if nargin == 0
 elseif nargin == 1
     rcs_TOKEN = varargin{1};
     pt_id_list = ...
-        {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06',...
+        {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06', 'RCS07',...
         ...
         'RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING',...
-        'RCS04_STREAMING_v2','RCS05_STREAMING', 'RCS06_STREAMING',...
+        'RCS04_STREAMING_v2','RCS05_STREAMING', 'RCS06_STREAMING', 'RCS07_STREAMING'...
         ...
         'RCS_Weekly', 'RCS_Monthly',...
         'FlUCT'};
@@ -110,6 +110,10 @@ for p = 1:numel(pt_id_list)
         case 'RCS06'
             PATIENT_ARM      = 'rcs06_pain_report_arm_27';
             reportid         = '135787';
+
+        case 'RCS07'
+            PATIENT_ARM      = 'rcs07_pain_report_arm_33';
+            reportid         = '144629';
             
             % NEW arms
         case  'RCS02new'
@@ -141,9 +145,17 @@ for p = 1:numel(pt_id_list)
             reportid = '109668';
 
         case 'RCS06_STREAMING'
-      
-        reportid         = '135788';
+
+            PATIENT_ARM      = 'rcs06_streaming_arm_28';
+            reportid         = '135788';
             
+
+        case 'RCS07_STREAMING'
+      
+            PATIENT_ARM      = 'rcs07_streaming_no_arm_36';
+            reportid         = '146251';
+
+
         case 'FLUCT'
             PATIENT_ARM = 'dbs_and_nondbs_pat_arm_23';
             reportid    = '84060';
@@ -199,16 +211,118 @@ for p = 1:numel(pt_id_list)
         alltable = data;
     end
    
+
+    varnames = alltable.Properties.VariableNames;
     
+    for i = 1 : length(varnames)
+        col = varnames{i};
+        
+        % searchers for columns where the rows are cells, but w/n those
+        % cells there is NOT character arrays
+
+        % handles cases where datetimes, and doubles have frivolous braces
+        if iscell(alltable.(col))
+            if ~ischar(alltable.(col){1})
+        
+            alltable.(col) = cellfun(@(x) x(1:end), alltable.(col), 'UniformOutput', false);
+            end
+        end
+    end
+
+
+    if strcmp(pt_id, 'FLUCT')
+
+        varnames = alltable.Properties.VariableNames;
+
+        for i = 1 : length(varnames)
+            if isnumeric(alltable.(varnames{i}))
+            
+
+                if all(isnan(alltable.(varnames{i})))
+    
+                    alltable = removevars(alltable, varnames{i});
+                end
+            end
+        end
+
+       alltable = removevars(...
+                        alltable(strcmp(alltable.EventName, PATIENT_ARM),:),...
+                        'EventName');
+
+
+       clntable = alltable(alltable.Complete_ == 2, :);
+
+
+
+       redcap_painscores = table;
+
+       redcap_painscores.time = clntable.SurveyTimestamp;
+       redcap_painscores.time.TimeZone = 'America/Los_Angeles';
+
+       redcap_painscores.initals = upper(clntable.PleaseEnterYourInitials_);
+
+
+       
+        varnames  = clntable.Properties.VariableNames;
+        %field names per subject
+        nrs_field         = varnames{contains(varnames,'PainIntensity_')};
+        unp_nrs_field     = varnames{contains(varnames,'PainUnpleasantness_')};
+        
+        vas_field         = varnames{contains(varnames,'PainIntensityBySliding')};
+        unp_vas_field     = varnames{contains(varnames,'PainUnpleasantnessBySliding')};
+        mood_vas_field    = varnames{contains(varnames, 'MoodBySliding')};
+        
+        % Populate the new flavors of painscores downloaded from redcap
+        redcap_painscores.mayoNRS = (clntable.(nrs_field));
+        redcap_painscores.unpleasantNRS = (clntable.(unp_nrs_field));
+        
+        
+        redcap_painscores.painVAS = (clntable.(vas_field));
+        redcap_painscores.unpleasantVAS = (clntable.(unp_vas_field));
+        redcap_painscores.moodVAS = (clntable.(mood_vas_field));
+
+
+        % label MPQ just like RCS pts
+        redcap_painscores.MPQtotal = sum(clntable{:, 5:19}, 2, 'omitnan');
+
+        redcap_painscores.MPQthrobbing      = (clntable.Throbbing);
+        redcap_painscores.MPQshooting       = (clntable.Shooting);
+        redcap_painscores.MPQstabbing       = (clntable.Stabbing);
+        redcap_painscores.MPQsharp          = (clntable.Sharp);
+        redcap_painscores.MPQcramping       = (clntable.Cramping);
+        redcap_painscores.MPQgnawing        = (clntable.Gnawing);
+        redcap_painscores.MPQhot_burning    = (clntable.Hot_burning);
+        redcap_painscores.MPQaching         = (clntable.Aching);
+        redcap_painscores.MPQheavy          = (clntable.Heavy);
+        redcap_painscores.MPQtender         = (clntable.Tender);
+        redcap_painscores.MPQsplitting      = (clntable.Splitting);
+        redcap_painscores.MPQtiring         = (clntable.Tiring_Exhausting);
+        redcap_painscores.MPQsickening      = (clntable.Sickening);
+        redcap_painscores.MPQfearful        = (clntable.Fearful);
+        redcap_painscores.MPQcruel          = (clntable.Cruel_Punishing);
+
+        
+        
+        
+        painscores_out = redcap_painscores;
+        toc
+        return
+
+    end
+
     if ~contains(pt_id, {'STREAMING', 'Weekly', 'Monthly'}) 
         
-        timestampvars = alltable.Properties.VariableNames( find(contains(alltable.Properties.VariableNames,'timestamp')) );
+        timestampvars = ...
+            alltable.Properties.VariableNames(find(contains(alltable.Properties.VariableNames,'timestamp')) );
         
+
         %FOR PAIN SCORE ARMS
          % remove all the extraneous rows ('events' that are different)
         keeprows = strcmp(alltable.redcap_event_name, PATIENT_ARM) & ...
             (arrayfun(@(x) ~isnat(x),alltable.(timestampvars{1})) | ...
             arrayfun(@(x) ~isnat(x),alltable.(timestampvars{2})));
+
+
         %for some reason, all patients are using the field rcs01_mpq_...
         
         clntable = alltable(keeprows,:);
@@ -232,45 +346,55 @@ for p = 1:numel(pt_id_list)
     
          if strcmp(pt_id, 'RCS06')
 
-            nrs_field = varnames{contains(varnames,'intensity_nrs_v2_v2_51a1a3')};
-            redcap_painscores.mayoNRS = (clntable.(nrs_field));
+            redcap_painscores.mayoNRS = (clntable.('intensity_nrs_v2_v2_51a1a3'));
 
-            nrs_noc  = varnames{contains(varnames,'worst_please_rate_your_pain_inte_v2_37cdf10')};
-            redcap_painscores.NRS_noc = (clntable.(nrs_noc));
+            redcap_painscores.nocNRS = (clntable.('worst_please_rate_your_pain_inte_v2_37cdf10'));
 
+            redcap_painscores.npNRS = (clntable.('worst_please_rate_your_pain_inte_v2_37cdf9'));
 
-            nrs_np  = varnames{contains(varnames, 'worst_please_rate_your_pain_inte_v2_37cdf9')};
-            redcap_painscores.NRS_np = (clntable.(nrs_np));
+            redcap_painscores.painVAS = (clntable.('intensity_vas_v2_v2_8a3273'));
 
-            vas_field  = varnames{contains(varnames, 'intensity_vas_v2_v2_8a3273')};
-            redcap_painscores.painVAS = (clntable.(vas_field));
+            redcap_painscores.nocVAS = (clntable.('please_rate_your_pain_inte_v2_9d8b34'));
+            redcap_painscores.npVAS = (clntable.('please_rate_your_pain_inte_v2_9d8b33'));
+      
 
-
-            vas_noc  = varnames{contains(varnames, 'please_rate_your_pain_inte_v2_9d8b33')};
-            redcap_painscores.painVAS_noc = (clntable.(vas_noc));
-
-
-            vas_np  = varnames{contains(varnames, 'please_rate_your_pain_inte_v2_9d8b34')};
-            redcap_painscores.painVAS_np = (clntable.(vas_np));                  
-        
-    
-         else
-            % dynamic field names for each subject
+            unp_field = varnames{contains(varnames,'unpleasantness')};
             
+            redcap_painscores.unpleasantVAS = (clntable.(unp_field));
+    
+         elseif strcmp(pt_id, 'RCS07')
+            
+            % Populate the new flavors of painscores downloaded from redcap
+            redcap_painscores.mayoNRS = (clntable.('overall_intensity_nrs'));
+            redcap_painscores.unpNRS  = (clntable.('unp_intensity_nrs'));
+
+
+            redcap_painscores.leftarmNRS  = (clntable.('left_arm_intensity_nrs'));
+            redcap_painscores.leftlegNRS  = (clntable.('left_leg_intensity_nrs'));
+            redcap_painscores.leftfaceNRS = (clntable.('left_face_intensity_nrs'));
+      
+
+            redcap_painscores.painVAS = (clntable.('pain_intensity_vas'));
+            redcap_painscores.unpleasantVAS = (clntable.('unp_intensity_vas'));
+
+            redcap_painscores.moodVAS = (clntable.('mood_intensity_vas'));
+
+
+
+         else
+            % field names per subject
             nrs_field = varnames{contains(varnames,'intensity_nrs')};
             vas_field = varnames{contains(varnames,'intensity_vas')};
-            
-            
+
+            unp_field = varnames{contains(varnames,'unpleasantness')};
+
             % Populate the new flavors of painscores downloaded from redcap
             redcap_painscores.mayoNRS = (clntable.(nrs_field));
             redcap_painscores.painVAS = (clntable.(vas_field));
-            
-        
-         end
 
-            unp_field = varnames{contains(varnames,'unpleasantness_vas')};
             redcap_painscores.unpleasantVAS = (clntable.(unp_field));
-        
+
+         end
 
         
         if contains(pt_id,'new')
@@ -293,22 +417,22 @@ for p = 1:numel(pt_id_list)
         
         mpqhold = table2array(clntable(:,mpq_start:mpq_end));
         
-        redcap_painscores.MPQtotal = tsnansum((mpqhold),2);
-        redcap_painscores.MPQthrobbing = (clntable.throbbing);
-        redcap_painscores.MPQshooting = (clntable.shooting);
-        redcap_painscores.MPQstabbing = (clntable.stabbing);
-        redcap_painscores.MPQsharp = (clntable.sharp);
-        redcap_painscores.MPQcramping = (clntable.cramping);
-        redcap_painscores.MPQgnawing = (clntable.gnawing);
+        redcap_painscores.MPQtotal       = tsnansum((mpqhold),2);
+        redcap_painscores.MPQthrobbing   = (clntable.throbbing);
+        redcap_painscores.MPQshooting    = (clntable.shooting);
+        redcap_painscores.MPQstabbing    = (clntable.stabbing);
+        redcap_painscores.MPQsharp       = (clntable.sharp);
+        redcap_painscores.MPQcramping    = (clntable.cramping);
+        redcap_painscores.MPQgnawing     = (clntable.gnawing);
         redcap_painscores.MPQhot_burning = (clntable.hot_burning);
-        redcap_painscores.MPQaching = (clntable.aching);
-        redcap_painscores.MPQheavy = (clntable.heavy);
-        redcap_painscores.MPQtender = (clntable.tender);
-        redcap_painscores.MPQsplitting = (clntable.splitting);
-        redcap_painscores.MPQtiring = (clntable.tiring_exhausting);
-        redcap_painscores.MPQsickening = (clntable.sickening);
-        redcap_painscores.MPQfearful = (clntable.fearful);
-        redcap_painscores.MPQcruel = (clntable.cruel_punishing);
+        redcap_painscores.MPQaching      = (clntable.aching);
+        redcap_painscores.MPQheavy       = (clntable.heavy);
+        redcap_painscores.MPQtender      = (clntable.tender);
+        redcap_painscores.MPQsplitting   = (clntable.splitting);
+        redcap_painscores.MPQtiring      = (clntable.tiring_exhausting);
+        redcap_painscores.MPQsickening   = (clntable.sickening);
+        redcap_painscores.MPQfearful     = (clntable.fearful);
+        redcap_painscores.MPQcruel       = (clntable.cruel_punishing);
 
         
         % make 0 values NaN for RCS01 because of unreliable reporting
@@ -318,6 +442,10 @@ for p = 1:numel(pt_id_list)
             redcap_painscores.MPQtotal = redcap_painscores.MPQtotal;
         end
         
+        % if NRS is Nan--rather than zero--likely means survey was quickly opened/closed
+        % therefore changed MPQtotal to NaN rather than 0
+        redcap_painscores.MPQtotal(isnan(redcap_painscores.mayoNRS)) = NaN;
+
         painscores_out.(pt_id) = redcap_painscores;
         
 
@@ -325,7 +453,8 @@ for p = 1:numel(pt_id_list)
     elseif ~contains(pt_id, {'Weekly', 'Monthly'}) 
         %FOR STREAMING NOTES ARMS
         
-        timevarNAME = alltable.Properties.VariableNames(    find(contains(alltable.Properties.VariableNames,'timestamp'))     );
+        timevarNAME = alltable.Properties.VariableNames( ...
+            contains(alltable.Properties.VariableNames,'timestamp'));
         
         keeprows = strcmp(alltable.redcap_event_name, PATIENT_ARM) & ...
             (arrayfun(@(x) ~isnat(x),alltable.(timevarNAME{1})));
@@ -333,11 +462,28 @@ for p = 1:numel(pt_id_list)
         clntable = alltable(keeprows,:);
         
         varnames = clntable.Properties.VariableNames;
-        medchange_field = varnames{contains(varnames,'medication_changes')};
-        activity_field = varnames{contains(varnames,'activity')};
-        explain_field = varnames{contains(varnames,'explain')};
-        stimon_field = varnames{contains(varnames,'is_stimulation_on')};
-        stimprog_field = varnames{contains(varnames,'which_stimulation_program')};
+
+        if contains(pt_id, 'RCS07')
+
+            medchange_field = varnames{contains(varnames,'changes_to')};
+            activity_field = varnames{contains(varnames,'activit')};
+
+            explain_field = varnames{contains(varnames,'please_note_changes')};
+            stimprog_field = varnames{contains(varnames,'stimulation_pro')};
+
+
+        else
+
+            medchange_field = varnames{contains(varnames,'medication_changes')};
+            activity_field = varnames{contains(varnames,'activity')};
+
+            explain_field = varnames{contains(varnames,'explain')};
+            stimprog_field = varnames{contains(varnames,'which_stimulation_program')};
+
+        end
+
+            stimon_field = varnames{contains(varnames,'is_stimulation_on')};
+
 
 %         **  IN future, will need to add all the individual med fields for
 %         each patient **
@@ -371,6 +517,8 @@ newscores.RCS04 = [oldscores.RCS04; oldscores.RCS04new];
 newscores.RCS05 = [oldscores.RCS05; oldscores.RCS05new];
 
 newscores.RCS06 = oldscores.RCS06;
+newscores.RCS07 = oldscores.RCS07;
+    
     
 newscores.RCS01_STREAMING = oldscores.RCS01_STREAMING;
 newscores.RCS02_STREAMING = oldscores.RCS02_STREAMING;
@@ -378,10 +526,9 @@ newscores.RCS04_STREAMING = [oldscores.RCS04_STREAMING; oldscores.RCS04_STREAMIN
 newscores.RCS05_STREAMING = oldscores.RCS05_STREAMING;
 
 newscores.RCS06_STREAMING = oldscores.RCS06_STREAMING;
+newscores.RCS07_STREAMING = oldscores.RCS07_STREAMING;
 
 % OUTPUT
 painscores_out = newscores;
-
-
 
 toc
