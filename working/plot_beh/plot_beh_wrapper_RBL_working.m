@@ -68,6 +68,8 @@ for i = 1 : length(pt_sides)
     cfg, (pt_sides{i}));
 
 end
+
+
 %% from databases, parse through StimLog.json files and align to REDcap
 
 for i = 1 : length(pt_sides)
@@ -343,7 +345,7 @@ xlabel('PC 1')
  set(gca,'fontSize',14, 'TickLength', [0 0]); 
         grid on;    grid MINOR;      box off
 %}
-%% simulate LD activity (set-up for 'rcssim' repo in Python)
+%% simulate LD activity 
 
 % parse RCS02R to human-readable format
 i                   = cellfun(@(x) length(x) == 1, db.RCS02R.duration);
@@ -353,13 +355,13 @@ db_RCS02R.timeStart = cellfun(@(x) x, db_RCS02R.timeStart);
 db_RCS02R.timeStop  = cellfun(@(x) x, db_RCS02R.timeStop);
 db_RCS02R.duration  = cellfun(@(x) x, db_RCS02R.duration);
 
-% take sessions of useful and managable duration
-i_sess              = ge(db_RCS02R.duration , duration('00:05:00')) &...
-                      le(db_RCS02R.duration , duration('00:30:00'));
+% take sessions of useful yet managable duration
+i_sess              = ge(db_RCS02R.duration , duration('00:07:00')) &...
+                      le(db_RCS02R.duration , duration('01:00:00'));
 
-db_RCS02R            = db_RCS02R(i_sess, :);
+db_RCS02R           = db_RCS02R(i_sess, :);
 
-i_stim               = cellfun(@(x) ~isempty(x), db_RCS02R.stimSettingsOut);
+i_stim              = cellfun(@(x) ~isempty(x), db_RCS02R.stimSettingsOut);
 
 db_RCS02R.activeGroup(i_stim)  ...
     = cellfun(@(x) x.activeGroup, db_RCS02R.stimSettingsOut(i_stim));
@@ -368,11 +370,37 @@ db_RCS02R.activeGroup(i_stim)  ...
 db_RCS02R  = sortrows(db_RCS02R, 'timeStart', 'descend');
 
 
-% i_sess                 = find(~strcmp(db_RCS02R.activeGroup, 'D'));
-% i_sess                 = i_sess(2);
-% 
 
+for i_sess = 1 : 25 %height(db_RCS02R)
 
+    data_dir = db_RCS02R.path{i_sess};
+    
+    % data using Analysis-rcs-data
+    
+    [unifiedDerivedTimes,...
+        timeDomainData, ~, ~,...
+        ~, ~, ~, ...
+        PowerData, ~, ~,...
+        FFTData, ~, ~,...
+        ...
+        AdaptiveData, ~, ~, timeDomainSettings, powerSettings,...
+        ~, eventLogTable, metaData, stimSettingsOut, stimMetaData,...
+        stimLogSettings, DetectorSettings, AdaptiveStimSettings, ...
+        AdaptiveEmbeddedRuns_StimSettings, ~] ...
+        ...
+        = ProcessRCS(data_dir, 3);
+    
+    dataStreams         = {timeDomainData, PowerData, AdaptiveData, FFTData};
+
+    comb_dt = createCombinedTable(dataStreams, unifiedDerivedTimes, metaData);
+    
+    [comb_dt_chunks, per_TD_lost]  = chunks_and_gaps(comb_dt);
+
+   
+    db_RCS02R.per_TD_lost(i_sess)    = per_TD_lost;
+    db_RCS02R.comb_dt_chunks(i_sess) = comb_dt_chunks;
+end
+%%
 fftSettings  = vertcat(db_RCS02R.fftSettings{:});
 fftSettings  = struct2table(fftSettings.fftConfig);
 

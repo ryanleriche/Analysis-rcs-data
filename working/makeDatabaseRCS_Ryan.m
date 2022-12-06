@@ -405,15 +405,41 @@ if ~isempty(old_database)
 
         if ~isempty(RCSdatabase_out)
 
+            varnames = old_database.Properties.VariableNames;
+            
+            % if the new sessions don't have variable names as old sessions
+            % initalize them as blank--can happen if no new sessions were aDBS
+            for i = 1 : length(varnames)
+                if ~any(strcmp(RCSdatabase_out.Properties.VariableNames, varnames{i}))
+
+            
+                   RCSdatabase_out.(varnames{i}) = cell(height(RCSdatabase_out), 1);
+                end
+            end
+
             RCSdatabase_out = [old_database; RCSdatabase_out];
         else
             RCSdatabase_out  = old_database;
 
-            disp(['Database as of ', datestr(old_database.timeStart{end}), '; ',...
-            old_database.sess_name{end},'---new files since were empty'])
+            disp(['Database as of ', datestr(old_database.timeStart{end}(1)), '; ',...
+            old_database.sess_name{end},'---no new files since ALL were empty'])
         end
     
         if ~isempty(badsessions)
+
+
+           varnames = old_badsessions.Properties.VariableNames;
+            
+            % if the new sessions don't have variable names as old sessions
+            % initalize them as blank--can happen if no new sessions were aDBS
+            for i = 1 : length(varnames)
+                if ~any(strcmp(badsessions.Properties.VariableNames, varnames{i}))
+
+                   badsessions.(varnames{i}) = cell(height(badsessions), 1);
+                end
+            end
+
+
             badsessions = [old_badsessions; badsessions];
         else
             badsessions = old_badsessions;
@@ -442,7 +468,7 @@ end
 save(fullfile(proc_cfg.raw_dir,[pt_id_side '_database.mat']),...
     'RCSdatabase_out','badsessions');
 
-fprintf('csv and mat of database saved as %s to %s \n',...
+fprintf('mat of database saved as %s to %s \n',...
     [pt_id_side '_database.mat'],proc_cfg.raw_dir);
 
 %==================================================================

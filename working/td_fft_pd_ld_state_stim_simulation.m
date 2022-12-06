@@ -99,10 +99,8 @@ data_dir = db_RCS02R.path{i_sess};
     = ProcessRCS(data_dir, 2);
 
 dataStreams         = {timeDomainData, PowerData, AdaptiveData, FFTData};
-[combinedDataTable] = createCombinedTable(dataStreams, ...
+[comb_dt]  =  createCombinedTable(dataStreams, ...
                                           unifiedDerivedTimes, metaData);
-
-per_TD_lost = sum(isnan(combinedDataTable.TD_key0)) * 100 / height(combinedDataTable);
 
 
 plt_meta_data ...
@@ -113,19 +111,11 @@ plt_meta_data ...
 
 % calc power-band (PB) time series based on time domain data
 
-%{
 
-Why do the simulated and measured PBs have the same length yet different
-indicies of missing (i.e., NaN) data?
-
-When does the FFT, and LD counters start for the streamed TD data?
-
-%}
-
-tbl_vars   = combinedDataTable.Properties.VariableNames;
+tbl_vars   = comb_dt.Properties.VariableNames;
 i_pb       = find(contains(tbl_vars, 'Power_Band'));
 
-empty_i_pb = all(isnan(combinedDataTable(:, i_pb).Variables));
+empty_i_pb = all(isnan(comb_dt(:, i_pb).Variables));
 
 % continue w/ power bands of interest
 i_pb       = i_pb(~empty_i_pb);
@@ -135,7 +125,7 @@ pb_nums    = cellfun(@(x) str2double(x(end)), tbl_vars(i_pb));
 pwr_bins   = [powerSettings.powerBands.lowerBound(pb_nums),...
               powerSettings.powerBands.upperBound(pb_nums)];
 
-sim_tbl    = combinedDataTable(:, {'localTime', 'DerivedTime',...
+sim_tbl    = comb_dt(:, {'localTime', 'DerivedTime',...
                                'TD_key0','TD_key1','TD_key2','TD_key3',...
                                'Power_Band1','Power_Band2','Power_Band3',...
                                'Power_Band4','Power_Band5','Power_Band6',...
@@ -152,7 +142,7 @@ for i = 1 : n_pb
         case 7, TD_ch = 4;      case 8, TD_ch = 4;
     end
 
-    [power, ~]  = calculateNewPower_RBL(combinedDataTable, fftSettings,...
+    [power, ~]  = calculateNewPower_RBL(comb_dt, fftSettings,...
                         powerSettings, metaData, TD_ch, pwr_bins(i, :));
     if i == 1
         sim_tbl.localTime    = power.localTime;
@@ -191,7 +181,7 @@ for i = 1 : n_pb
     subplot(n_pb/2, 2, i)
     
     i_pb_val  = find(~isnan(sim_tbl.(['sim_',pb_oi])));
-    j_pb_val  = find(~isnan(combinedDataTable.(pb_oi)));
+    j_pb_val  = find(~isnan(comb_dt.(pb_oi)));
 
 
     
@@ -199,7 +189,7 @@ for i = 1 : n_pb
             'LineWidth',4);     q.Color(4)=0.6;     hold on   
     
 
-    plot(combinedDataTable.localTime(j_pb_val), combinedDataTable.(pb_oi)(j_pb_val),...
+    plot(comb_dt.localTime(j_pb_val), comb_dt.(pb_oi)(j_pb_val),...
             'LineWidth',1.5);   grid on
      
     title(['ch', num2str(TD_ch-1), ' | ',...
@@ -218,7 +208,7 @@ for i = 1 : n_pb
         xlabel('Time','FontSize', 14); 
     end
 
-    Med =  median([sim_tbl.(['sim_',pb_oi])(i_pb_val); combinedDataTable.(pb_oi)(j_pb_val)]);
+    Med =  median([sim_tbl.(['sim_',pb_oi])(i_pb_val); comb_dt.(pb_oi)(j_pb_val)]);
 
     if Med == 0
         Med = 1;
@@ -474,9 +464,9 @@ state_tbl.ld_pwr = nan(height(state_tbl),1);
 % --> could be better to use INS to check for missed streamed data
 
 i_state            = find(cellfun(@(x) any(~isnan(x)),...
-                        combinedDataTable.Adaptive_CurrentAdaptiveState));
+                        comb_dt.Adaptive_CurrentAdaptiveState));
 
-state_tbl.desc(1)  = combinedDataTable.Adaptive_CurrentAdaptiveState(i_state(1));
+state_tbl.desc(1)  = comb_dt.Adaptive_CurrentAdaptiveState(i_state(1));
 
 pb_count      = 1;      abv_count     = 0;      blw_count     = 0;
 
@@ -655,7 +645,7 @@ if i == n_pb || i == n_pb - 1
     xlabel('Time','FontSize', 14); 
 end
 
-Med =  median([sim_tbl.(pb_oi)(i_pb_val); combinedDataTable.(pb_oi)(j_pb_val)]);
+Med =  median([sim_tbl.(pb_oi)(i_pb_val); comb_dt.(pb_oi)(j_pb_val)]);
 
 if Med == 0
     Med = 1;
@@ -678,60 +668,60 @@ ylim([0, Med*50])
 %% Create a simplified data table
 
 % timestamp
-timestamp = combinedDataTable.DerivedTime/1000;
+timestamp = comb_dt.DerivedTime/1000;
 
 % Time-Domain data
-td1 = combinedDataTable.TD_key0;
-td2 = combinedDataTable.TD_key1;
-td3 = combinedDataTable.TD_key2;
-td4 = combinedDataTable.TD_key3;
+td1 = comb_dt.TD_key0;
+td2 = comb_dt.TD_key1;
+td3 = comb_dt.TD_key2;
+td4 = comb_dt.TD_key3;
 
 % Power-Band data
-ch1_pb1 = combinedDataTable.Power_Band1;
-ch1_pb2 = combinedDataTable.Power_Band2;
+ch1_pb1 = comb_dt.Power_Band1;
+ch1_pb2 = comb_dt.Power_Band2;
 
-ch2_pb1 = combinedDataTable.Power_Band3;
-ch2_pb2 = combinedDataTable.Power_Band4;
+ch2_pb1 = comb_dt.Power_Band3;
+ch2_pb2 = comb_dt.Power_Band4;
 
-ch3_pb1 = combinedDataTable.Power_Band5;
-ch3_pb2 = combinedDataTable.Power_Band6;
+ch3_pb1 = comb_dt.Power_Band5;
+ch3_pb2 = comb_dt.Power_Band6;
 
-ch4_pb1 = combinedDataTable.Power_Band7;
-ch4_pb2 = combinedDataTable.Power_Band8;
+ch4_pb1 = comb_dt.Power_Band7;
+ch4_pb2 = comb_dt.Power_Band8;
 
 
 
 % incrop measured LD outputs into sim_table
 if any(...
-        contains(combinedDataTable.Properties.VariableNames, 'Adaptive_Ld0_output'))
+        contains(comb_dt.Properties.VariableNames, 'Adaptive_Ld0_output'))
 
     ld1 = correct_ld(...
-            combinedDataTable.Adaptive_Ld0_output);
+            comb_dt.Adaptive_Ld0_output);
 else
-    ld1 = nan(height(combinedDataTable),1);
+    ld1 = nan(height(comb_dt),1);
 end
 
 if any(...
-        contains(combinedDataTable.Properties.VariableNames, 'Adaptive_Ld0_output'))
+        contains(comb_dt.Properties.VariableNames, 'Adaptive_Ld0_output'))
 
     ld2 = correct_ld(...
-                combinedDataTable.Adaptive_Ld1_output);
+                comb_dt.Adaptive_Ld1_output);
 else
-    ld2 = nan(height(combinedDataTable),1);
+    ld2 = nan(height(comb_dt),1);
 end
 
 if any(...
-                contains(combinedDataTable.Properties.VariableNames, 'Adaptive_CurrentAdaptiveState'))
+                contains(comb_dt.Properties.VariableNames, 'Adaptive_CurrentAdaptiveState'))
     % state
-    state = isolate_state_vector(combinedDataTable);
+    state = isolate_state_vector(comb_dt);
     
     % stim
-    stim = isolate_stim_vector(combinedDataTable);
+    stim = isolate_stim_vector(comb_dt);
 
 else
 
-    state = nan(height(combinedDataTable),1);
-    stim  = nan(height(combinedDataTable),1);
+    state = nan(height(comb_dt),1);
+    stim  = nan(height(comb_dt),1);
 end
 
 % combine into a single data table and write to file
