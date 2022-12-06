@@ -2,7 +2,7 @@ function [adaptiveLogTable,...
     rechargeSessions, ...
     group_changes,...
     adaptiveDetectionEvents,...
-    mirrorLog] = read_adaptive_txt_log(fn,  cfg)
+    mirrorLog] = read_adaptive_txt_log(cfg, fn)
 
 
 
@@ -23,11 +23,11 @@ function [adaptiveLogTable,...
 
 % initialize table
 
-    
-    rechargeSessions=[];
-    
-    adaptiveDetectionEvents=[];
-    mirrorLog = [];
+group_changes = table();
+rechargeSessions=[];
+
+adaptiveDetectionEvents=[];
+mirrorLog = [];
 
 adaptiveLogTable = table();
 
@@ -63,15 +63,6 @@ if ~isempty(str)  % only continue if the file is not empty
 
 
 
-
-    if cfg.pull_mirror_logs
-
-    %% MirrorLog
-
-
-
-
-    end
     
     if cfg.pull_adpt_logs
     %% AdaptiveTherapyStateChange
@@ -215,7 +206,7 @@ if ~isempty(str)  % only continue if the file is not empty
 % unique(adaptiveLogEvents.EventID)
 
     i_ActiveDeviceChanged = strcmp(adaptiveLogEvents.EventID,'ActiveDeviceChanged');
-% 
+ 
     i_TherapyStatus       = strcmp(adaptiveLogEvents.EventID, 'TherapyStatus');
 
     allEvents = eventsRaw;
@@ -238,7 +229,7 @@ if ~isempty(str)  % only continue if the file is not empty
     clear group_status
     group_status = cellfun(@(x,a,b) x(a+56:b-12), events, cac1, cac2,'UniformOutput',false);
     
-    groupUse = replace(group_status,{'Group0','Group1','Group2','Group3'},{'A','B','C','D'});
+    groupUse = replace(group_status,{'Group0','Group1','Group2','Group3'},{'GroupA','GroupB','GroupC','GroupD'});
     ActiveGroup.event = groupUse';
 
 

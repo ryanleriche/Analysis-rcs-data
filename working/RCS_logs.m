@@ -1,160 +1,430 @@
-function [textlog] = RCS_logs(rootdir, PATIENTIDside, cfg)
+function INS_logs   = RCS_logs(cfg)
 
-% RCS Database
+%% RCS INS Log Database
+%{
+This function loops through all session folders in the path to create a
+database of all RC+S metrics of interest including processing of the
+adaptive text logs
 
-% This function loops through all session folders in the path to create a
-% database of all RC+S metrics of interest including processing of the
-% adaptive text logs
+INPUTS: 
+1. cfg.rootdir is the local root directory pathname for all patient session files
+      ! ! Make sure patient name is NOT included (e.g RCS02 would be a subfolder in the input folder)
+       This should look something like 'C:/Desktop/'
+           ** including:
+           ** AppLog.txt: adaptive state changes
+           ** EventLog.txt: open loop group changes
 
-% INPUTS: 
-% 1. ROOTDIR is the local root directory pathname for all patient session files
-%       ! ! Make sure patient name is NOT included (e.g RCS02 would be a subfolder in the input folder)
-%        This should look something like 'C:/Desktop/'
-%            ** including:
-%            ** AppLog.txt: adaptive state changes
-%            ** EventLog.txt: open loop group changes
-% 
-% 2. PATIENTIDside (this should indicate the side (L/R) of which device you are
-%       analyzing (i.e. RCS02R) - EXCEPT for CPRCS01, there is no letter after
-%       the name
+2. PATIENTIDside (this should indicate the side (L/R) of which device you are
+      analyzing (i.e. RCS02R) - EXCEPT for CPRCS01, there is no letter after
+      the name
 
-% OUTPUT: 
-% 1. textlog.mat timetable with fields:
+OUTPUT: 
+1. textlog.mat timetable with fields:
 
-%    [{'time'}; {'rec'}; {'sessname'  };  {'duration'  }; ...
-%     {'battery'   };{'TDfs'      };{'fft'};
-%     {'power'     };{'stim'    };   {'stimName'  }; ...
-%     {'stimparams'};  {'path'};  {'powerbands'}]; ...
-%     {'adaptiveLD_mean'}; {'adaptiveLD_std'}; {'untsreamedGroupChanges'};
-
-
-% function dependencies:
-%    read_adaptive_txt_log (starr lab analysis repo) % by Ro'ee Gilron
-%    makeDataBaseRCSdata (Chronic Pain RCS repo) % by Prasad Shirvalkar
-%       Open Mind functions in makeDataBaseRCSData: % by Kristin Sellers
-%       and Open Mind team
-        %   	createDeviceSettingsTable
-        %       createStimSettingsFromDeviceSettings
-        %       deserializeJSON
-        %       createStimSettingsTable
-% other dependencies:
-% https://github.com/JimHokanson/turtle_json
-% in the a folder called "toolboxes" in the same directory as the processing scripts
+   [{'time'}; {'rec'}; {'sessname'  };  {'duration'  }; ...
+    {'battery'   };{'TDfs'      };{'fft'};
+    {'power'     };{'stim'    };   {'stimName'  }; ...
+    {'stimparams'};  {'path'};  {'powerbands'}]; ...
+    {'adaptiveLD_mean'}; {'adaptiveLD_std'}; {'untsreamedGroupChanges'};
 
 
-% Ashlyn Schmitgen May2021
+function dependencies:
+   read_adaptive_txt_log (starr lab analysis repo) % by Ro'ee Gilron
+   makeDataBaseRCSdata (Chronic Pain RCS repo) % by Prasad Shirvalkar
+      Open Mind functions in makeDataBaseRCSData: % by Kristin Sellers
+      and Open Mind team
+          	createDeviceSettingsTable
+              createStimSettingsFromDeviceSettings
+              deserializeJSON
+              createStimSettingsTable
+other dependencies:
+https://github.com/JimHokanson/turtle_json
+in the a folder called "toolboxes" in the same directory as the processing scripts
 
-%%% Updates %%%
-%   P Shirvalkar July 28 2021 
-%   -  Updated redundant calculations and included recharge sessions, group
-%      changes and detector changes to output
-%   - created new plotting tools for this analysis (as part of RCS_CL which
-%   calls this function)
-%%%
+Ashlyn Schmitgen May2021
 
-% For OpenMind
+%% Updates %%%
+  P Shirvalkar July 28 2021 
+  -  Updated redundant calculations and included recharge sessions, group
+     changes and detector changes to output
+  - created new plotting tools for this analysis (as part of RCS_CL which
+  calls this function)
+%%
 
-%% just RCS05 for development
+For OpenMind
+%}
 
 
-% rootdir                = pia_raw_dir;
-% PATIENTIDside          = 'RCS05R';
-% 
+
+%% just RCS02R for development
+%{
+'every_entry' call works for RCS02
+
+
+NOT Done:
+
+* same fieldnames for 'every_entry' versus 'blazing_fast' calls
+
+    
+%}
+
 
 
 %% create loop through all text files for adaptive_read_log_txt.m for database
 
-warning("off", "all"); 
+%warning("off", "all"); 
 tic
 
+pt_id_side = cfg.pt_id ;
+
 % exception for CPRCS01
-if ~ (contains(PATIENTIDside,'CPRCS01'))
-    PATIENTID = PATIENTIDside(1:end-1); %remove the L or R letter
+if ~ (contains(pt_id_side,'CPRCS01'))
+    pt_id = pt_id_side(1:end-1); %remove the L or R letter
 else 
-    PATIENTID = PATIENTIDside;
+    pt_id = pt_id_side;
 end
 
-fprintf('Compiling RCS logsfor %s ', PATIENTIDside)
+fprintf('%s | compiling INS logs', pt_id_side)
     
     
-scbs_dir = fullfile(rootdir, PATIENTID,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
-adbs_dir = fullfile(rootdir, PATIENTID,'/SummitData/StarrLab/', PATIENTIDside);
+scbs_dir     = fullfile(cfg.rootdir, pt_id,'/SummitData/SummitContinuousBilateralStreaming/', pt_id_side);
+adbs_dir     = fullfile(cfg.rootdir, pt_id,'/SummitData/StarrLab/', pt_id_side);
 
-filelist = dir(fullfile(scbs_dir,'**/*.txt')); % all txt files contains within session files
+filelist     = dir(fullfile(scbs_dir,'**/*.txt')); % all txt files contains within session files
 % remove the files that start with ._  (some icloud issue of duplicate files to ignore)
-badfiles = arrayfun(@(x) contains(x.name,'._'),filelist);
+badfiles     = arrayfun(@(x) contains(x.name,'._'),filelist);
 filelist(badfiles)=[];
-filelist = filelist(~[filelist.isdir]);
+filelist      = struct2table(filelist(~[filelist.isdir]));
+filelist.date = datetime(filelist.date);
 
-AppLogData          = table(); % create empty tables
-GroupchangeData     = table();
-RechargeData        = table();
-AdaptiveDetect      = table();
-
-for i = 1:numel(filelist)
-    f = filelist(i);
-
-    if endsWith(f.name,"EventLog.txt")
-        [~, ~, groupChanges, ~, ~] ...
-            ...
-            = read_adaptive_txt_log(fullfile(f.folder, f.name), cfg);
+filelist      = sortrows(filelist,'date');
 
 
-        GroupchangeData = [GroupchangeData; groupChanges];
 
-        % fprintf("Done %s, %d/%d: %d\n", f.name, i, numel(filelist), size(groupChanges, 1));
+path                        = cellfun(@(x, y) [x,'/', y], filelist.folder, filelist.name,...
+                             'UniformOutput', false);
 
-    end
+i_event                     = endsWith(path, 'EventLog.txt'); 
+EventLog_tbl                = table();
+EventLog_tbl.path           = path(i_event);
+EventLog_tbl.group_changes  = cell(sum(i_event),1);
+EventLog_tbl.rech_sess      = cell(sum(i_event),1);
+% initiate cell arrar of every txt log
+
+AppLog_tbl              = table();
+i_app                   = endsWith(path, 'AppLog.txt'); 
+AppLog_tbl.path         = path(i_app);
+
+% initiate cell arrar of every app log
+AppLog_tbl.aDBS_state   = cell(sum(i_app),1);
+AppLog_tbl.adapt_stat   = cell(sum(i_app),1);
+AppLog_tbl.ld_detect    = cell(sum(i_app),1);
+
+
+% parse through EventLog.txt files
+for i = 1 : height(EventLog_tbl)
+    fn            = EventLog_tbl.path{i};
+
+    [EventLog_tbl.group_changes{i},EventLog_tbl.rech_sess{i}]...
+        = ...
+    read_INS_logs_fast(fn);
+end
+
+% parse through AppLog.txt files
+for i = 1 : height(AppLog_tbl)
+    fn = AppLog_tbl.path{i} ;
+
+    [AppLog_tbl.aDBS_state{i}, AppLog_tbl.ld_detect{i} ]...
+        = ...
+    read_INS_logs_fast(fn);
+
+end
+%% organize EventLogs
+% group changes
+i_tbl                       = cellfun(@(x) istable(x), EventLog_tbl.group_changes);
+group_changes               = unique(...
+                                     vertcat(EventLog_tbl.group_changes{i_tbl}), 'rows');
+
+% timezone to match rest of RCS data
+group_changes.time.TimeZone = 'America/Los_Angeles';
+
+% recharge sessions
+i_tbl                       = cellfun(@(x) istable(x), EventLog_tbl.rech_sess);
+rech_sess               = unique(...
+                                     vertcat(EventLog_tbl.rech_sess{i_tbl}), 'rows');
+
+% timezone to match rest of RCS data
+rech_sess.time.TimeZone = 'America/Los_Angeles';
+
+%% organize AppLogs
+i_tbl                    = cellfun(@(x) istable(x), AppLog_tbl.aDBS_state);
+aDBS_state               = unique(...
+                                 vertcat(AppLog_tbl.aDBS_state{i_tbl}), 'rows');
+
+aDBS_state.time.TimeZone = 'America/Los_Angeles';
+
+% LD Detections
+i_tbl                    = cellfun(@(x) istable(x), AppLog_tbl.ld_detect);
+ld_detect                = unique(...
+                                 vertcat(AppLog_tbl.ld_detect{i_tbl}), 'rows');
+
+ld_detect.time.TimeZone = 'America/Los_Angeles';
+
+
+
+INS_logs.group_changes  = group_changes;
+INS_logs.app            = aDBS_state;
+
+INS_logs.adaptive       = ld_detect;
+INS_logs.recharge       = rech_sess; 
+%% SAVE The Text Log structure
+
+fn  = fullfile(cfg.rootdir(1:end-4), 'processed', 'INS_logs', [pt_id_side '_INS_logs']);
+
+save(fn,'INS_logs')
+fprintf('.mat of INS Logs (as structure) saved to \n %s \n',fn);
+
+ end
+ %% scratch code from slow parsing
+%{
+proc_dirname      = [cfg.rootdir(1:end-4), 'processed/INS_logs/'];
+
+outputFileName    = fullfile(proc_dirname,[cfg.pt_id, '_INS_logs.mat']);
+
+if isfile(outputFileName) && ~cfg.ignoreold
+
+    disp('Loading previous INS Logs');
+    old = load(outputFileName);
+
+    i_proc_logs   = find(cellfun(@(x) ~isempty(x), old.INSLog_tbl.events));
+    proc_INS_logs = old.INSLog_tbl(i_proc_logs,:); 
+
+    filelist(i_proc_logs, :) = [];
+
+
 end
 
 
+INSLog_tbl  = table;
 
+INSLog_tbl.folder = filelist.folder;
+INSLog_tbl.name   = filelist.name;
+INSLog_tbl.date   = filelist.date;
+INSLog_tbl.events = cell(height(INSLog_tbl),1);
 
-if cfg.pull_adpt_logs == true
-    for i = 1:numel(filelist)
-        if endsWith(f.name,"AppLog.txt")
-            [adaptiveLogTable, ~, ~,adaptiveDetectionEvents] = read_adaptive_txt_log(fullfile(f.folder, f.name), cfg);
-            AppLogData = [AppLogData; adaptiveLogTable];
-            AdaptiveDetect = [AdaptiveDetect; adaptiveDetectionEvents];
-            % fprintf("Done %s, %d/%d: %d\n", f.name, i, numel(filelist), size(adaptiveLogTable, 1)); 
+% loop through all EventLog.txts, and AppLog.txts
+for i = 251 : height(filelist)
+
+    fn           = [filelist.folder{i}, '/', filelist.name{i}];
+
+    if endsWith(fn, 'EventLog.txt') 
+
+        temp_events  = read_INS_logs_slow(fn);
+
+    
+        if ~iscell(temp_events) && ~isempty(temp_events)
+
+            INSLog_tbl.events{i}  = temp_events;
+        else
+            INSLog_tbl.events{i}  = 'empty';
         end
     end
 end
 
-fprintf("Done!\n");
-toc
+
+if isfile(outputFileName) && ~cfg.ignoreold
+
+    i_new_logs      = find(cellfun(@(x) ~isempty(x), INSLog_tbl.events));
+
+    new_INS_logs    = INSLog_tbl(i_new_logs, :);
+
+    temp_INS_logs   = [proc_INS_logs; new_INS_logs];
+
+    temp_INS_logs.folder = cellfun(@(x, y) [x, y],...
+                          temp_INS_logs.folder, temp_INS_logs.name,...
+                          'UniformOutput', false);
+
+    [~, i_u]        =  unique(temp_INS_logs.folder);
+
+    if length(i_u) ~= height(temp_INS_logs)
+
+        disp('INS logs redundantly loaded in--may be erroneous')
+    end
+
+    proc_folders     = temp_INS_logs.folders;
 
 
-%% format Text Log tables and eliminate duplicates from overlap
+end
+%%
 
-% make sure time is datetime
-% AppLogData.time         = datetime(AppLogData.time);
-GroupchangeData.time    = datetime(GroupchangeData.time);
-% AdaptiveDetect.time     = datetime(AdaptiveDetect.time);
-% RechargeData.time       = datetime(RechargeData.time);
+save([proc_dirname, cfg.pt_id, '_proc_INS_logs.mat'],...
+     'proc_folders', '-v7.3');
+%}
+% organize EventLogs
+%{
+EventLogs            = INSLogs(endsWith(INSLogs.name,"EventLog.txt"),:);
 
-% sort all rows by date
-% sorted_ALD              = sortrows(AppLogData, 1);
-sorted_ELD              = sortrows(GroupchangeData, 2);
-% sorted_AD               = sortrows(AdaptiveDetect, 1); 
-% sorted_RD               = sortrows(RechargeData, 1);
+i_tbl                = cellfun(@(x) istable(x), EventLogs.events);
 
-% remove all duplicate entries
-% [~, ALD_ind]            = unique(sorted_ALD.time);
-% [~, ELD_ind]            = unique(sorted_ELD.time);
-% [~, AD_ind]             = unique(sorted_AD.time);  %comment out if detections may occur at below 1sec timescale
-% [~, RD_ind]             = unique(sorted_RD.time); %ok to remove dups since we only care about recharging on minute scale.
+events               = vertcat(EventLogs.events{i_tbl});
 
-% unique_sorted_ALD       = table2timetable(sorted_ALD(ALD_ind, :));
-unique_sorted_ELD         = sortrows(table2timetable(unique(sorted_ELD)));
-% unique_sorted_AD        =  table2timetable(sorted_AD(AD_ind, :));
-% unique_sorted_RD        = table2timetable(sorted_RD(RD_ind, :));
 
-% rename final variables for Text logs 
-% textlog.app             = unique_sorted_ALD;
-textlog.groupchange     = unique_sorted_ELD;
-textlog.groupchange.time.TimeZone = 'America/Los_Angeles'; % assign same time zone as ProcessRCS
-% textlog.adaptive        = unique_sorted_AD;
-% textlog.recharge        = unique_sorted_RD; 
+% TherapyStatus tbl
+TherStat      = EventLogs(strcmp(EventLogs.event_id,'TherapyStatus'), : );
 
- end
+exp_entries   = struct2table(cellfun(@(x) x, TherStat.entries));
+
+TherStat      = removevars(TherStat, {'event_id', 'entry_names', 'entries'});
+TherStat      = [TherStat, exp_entries];
+
+% ActiveDeviceChanged tbl
+ActDev        = EventLogs(strcmp(EventLogs.event_id, 'ActiveDeviceChanged'), : );
+
+exp_entries   = struct2table(cellfun(@(x) x, ActDev.entries));
+
+ActDev        = removevars(ActDev , {'event_id', 'entry_names', 'entries'});
+ActDev        = [ActDev, exp_entries];
+
+% rename Groups names to letters
+ActDev.NewGroup = replace(ActDev.NewGroup,...
+                    {'Group0','Group1','Group2','Group3'}, ...
+                    {'GroupA','GroupB','GroupC','GroupD'});
+
+
+% combine TherapyStatus (On and Off) and ActiveDeviceChanged (Groups) events
+temp_tbl = removevars(ActDev, 'Unused');
+temp_tbl = renamevars(temp_tbl, 'NewGroup', 'TherapyStatus');
+
+GroupChange_tbl = sortrows( ...
+                           [temp_tbl; ...
+                           removevars(TherStat, {'TherapyStatusType','Unused'})],...
+                    'time');
+
+% timezone to match rest of RCS data
+GroupChange_tbl.time.TimeZone = 'America/Los_Angeles';
+
+% remove duplicate rows (time can be the same if there's subsequent events
+% w/n a second)
+GroupChange_tbl  = unique(GroupChange_tbl, 'rows');
+
+
+
+% organize RechargeSess[i]ons --
+
+RechSess       = EventLogs(strcmp(EventLogs.event_id,'RechargeSesson'), : );
+
+exp_entries    = struct2table(cellfun(@(x) x, RechSess.entries));
+
+RechSess       = removevars(RechSess, {'event_id', 'entry_names', 'entries'});
+RechSess       = [RechSess, exp_entries];
+
+RechSess       = removevars(unique(RechSess, 'rows'), 'Unused');
+%}
+% organize AppLogs
+%{
+AppLogs            = INSLogs(endsWith(INSLogs.name,"AppLog.txt"), 'events');
+
+AppLogs            = vertcat(AppLogs.events{:});
+
+% AdaptiveTherapyStateChange as its own table
+AdTherStateChange            = AppLogs(strcmp(AppLogs.event_id, 'AdaptiveTherapyStateChange'), : );
+
+
+exp_entries         = struct2table(cellfun(@(x) x, AdTherStateChange.entries));
+
+AdTherStateChange            = removevars(AdTherStateChange, {'event_id', 'entry_names', 'entries'});
+
+AdTherStateChange            = [AdTherStateChange, exp_entries];
+
+% remove (redundant) variable names saved in hexidecimal format
+var                 = {'Status', 'Prog0Amp', 'Prog1Amp', 'Prog2Amp', 'Prog3Amp',...
+                       'RatePeriodAtTimeOfModification'};
+
+AdTherStateChange            = removevars(AdTherStateChange, var);
+
+
+var                 = ["Prog0AmpInMillamps", "Prog1AmpInMillamps",...
+                       "Prog2AmpInMillamps", "Prog3AmpInMillamps",...
+                       "RateAtTimeOfModification"];
+
+for i = 1 : length(var)
+    AdTherStateChange.(var{i}) = cellfun(@(x) round(str2double(x),2), AdTherStateChange.(var{i}));    
+end
+
+% timezone to match rest of RCS data
+AdTherStateChange.time.TimeZone = 'America/Los_Angeles';
+
+% remove duplicate rows (time can be the same if there's subsequent events
+% w/n a second)
+AdTherStateChange              = unique(AdTherStateChange, 'rows');
+
+
+
+LdDetEvent      = AppLogs(strcmp(AppLogs.event_id, 'LdDetectionEvent'), : );
+
+exp_entries     = struct2table(cellfun(@(x) x, LdDetEvent.entries));
+
+LdDetEvent      = removevars(LdDetEvent  , {'event_id', 'entry_names', 'entries'});
+LdDetEvent      = [LdDetEvent  , exp_entries]; 
+
+LdDetEvent      = unique(...
+                    removevars(LdDetEvent, 'Unused'), ...
+                  'rows');
+
+% AdTherStateWrite as table -> RBL:  seems redundant w/ 'AdaptiveTherapyChange' event
+%{
+AdTherStateWrite        = AppLogs(strcmp(AppLogs.event_id, 'AdaptiveTherapyStateWritten'), : );
+
+
+exp_entries             = struct2table(cellfun(@(x) x, AdTherStateWrite.entries));
+
+AdTherStateWrite        = removevars(AdTherStateWrite, {'event_id', 'entry_names', 'entries'});
+
+AdTherStateWrite        = [AdTherStateWrite, exp_entries];
+
+
+
+
+% timezone to match rest of RCS data
+AdTherStateWrite.time.TimeZone = 'America/Los_Angeles';
+
+% remove duplicate rows (time can be the same if there's subsequent events
+% w/n a second)
+AdTherStateWrite              = unique(AdTherStateWrite, 'rows');
+%}
+
+
+
+% LfpSenseStateEvent as table -> RBL: just data that is sensed
+% 'LDDetectionEvent' tells us what state the INS is in (determining stim)
+%{
+LfpSSEvent      = AppLogs(strcmp(AppLogs.event_id, 'LfpSenseStateEvent'), : );
+
+j               = cellfun(@(x) ~isempty(x), LfpSSEvent.entries);
+
+LfpSSEvent      = LfpSSEvent(j, :);
+exp_entries     = struct2table(cellfun(@(x) x, LfpSSEvent.entries));
+
+LfpSSEvent      = removevars(LfpSSEvent, {'event_id', 'entry_names', 'entries'});
+LfpSSEvent      = [LfpSSEvent, exp_entries]; 
+
+LfpSSEvent      = unique(...
+                    removevars(LfpSSEvent, 'Unused'), ...
+                  'rows');
+
+%}
+
+%%
+
+
+org_INS_logs.event_logs      = EventLogs;
+org_INS_logs.ther_stat       = TherStat;
+org_INS_logs.act_dev         = ActDev;
+org_INS_logs.group_changes   = GroupChange_tbl;
+
+org_INS_logs.aDBS_state      = AdTherStateChange;
+org_INS_logs.ld_det          = LdDetEvent;
+
+org_INS_logs.rech            = RechSess;
+%}
+

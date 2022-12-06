@@ -97,9 +97,9 @@ while counter <= totalTimeWindows
     % check at least one time window available before reach end signal
     if stime+L <= length(t)
         % Apply fft of the next signal window
-        X = fft(td_rcs(stime:stime+L-1)'.*hann_win,fftSize); 
+        X          = fft(td_rcs(stime:stime+L-1)'.*hann_win,fftSize); 
         % From double to single sided FFT
-        SSB = X(1:L/2); 
+        SSB        = X(1:L/2); 
         % scaling step 1 (multiply by 2 bins 2 to end)
         SSB(2:end) = 2*SSB(2:end); 
         % scaling step 2 (scaling step 2, dividing by 1/2 fft size (L/2))
@@ -125,11 +125,13 @@ end
 
 % transform to rcs units (equation from manufacturer - hardware specific - same in all RC+S devices)
 function td_rcs = transformTDtoRCS(keych,AmpGain)
-    FP_READ_UNITS_VALUE = 48644.8683623726;    % constant
-    lfp_mv = nan(1,length(keych))';
+    FP_READ_UNITS_VALUE   = 48644.8683623726;    % constant
+    lfp_mv                = nan(1,length(keych))';
     lfp_mv(~isnan(keych)) = keych(~isnan(keych))-mean(keych(~isnan(keych))); % remove mean
-    config_trim_ch = AmpGain; % read from device settins
-    lfpGain_ch = 250*(config_trim_ch/255);  % actual amplifier gain ch
-    lfp_rcs = lfp_mv * (lfpGain_ch*FP_READ_UNITS_VALUE) / (1000*1.2); 
-    td_rcs = lfp_rcs;
+    config_trim_ch        = AmpGain; % read from device settins
+
+    lfpGain_ch            = 250*(config_trim_ch/255);  % actual amplifier gain ch
+
+    lfp_rcs               = lfp_mv * (lfpGain_ch * FP_READ_UNITS_VALUE) / (1000*1.2); 
+    td_rcs                = lfp_rcs;
 end

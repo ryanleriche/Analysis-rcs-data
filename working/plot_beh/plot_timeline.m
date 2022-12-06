@@ -20,6 +20,81 @@ function plot_timeline(cfg, redcap, varargin)
     
     ds =        datestr(date_range,'dd-mmm-yyyy');
 
+% allows exploratory analysis w/ consistent nice formatting
+switch cfg.pt_id(7:end)
+
+    case 'mismatch'
+
+
+        i_trim_VAS_all   = ~(redcap.unpleasantVAS == 50 & redcap.painVAS == 50 & redcap.worstVAS == 50)...
+            &...
+                ~(...
+                (redcap.unpleasantVAS == 50 | redcap.painVAS == 50 | redcap.worstVAS == 50)...
+                & redcap.mayoNRS ~= 5 ...
+                ...
+                & sum(isnan([redcap.unpleasantVAS, redcap.painVAS == 50, redcap.worstVAS]),2) == 0);
+        
+        
+       redcap  = redcap(i_trim_VAS_all , :);
+
+        title([cfg.pt_id(1:5), ': VAS to NRS Timeline',...
+            newline,...
+            ds(1,:) ' to ' ds(2,:),...
+            newline, ...
+            'Stages 1, 2, and 3'], 'Fontsize',16);
+
+        yyaxis left
+
+        plot(redcap.time, movmean(redcap.mayoNRS, 5), 'LineWidth', 2); hold on;
+        plot(redcap.time, [redcap.mayoNRS], '.', 'MarkerSize',5);
+   
+
+        ylabel('Numeric Rating Scale');   ylim([0,10]);   yticks(1:1:10);
+
+        yyaxis right
+
+        plot(redcap.time, movmean(redcap.painVAS, 5), 'LineWidth', 2); hold on;
+        plot(redcap.time, [redcap.painVAS], '.', 'MarkerSize',5);
+    
+        ylabel('Visual Analog Scale');   ylim([0,100]);  yticks(0:10:100);
+
+
+        legend(''); 
+     
+
+        format_plot();
+
+        hold off;
+
+        exportgraphics(gcf,...
+            [cd,'/plot_beh/figs/beh_only/RCS02/nrs_vas_timeline.png'],...
+            'Resolution',300); 
+
+        %% plot difference of NRS and VAS/10
+        figure('Units', 'Inches', 'Position', [0, 0, 25, 10])
+
+
+        title([cfg.pt_id(1:5), ': VAS, NRS difference Timeline',...
+            newline,...
+            ds(1,:) ' to ' ds(2,:),...
+            newline, ...
+            'Stages 1, 2, and 3'], 'Fontsize',16);
+
+        hold on;
+        plot(redcap.time, movmean((redcap.painVAS/10 - redcap.mayoNRS), 5), 'LineWidth', 2); 
+        plot(redcap.time, (redcap.painVAS/10 - redcap.mayoNRS), '.', 'MarkerSize',8, 'Color','k');
+   
+
+        yline([-1, 1], 'LineWidth', 3) 
+        ylabel('(VAS/10) - NRS');   ylim([-3.5,5.75]);  legend(''); 
+
+        format_plot();
+
+        exportgraphics(gcf,...
+            [cd,'/plot_beh/figs/beh_only/RCS02/nrs_vas_diff_timeline.png'],...
+            'Resolution',300); 
+%%
+    otherwise
 %% NRS
     if cfg.subplot == true
         subplot(311)
@@ -48,10 +123,11 @@ function plot_timeline(cfg, redcap, varargin)
 
         if strcmp(cfg.pt_id, 'RCS06')
 
-            scatter(redcap.time, redcap.NRS_noc, 100, 'filled');   
-            scatter(redcap.time, redcap.NRS_np, 50, 'filled');
+            scatter(redcap.time, redcap.nocNRS, 100, 'filled');   
+            scatter(redcap.time, redcap.npNRS, 50, 'filled');
 
-            legend({'NRS Intensity', '','NRS Nociceptive', 'NRS Neuropathic'}, 'Location','northeastoutside'); 
+            legend({'NRS Intensity', '','NRS Nociceptive',...
+                    'NRS Neuropathic'}, 'Location','northeastoutside'); 
      
 
         end
@@ -104,8 +180,8 @@ function plot_timeline(cfg, redcap, varargin)
 
         if strcmp(cfg.pt_id, 'RCS06')
 
-            scatter(redcap.time, redcap.painVAS_noc, 100, 'filled');   
-            scatter(redcap.time, redcap.painVAS_np, 75, 'filled');
+            scatter(redcap.time, redcap.nocVAS, 100, 'filled');   
+            scatter(redcap.time, redcap.npVAS, 75, 'filled');
 
             legend({'VAS Intensity', 'VAS Unpleasantness', '', 'VAS Nociceptive',...
                 'VAS Neuropathic'}, ...
@@ -139,26 +215,26 @@ function plot_timeline(cfg, redcap, varargin)
 
     end
     
-    MPQ_aff       = sum([redcap.MPQsickening, redcap.MPQfearful, redcap.MPQcruel, redcap.MPQtiring],2,'omitnan');
-    MPQ_som       = redcap.MPQtotal - MPQ_aff;
+    MPQaff       = sum([redcap.MPQsickening, redcap.MPQfearful, redcap.MPQcruel, redcap.MPQtiring],2,'omitnan');
+    MPQsom       = redcap.MPQtotal - MPQaff;
 
     if strcmp(cfg.dates, 'AllTime') == 1
     
         plot(redcap.time, movmean(redcap.MPQtotal , 5),'LineWidth', 4.5);
         hold on
-        plot(redcap.time, movmean([MPQ_som, MPQ_aff], 5),'LineWidth', 2);
+        plot(redcap.time, movmean([MPQsom, MPQaff], 5),'LineWidth', 2);
 
          set(gca,'ColorOrderIndex',1);
 
         plot(redcap.time, redcap.MPQtotal , '.', 'MarkerSize',9);
-        plot(redcap.time, [MPQ_som, MPQ_aff], '.', 'MarkerSize',5);
+        plot(redcap.time, [MPQsom, MPQaff], '.', 'MarkerSize',5);
 
     else
  
         scatter(redcap.time, redcap.MPQtotal , 100, 'filled');   
         hold on;
-        scatter(redcap.time, MPQ_som, 50, 'filled');
-        scatter(redcap.time, MPQ_aff, 50, 'filled');
+        scatter(redcap.time, MPQsom, 50, 'filled');
+        scatter(redcap.time, MPQaff, 50, 'filled');
 
     end
     
@@ -173,6 +249,7 @@ function plot_timeline(cfg, redcap, varargin)
      if ~strcmp(cfg.stim_parameter, '')
          overlay_stim(gca, cfg.stim_parameter, redcap);   
      end
+end
 %% local functions
 %{
 function overlay_stim(ax, stim, db_beh_RCSXX)
@@ -459,8 +536,10 @@ end
     
 function format_plot()  
 
-    set(gca,'FontSize',16, 'xlim', date_range , 'TickLength', [0 0]); 
     grid on;    grid MINOR;   legend boxoff;    box off;
+
+    set(gca,'FontSize',16, 'xlim', date_range , 'TickLength', [0 0],...
+        'GridAlpha',0.4,'MinorGridAlpha',0.7, 'GridColor', 'k', 'MinorGridColor', 'k'); 
 
     t = datetime(cfg.stage_dates, 'TimeZone', '-07:00');
 

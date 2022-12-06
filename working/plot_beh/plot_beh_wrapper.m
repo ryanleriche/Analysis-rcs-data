@@ -1,229 +1,230 @@
 %% user-inputs
-
 % where RCS files are saved from PIA server
-pia_raw_dir               = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/raw/';
+pia_raw_dir     = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/raw/';
 
 % where 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
-github_dir            = '/Users/Leriche/Github/Analysis-rcs-data/';
+github_dir      = '/Users/Leriche/Github/';
+
+% where DropBox desktop is saved locally
+dropbox_dir     = ['/Users/Leriche/Dropbox (UCSF Department of Neurological Surgery)/',...
+                   'SUBNETS Dropbox/Chronic Pain - Activa and Summit 2.0'];
 
 % application programming interface (API) token which is essentially a
 % password to access REDcap remotely, and is unique per researcher per
 % study (e.g., Ryan has a unique token for the RCS and PCS studies)
 
-API_token             = '95FDE91411C10BF91FD77328169F7E1B';
-
+rcs_API_token   = '95FDE91411C10BF91FD77328169F7E1B';
+pcs_API_token   = 'DB65F8CB50CFED9CA5A250EFD30F10DB';
 
 % pulls/organizes arms from REDcap (go into fxn to add new arms)
-cd([github_dir, 'working']);         addpath(genpath(github_dir));
+cd([github_dir, 'Analysis-rcs-data/working']);         
 
-REDcap                 = RCS_redcap_painscores(API_token);
+addpath(genpath([github_dir, 'Analysis-rcs-data/']));
 
-%% Stage start dates, home, and clinic visits for RCS pts 1-6
-stage_dates             = {{''}, {'08-Sep-2020'; '31-Jan-2021'; '31-May-2022'},... % RCS02
-                           {''}, {'13-May-2021'; '12-Jul-2021'},... % RCS04
-                           {'21-Jul-2021';'07-Sep-2021'},... % RCS05
-                           {'07-Jun-2022','18-Aug-2022'}}; % RCS06
+REDcap                = RCS_redcap_painscores(rcs_API_token);
 
-
-visits              = struct;
-visits.RCS05        = table;
-visits.RCS05.dates  = datetime(...
-   {'21-Jul-2021';   '22-Jul-2021';    '23-Jul-2021';...
-    '07-Sep-2021';   '08-Sep-2021';    '09-Sep-2021';...
-    '01-Dec-2021';   '02-Dec-2021';...
-    '10-Aug-2022';   '11-Aug-2022';...
-    '05-Sep-2022'},...
-    ...
-    'TimeZone', 'America/Los_Angeles');
-
-visits.RCS05.desc   = ...
-    {'s1_implant';      's1_inpatient_d1';   's1_inpatient_d2';...
-    's2_inclinic_d1';   's2_inclinic_d2' ;   's2_inclinic_d3';...
-    's2_home_d1'    ;   's2_home_d2';...
-    's2_inclinic_d1';   's2_inclinic_d2';...
-    's3_start'};
+% stage dates and, home/clinic visits for RCS pts 1-7 w/ brief descriptions
+[visits, stage_dates] = make_visit_dates;
 
 
+% need to further distill by pts initals
+% fluct                 = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
+%% import RCS databases per pt side
+%{
 
+* saves RCS session summaries as databases (db) in struct per pt side
+* badsessions w/n 'bs' struct
 
-visits.RCS02        = table;
-visits.RCS02.dates  = datetime(...
-   {'08-Sep-2020'; '09-Sep-2020'; '10-Sep-2020'; '11-Sep-2020';...
-    '13-Oct-2020';...
-    '18-Oct-2020'; ...
-    '02-Nov-2021'; '09-Nov-2021';...
-    '01-Feb-2021'; '02-Feb-2021';  '03-Feb-2021';...
-    '13-Apr-2021'; '14-Apr-2021';...
-    '27-Sep-2021'; '28-Sep-2021';...
-    '31-May-2022';...
-    '28-Jun-2022'; '29-Jun-2022'}, ...
-    ...
-    'TimeZone', 'America/Los_Angeles');
+(pg. 12 of the 4NR010 Research Lab Programmer Guide M979053A001)
 
-visits.RCS02.desc   = ...
-    {'s1_implant';     's1_inpatient';    's1_inclinic_d1';  's1_inclinic_d2';...
-     'remove_hardware_inpatient';...
-     's2_start';
-     'washout_testing'; 'washout_testing';
-     's2_inclinic_d1'; 's2_inclinic_d2' ; 's2_inclinic_d3';...
-     's2_home_d1'    ; 's2_home_d2';...
-     's2_inclinic_d1'; 's2_inclinic_d2' ;...
-     's3_start';...
-     's3_inclinic_d1'; 's3_inclinic_d2'};
-
-
-visits.RCS04        = table;
-visits.RCS04.dates  = datetime(...
-   {'13-May-2021'; '14-May-2021'; '15-May-2021'; '16-May-2021';...   
-    '12-Jul-2021'; '13-Jul-2021'; '14-Jul-2021';...
-    '17-Aug-2021'; '18-Aug-2021'; '19-Aug-2021';...
-    '13-Jul-2022'}, ...
-    ...
-    'TimeZone', 'America/Los_Angeles');
-
-visits.RCS04.desc   = ...
-    {'s1_implant';      's1_inpatient_d1';  's1_inpatient_d2'; 's1_inpatient_d3'; ...
-     's2_inclinic_d1';  's2_inclinic_d2' ;  's2_inclinic_d3';...
-     's2_home_d1'    ;  's2_home_d2';       's2_home_d2';...
-     's2_home_d1'    ...
-     };
-
-
-
-visits.RCS06        = table;
-visits.RCS06.dates  = datetime(...
-   {'01-Mar-2022';...   
-    '07-Jun-2021'}, ...
-    ...
-    'TimeZone', 'America/Los_Angeles');
-
-visits.RCS06.desc   = ...
-    {'s1_implant';...
-     's2'};
-
-
-%% import RCS Databases per pt side
-
-% save RCS session summaries as DataBases w/n 'db' structure and
-% badsessions w/n 'bs' structure 
+"Multiple programs can be combined to define a group. Each group and its associated programs can be used
+to provide a therapy for specific symptoms or specific patient activities. Pulse width, amplitude, amplitude
+limits, and electrode polarity are programmed separately for each program within the group (ie, each
+program within the group can have different values). Pulse width limits, rate, rate limits, SoftStart/Stop,
+Cycling, and Active Recharge are programmed for each group (ie, each program within the group will have
+the same values)."
+%}
 
 cfg                    = [];
 cfg.load_EventLog      = false;
 cfg.ignoreold          = false;
+cfg.raw_dir            = pia_raw_dir;
+
+
+pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R',...
+                          'RCS06L','RCS06R','RCS07L','RCS07R'};
+
+for i = 1 : length(pt_sides)
+
+    cfg.pt_id                       = pt_sides{i}(1:end-1);
+
+    [db.(pt_sides{i}), bs.(pt_sides{i})] ...
+        ...
+        =  makeDatabaseRCS_Ryan(...
+        ...
+    cfg, (pt_sides{i}));
+
+end
+%% from databases, parse through StimLog.json files and align to REDcap
+
+for i = 1 : length(pt_sides)
+    cfg.pt_id                       = pt_sides{i}(1:end-1);
+    cfg.stage_dates                 = stage_dates{str2double(pt_sides{i}(end-1))};
+
+    if ~strcmp(pt_sides{i}, 'RCS02R')
+
+        [stimLog.(pt_sides{i}), REDcap.(pt_sides{i})] ...
+            ...
+            = align_REDcap_to_stimLog(...
+            ...
+        cfg, db.(pt_sides{i}), REDcap.(pt_sides{i}(1:end-1)));
+
+    end
+end
+
+%% RCS02 --> use INS logs to generate more accurate stim groups
+cfg                    = [];
+cfg.rootdir            = pia_raw_dir;
+cfg.pt_id              = 'RCS02R';
+       
+INS_logs.RCS02R        = RCS_logs(cfg);
+
+% add stim params to REDcap based off of EventLog.txt, and DeviceSettings.json files
+cfg                    = [];
+cfg.stage_dates        = stage_dates{2};
+cfg.pt_id              = 'RCS02';
+
+INSLog_w_redcap.RCS02R  = get_INSLog_stim_params(cfg,...
+                                     INS_logs.RCS02R.group_changes,...
+                                     db.RCS02R,...
+                                     REDcap.RCS02,...
+                                     visits.RCS02...
+                                    );
+
+% unilateral implant AND used INS logs to capture PTM intiated group changes
+[wrt_stim_REDcap.RCS02, stimGroups.RCS02] ...
+    ...
+    = make_stim_groups(...
+    ...
+'RCS02', [], INSLog_w_redcap.RCS02R, visits.RCS02);
+
+
+cfg                          = [];
+cfg.pt_id                    ='RCS02';
+cfg.min_n_reports            = 5;
+
+    plted_stim_groups.RCS02  = plot_stim_groups(cfg, stimGroups.RCS02);
+
+%% generate box plots of pain metrics wrt stim parameters
+%{
+w/ REDcap reports aligned to stimLog.json files
+    * group by contacts
+    * w/n contacts further group by unique amp-PW-freq-cycling parameters
+    - all this is done automatically--even to saving of the pain metrics by
+      respective stim groups as .pngs
 
 
 
+Next Steps: 
 
-% RCS04
-[db.RCS04L, bs.RCS04L] = ...
-    makeDatabaseRCS_Ryan(pia_raw_dir, 'RCS04L', cfg);
+DEFINE baseline pain from pre-Stage 0 fluct data
 
-[db.RCS04R, bs.RCS04R] = ...
-    makeDatabaseRCS_Ryan(pia_raw_dir, 'RCS04R', cfg);
-
-% RCS05
-[db.RCS05L, bs.RCS05L] = ...
-    makeDatabaseRCS_Ryan(pia_raw_dir, 'RCS05L',cfg);
-
-[db.RCS05R, bs.RCS05R] = ...
-    makeDatabaseRCS_Ryan(pia_raw_dir, 'RCS05R',cfg);
-
-% RCS02
-[db.RCS02R, bs.RCS02R] = ...
-    makeDatabaseRCS_Ryan(pia_raw_dir, 'RCS02R',cfg);
+* evaluate 50% and 30% decrease 
+    (see Farrar et al., 2011 for 30% justification based off of patient global
+    impression of change (PGIC) of much improved -> very much improved 
+    corresponding to 30% decrease across varying pain etiologies, 
+    placebo vs pregabalin, ages, btwn, sexes, etc.)
 
 
-%% RCS04 plot daily metrics
-% Note leave 'cfg.stim_parameter' blank as alignment lacks INS log data
-% right now
+stats framework:
 
-% Specify, cfg before calling functions--see below for examples.
+see for multivariate approach (predict many pain metrics)
+https://www.mathworks.com/help/stats/specify-the-response-and-design-matrices.html
+
+
+* run Kolmogorov–Smirnov test (see's if data are normal--explore pain
+  metric distribtion more generally)
+
+* run Kruskal-Walis test for the pain metrics across each of the contact-pairs 
+
+    * based on N pain reports, then run Kruskal-Walis test w/n
+      amp-freq-PW-cycling space
+
+* (?) follow-up with a Wilconxin signed rank test for signifigant groups
+
+%}
+
+% RCS04, RCS05, RCS06, and RCS07 can be handled together
+pts = {'RCS04', 'RCS05', 'RCS06', 'RCS07'};
+
+for i = length(pts)
+
+    [wrt_stim_REDcap.(pts{i}), stimGroups.(pts{i})] ...
+    ...
+    = make_stim_groups(...
+    ...
+    pts{i}, REDcap.([pts{i}, 'L']), REDcap.([pts{i}, 'R']), visits.(pts{i}));
+
+
+    cfg                         = [];
+    cfg.min_n_reports           = 5;
+    cfg.pt_id                   = pts{i};
+
+
+    plted_stim_groups.(pts{i})  ...
+        ...
+        = plot_stim_groups(...
+        ...
+    cfg, stimGroups.(pts{i}));
+
+end
+
+
+% RCS04 --> stim groups after starting buprenorphine (after July 2022 home visit)
+
+i_epoch          = find(ge(REDcap.RCS04.time, visits.RCS04.dates(11) + duration('24:00:00')));
+
+[~, stimGroups.RCS04_postJul22] ...
+    ...
+    = make_stim_groups(...
+    ...
+ 'RCS04', REDcap.RCS04L(i_epoch : end,:), REDcap.RCS04R(i_epoch: end, :), visits.RCS04);
+
+
+cfg                          = [];
+cfg.pt_id                    ='RCS04 (Jul 13th to Now)';
+cfg.min_n_reports            = 2;
+
+    plted_stim_groups.RCS04_postJul22 = plot_stim_groups(cfg, stimGroups.RCS04_postJul22);
+
+%% distributions of pain metrics and relationship BETWEEN pain metrics
+pts = {'RCS02', 'RCS04', 'RCS05', 'RCS06', 'RCS07'};
+
 cfg                     = [];
-cfg.pt_id               = 'RCS04';
-
 cfg.dates               = 'AllTime';
-cfg.stage_dates         = stage_dates{4}; % starts at Stage 1
-cfg.subplot             = false;
-
-cfg.stim_parameter      = '';
-   
-    plot_timeline(cfg, REDcap.RCS04);
-
-%% last 7 days for all pts
-cfg                     = [];
-cfg.pt_id               = 'RCS04';
-cfg.stage_dates         = stage_dates{4}; % starts at Stage 1
-cfg.subplot             = true;
-
-cfg.stim_parameter      = '';
-
-cfg.dates               = 'PreviousDays';
-cfg.ndays               = 7;
-cfg.subplot             = true;
-
-    plot_timeline(cfg, REDcap.RCS04);
-
-cfg.pt_id               = 'RCS05';
-cfg.stage_dates         = stage_dates{5}; % starts at Stage 1
-
-        plot_timeline(cfg, REDcap.RCS05);
 
 
-cfg.pt_id               = 'RCS02';
+for i = 1:length(pts)
+    cfg.pt_id  = pts{i};       
+
+    plot_hist(cfg, REDcap);          plot_versus(cfg, REDcap);
+end
+
+% RCS02: explore NRS and VAS "mismatch" 
+cfg.pt_id               = 'RCS02-mismatch';
 cfg.stage_dates         = stage_dates{2}; % starts at Stage 1
 
-      plot_timeline(cfg, REDcap.RCS02);
-
-
-cfg.pt_id               = 'RCS06';
-cfg.stage_dates         = stage_dates{6}; % starts at Stage 1
-
-      plot_timeline(cfg, REDcap.RCS06);
-      
-
-% visually inspect pain metric distributions
-cfg             = [];
-cfg.pt_id       = 'RCS04';
-cfg.dates       = 'AllTime';
-
-    plot_hist(cfg, REDcap.RCS04);
-
-cfg            = [];
-cfg.dates      = 'AllTime';
-% SEE Table for easy access to common summary statistics
-RCS04_sum_stats      = calc_sum_stats(cfg, REDcap.RCS04);
-
-
-%% ************************************************************************
-% clustering behavioral metrics to identify low/high pain states + reduce dimensionality
-
-
-% build intuition of beh distribution via histograms
-cfg             = [];
-cfg.dates       = 'AllTime';
-cfg.pt_id       = 'RCS02';       
-
-plot_hist(cfg, REDcap.RCS02);
-
-% saveas(gcf, [cd, '/plot_beh/figs/RCS02/', 'RCS02_beh_hist.png']);
-
-cfg.pt_id       = 'RCS04';       plot_hist(cfg, REDcap.RCS04);
-
-% saveas(gcf, [cd, '/plot_beh/figs/RCS04/', 'RCS04_beh_hist.png']);
-
-
-cfg.pt_id       = 'RCS05';       plot_hist(cfg, REDcap.RCS05);
-
-% saveas(gcf, [cd, '/plot_beh/figs/RCS05/', 'RCS05_beh_hist.png']);
-
+      plot_timeline(cfg, REDcap);
 
 %{
-Conclusion:
- VAS 50s dominate, but is otherwise bimodal, MPQ affective is uninformative, 
- and NRS has normal(ish) distribution
+Takeaways:
+    * VAS 50s dominate, but is otherwise bimodal
+    * for most pts, MPQ affective subscore is uninformative
+    * NRS has normal(ish) distribution
+%}
 
-Next Steps:
-
+%% Behavioral clustering: identify low/high pain states + reduce dimensionality
+%{
 * filter-out 50s (a neccesary alteration to identify natural pain subspaces)
 
 * z-score metrics to themselves for easier comparison of magnitude btwn
@@ -237,3 +238,69 @@ Next Steps:
     * assess/finalize stability of inputs to PC and outputs
 
 %}
+
+pain_space      = [];
+
+cfg             = [];     
+cfg.dates       = 'AllTime';
+cfg.pca         = false;
+
+for i = 1 : length(pts) - 1
+
+    cfg.pt_id  = pts{i};
+
+    [pain_space.(pts{i})] = plot_pain_space(cfg, REDcap);
+end
+
+
+%%
+% last 7 days for: 
+cfg                     = [];
+cfg.pt_id               = 'RCS04';
+cfg.stage_dates         = stage_dates{4}; % starts at Stage 1
+cfg.subplot             = true;
+
+cfg.stim_parameter      = '';
+
+cfg.dates               = 'PreviousDays';
+cfg.ndays               = 7;
+cfg.subplot             = true;
+
+    plot_timeline(cfg, REDcap.RCS04);
+
+
+
+
+
+
+
+
+%% Stage 0 Behavioral Analysis
+%{
+ * same histogram, scatter plots, and clusering analyses as above
+
+Note that 'plot_timeline' and 'plot_versus' have NOT yet been fleshed out
+to hander stage 0 pain metrics.
+%}
+
+s0_dir          = [dropbox_dir, ...
+                    '/DATA ANALYSIS/Stage 0 ALL PATIENTS Redcap Records/'];
+
+% load in from Dropbox folder and format like Stages 1, 2, and 3
+s0_REDcap       = load_s0_arm1s(s0_dir, visits);
+
+cfg             = [];
+cfg.dates       = 'AllTime';
+cfg.pca         = false;
+
+for i  =  1 : length(pts)
+
+    cfg.pt_id  = ['stage0', pts{i}];       
+
+    % build intuition of behavioral distribution via histograms
+    plot_hist(cfg, REDcap);         
+    
+    % plot_versus(cfg, REDcap);
+    pain_space.(pts{i}) = plot_pain_space(cfg, s0_REDcap);
+    
+end    

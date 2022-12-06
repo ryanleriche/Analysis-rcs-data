@@ -1,65 +1,108 @@
- function [redcap, stim_groups] ...
-     ...
-     =  make_stim_groups(...
-     ...
-     pt_id, stimLog_w_redcap_RCSXXL, stimLog_w_redcap_RCSXXR, redcap, visits_tbl)
+function [redcap, stim_groups] ...
+         ...
+         =  make_stim_groups(...
+         ...
+         pt_id, redcap_RCSXXL, redcap_RCSXXR, visits_tbl)
+% for troubleshooting fxn as script
+%{
+i_epoch        = ge(REDcap.RCS04.time, visits.RCS04.dates(11));
+pt_id          = 'RCS04';
+redcap_RCSXXL  = REDcap.RCS04L(i_epoch,:);
 
+redcap_RCSXXR  = REDcap.RCS04R(i_epoch,:);
 
+visits_tbl     = visits.RCS04;
+%}
+
+%%
 switch pt_id
     
     case 'RCS02'
         stimRegR      = [{'RACC ', ["0","1","2","3"]}; {'RThal ', ["8","9","10","11"]}];
+       
+
         
     case 'RCS04'
          stimRegL    = [{'LACC ', ["0","1","2","3"]}; {'LCaud ', ["8","9","10","11"]}];
          stimRegR    = [{'RACC ', ["0","1","2","3"]}; {'RThal ', ["8","9","10","11"]}];
         
+        
     case 'RCS05'
          stimRegL    = [{'LCaud ', ["0","1","2","3"]}; {'LACC ', ["8","9","10","11"]}];
          stimRegR    = [{'RThal ', ["0","1","2","3"]}; {'RIFG ', ["8","9","10","11"]}];
+
         
     case 'RCS06'
-         stimRegL     = [{'LACC ', ["0","1","2","3"]}; {'LCaud ', ["8","9","10","11"]}];
+         stimRegL     = [{'LACC ',  ["0","1","2","3"]}; {'LCaud ', ["8","9","10","11"]}];
          stimRegR     = [{'RThal ', ["0","1","2","3"]}; {'RSFG ', ["8","9","10","11"]}];
         
-    % case 'RCS07'
+    case 'RCS07'
+        % SGC (not ACC) was bilaterally implanted (RCS data is wrong)
+         stimRegL     = [{'LGPi ',  ["0","1","2","3"]}; {'LSGC ', ["8","9","10","11"]}];
+         stimRegR     = [{'RThal ', ["0","1","2","3"]}; {'RSGC ', ["8","9","10","11"]}];
+        
 
 end
 
-% adding in side + region for unambiguous contacts when comparing both sides
+% give explicit right-sided names
+i             = find(contains(redcap_RCSXXR.Properties.VariableNames, 'time'));
+stim_params   = redcap_RCSXXR.Properties.VariableNames(i(2):end);
 
-beh_stim_R      = timetable2table(stimLog_w_redcap_RCSXXR);
+R_stim_params = cellfun(@(x) ['R_',x], stim_params, 'UniformOutput', false);
 
-i_con        = cellfun(@(x) ~isempty(x) , beh_stim_R.stimContacts);
-
-ind_contacts = cellfun(@(x) regexp(x,'\d*','Match'), beh_stim_R.stimContacts(i_con), 'UniformOutput', false);
-
-ind_contacts = cellfun(@(x) x(1), ind_contacts);
-
-i_small      = cellfun(@(x) any(strcmp(x, stimRegR{1,2})), ind_contacts);
-i_large      = cellfun(@(x) any(strcmp(x, stimRegR{2,2})), ind_contacts);
-
-i_con        = find(i_con);
+redcap_RCSXXR = renamevars(redcap_RCSXXR, stim_params, R_stim_params);
 
 
-beh_stim_R.stimContacts(i_con(i_small)) =...
-    ...
-    cellfun(@(x) [stimRegR{1,1}, x], ...
-    beh_stim_R.stimContacts(i_con(i_small)), 'UniformOutput', false);
-
-beh_stim_R.stimContacts(i_con(i_large)) =...
-    ...
-    cellfun(@(x) [stimRegR{2,1}, x], ...
-    beh_stim_R.stimContacts(i_con(i_large)), 'UniformOutput', false);
-
-% all other pts have bilateral implants--repeat for left side
+% left-sided names
 if ~strcmp(pt_id, 'RCS02')
 
-    beh_stim_L   = timetable2table(stimLog_w_redcap_RCSXXL);
+    i_stim        = find(strcmp(redcap_RCSXXL.Properties.VariableNames, 'time_stimLog'));
+    stim_params   = redcap_RCSXXL.Properties.VariableNames(i_stim:end);
     
-    i_con        = cellfun(@(x) ~isempty(x), beh_stim_L.stimContacts);
+    L_stim_params = cellfun(@(x) ['L_',x], stim_params, 'UniformOutput', false);
     
-    ind_contacts = cellfun(@(x) regexp(x,'\d*','Match'), beh_stim_L.stimContacts(i_con), 'UniformOutput', false);
+    redcap_RCSXXL = renamevars(redcap_RCSXXL, stim_params, L_stim_params);
+
+end
+
+
+
+    % all other pts have bilateral implants--repeat for left side
+if ~strcmp(pt_id, 'RCS02')
+
+
+    % adding in side + region for unambiguous contacts when comparing both sides
+    temp         = redcap_RCSXXR;
+    
+    i_con        = cellfun(@(x) ~isempty(x) , temp.R_stimContacts);
+    
+    ind_contacts = cellfun(@(x) regexp(x,'\d*','Match'), temp.R_stimContacts(i_con), 'UniformOutput', false);
+    ind_contacts = cellfun(@(x) x(1), ind_contacts);
+    
+    i_small      = cellfun(@(x) any(strcmp(x, stimRegR{1,2})), ind_contacts);
+    i_large      = cellfun(@(x) any(strcmp(x, stimRegR{2,2})), ind_contacts);
+    
+    i_con        = find(i_con);
+    
+    
+    temp.R_stimContacts(i_con(i_small)) =...
+        ...
+        cellfun(@(x) [stimRegR{1,1}, x], ...
+        temp.R_stimContacts(i_con(i_small)), 'UniformOutput', false);
+    
+    temp.R_stimContacts(i_con(i_large)) =...
+        ...
+        cellfun(@(x) [stimRegR{2,1}, x], ...
+        temp.R_stimContacts(i_con(i_large)), 'UniformOutput', false);
+    
+     redcap_RCSXXR  = temp;
+
+
+    temp   = redcap_RCSXXL;
+    
+    i_con        = cellfun(@(x) ~isempty(x), temp.L_stimContacts);
+    
+    ind_contacts = cellfun(@(x) regexp(x,'\d*','Match'), temp.L_stimContacts(i_con), 'UniformOutput', false);
     ind_contacts = cellfun(@(x) x(1), ind_contacts);
     
     i_small      = cellfun(@(x) any(strcmp(x, stimRegL{1,2})), ind_contacts);
@@ -67,143 +110,67 @@ if ~strcmp(pt_id, 'RCS02')
     
     i_con        = find(i_con);
     
-    beh_stim_L.stimContacts(i_con(i_small)) =...
+    temp.L_stimContacts(i_con(i_small)) =...
         ...
         cellfun(@(x) [stimRegL{1,1}, x], ...
-        beh_stim_L.stimContacts(i_con(i_small)), 'UniformOutput', false);
+        temp.L_stimContacts(i_con(i_small)), 'UniformOutput', false);
     
-    beh_stim_L.stimContacts(i_con(i_large)) =...
+    temp.L_stimContacts(i_con(i_large)) =...
         ...
         cellfun(@(x) [stimRegL{2,1}, x], ...
-        beh_stim_L.stimContacts(i_con(i_large)), 'UniformOutput', false);
-end
+        temp.L_stimContacts(i_con(i_large)), 'UniformOutput', false);
 
-%% see where StimLogs overlap (i.e., bilateral stim)
+    redcap_RCSXXL  = temp;
 
-% replaces empty cells w/ empty character arrays for ease of handling
-i_cell                          = cellfun(@iscell, beh_stim_R.stimContacts);
-beh_stim_R.stimContacts(i_cell) = repmat({' '}, sum(i_cell),1);
+    % merge left and right sides
+    redcap = [redcap_RCSXXR, redcap_RCSXXL(:, i_stim:end)];
 
-
-% redcap.R_time_stimLog = repmat(NaT, height(redcap), 1);
-
-redcap.R_activeGroup                = repmat({' '}, height(redcap), 1);
-redcap.R_therapyStatusDescription   = repmat({' '}, height(redcap), 1);
-redcap.R_stimContacts               = repmat({' '}, height(redcap), 1);
-
-redcap.R_stimAmp        = zeros(height(redcap), 1);
-redcap.R_stimPW         = zeros(height(redcap), 1);
-redcap.R_stimfreq       = zeros(height(redcap), 1);
-
-redcap.R_cycleOnTime    = zeros(height(redcap), 1);
-redcap.R_cycleOffTime   = zeros(height(redcap), 1);
-
-% repeat for left
-
-if ~strcmp(pt_id, 'RCS02')
-    i_cell                          = cellfun(@iscell, beh_stim_L.stimContacts);
-
-    beh_stim_L.stimContacts(i_cell) = repmat({' '}, sum(i_cell),1);
     
-    redcap.L_activeGroup               = repmat({' '}, height(redcap), 1);
-    redcap.L_therapyStatusDescription  = repmat({' '}, height(redcap), 1);
-    redcap.L_stimContacts              = repmat({' '}, height(redcap), 1);
+    % add in visits
+    for i = 1 : height(redcap)
     
-    redcap.L_stimAmp  = zeros(height(redcap), 1);
-    redcap.L_stimPW   = zeros(height(redcap), 1);
-    redcap.L_stimfreq  = zeros(height(redcap), 1);
-    
-    redcap.L_cycleOnTime    = zeros(height(redcap), 1);
-    redcap.L_cycleOffTime   = zeros(height(redcap), 1);
-
-end
-
-% using already found REDcap reports wrt StimLog.jsons, incrp stim
-% parameters from both sides w/ REDcap reports
-tic
-for i = 1 : height(redcap)
-
-    for j = 1 : height(beh_stim_R.i_redcap)
-    
-        if any(beh_stim_R.i_redcap{j} == i)
+        % see if REDcap report occured during inpatient, inclinic, or home testing
+        visit_sess_diff      =  visits_tbl.dates - redcap.time(i);
         
-            redcap.R_activeGroup(i)              = beh_stim_R.activeGroup(j);
-            redcap.R_therapyStatusDescription(i) = beh_stim_R.therapyStatusDescription(j);
-            redcap.R_stimContacts(i)             = beh_stim_R.stimContacts(j);
-            redcap.R_stimfreq(i)                 = beh_stim_R.stimfreq(j);
+        i_visit_day    = find(le(visit_sess_diff, duration('0:00:00')) &...
+                      ge(visit_sess_diff, '-24:00:00'));
             
-            redcap.R_stimAmp(i)                  = beh_stim_R.stimAmp(j);
-            redcap.R_stimPW(i)                   = beh_stim_R.stimPW(j);
-
-            redcap.R_cycleOnTime(i)              = beh_stim_R.cycleOnTime(j);
-            redcap.R_cycleOffTime(i)             = beh_stim_R.cycleOffTime(j);
-
-
-
-        end
+        if ~isempty(i_visit_day)
+        
+            redcap.visits(i)  = visits_tbl.desc(i_visit_day);
+        else
+        
+            redcap.visits(i)  = {'   '};
+        end    
     end
+else
 
-    % repeat for left side
-    if ~strcmp(pt_id, 'RCS02')
-    
-        for j = 1 : height(beh_stim_L.i_redcap)
-        
-            if any(beh_stim_L.i_redcap{j} == i)
-                 
-                redcap.L_activeGroup(i)              = beh_stim_L.activeGroup(j);
-                redcap.L_therapyStatusDescription(i) = beh_stim_L.therapyStatusDescription(j);
-                redcap.L_stimContacts(i)             = beh_stim_L.stimContacts(j);
-                redcap.L_stimfreq(i)                 = beh_stim_L.stimfreq(j);
-                
-                redcap.L_stimAmp(i)                  = beh_stim_L.stimAmp(j);
-                redcap.L_stimPW(i)                   = beh_stim_L.stimPW(j);
-    
-                redcap.L_cycleOnTime(i)              = beh_stim_L.cycleOnTime(j);
-                redcap.L_cycleOffTime(i)             = beh_stim_L.cycleOffTime(j);
-    
-    
-            end
-        end
-    end
-
-        
-    
-    % see if REDcap report occured during inpatient, inclinic, or home testing
-    visit_sess_diff      =  visits_tbl.dates - redcap.time(i);
-    
-    i_visit_day    = find(le(visit_sess_diff, duration('0:00:00')) &...
-                  ge(visit_sess_diff, '-24:00:00'));
-        
-    if ~isempty(i_visit_day)
-    
-        redcap.visits(i)  = visits_tbl.desc(i_visit_day);
-    else
-    
-        redcap.visits(i)  = {'   '};
-    end    
+    redcap = redcap_RCSXXR;
+    redcap = renamevars(redcap, 'R_visits', 'visits');
 end
-toc
-%% broadly define stim varianst: stim ON, stim OFF, stim @ 0 mA, bilateral stim, etc
+       
+
+
+%% broadly define stim variants: stim ON, stim OFF, stim @ 0 mA, bilateral stim, etc
+
 % right side
 
 i_R_off            = ~strcmp(redcap.R_therapyStatusDescription, 'On');
 
-i_R_eq0            = redcap.R_stimAmp == 0;
+i_R_eq0            = redcap.R_ampInMilliamps == 0;
   
 i_R_stim_on_ge_0   = ~i_R_off & ~i_R_eq0;
 
 % left side--no pts have unilateral left implant bilateral stim is a possibility
 if ~strcmp(pt_id, 'RCS02')
 
-    i_L_eq0           = redcap.L_stimAmp == 0;
+    i_L_eq0           = redcap.L_ampInMilliamps == 0;
     i_L_off           = ~strcmp(redcap.L_therapyStatusDescription, 'On'); 
      
     i_L_stim_on_ge_0  = ~i_L_off & ~i_L_eq0;
     
     i_bilat_on        = i_R_stim_on_ge_0 & i_L_stim_on_ge_0;
     
-    i_stim_eq0        = i_R_eq0 & i_L_eq0;
-    i_stim_off        = i_R_off & i_L_off;
 
 end
 
@@ -217,35 +184,47 @@ i_s3             = contains(redcap.visits, 's3');
 s1               = find(i_s1);
 s1_s2_diff       = find(i_s1 - i_s2 == -1);
 
-if ~isempty(s1_s2_diff)
-    i_s1(s1(1): s1_s2_diff(1) - 1)             = 1;
+if ~isempty(s1)
+    if ~isempty(s1_s2_diff)
+        i_s1(s1(1): s1_s2_diff(1) - 1)             = 1;
+    
+    else
+        i_s1(s1(1):end) = 1;
+    end
 
-else
-    i_s1(s1(1):end) = 1;
+    % seperate stage 1 from first week after Stage 1 (i.e., post-surgery analgesia)
+    
+    implant_date            = visits_tbl.dates(strcmp(visits_tbl.desc, 's1_implant'));
+    s1_first_week           = implant_date + caldays(7);
+    
+    
+    i_s1_first_week         = ge(redcap.time, implant_date) & le(redcap.time, s1_first_week);
+    
+    % Stage 1 unless otherwise specified ignores the first week post-surgery
+    i_s1(i_s1_first_week)   = 0;
+
+
+else 
+    % no reports from S1, means no reports from the first week of S1
+    i_s1_first_week = i_s1;
 end
 
-% seperate stage 1 from first week after Stage 1 (i.e., post-surgery analgesia)
-
-implant_date            = visits_tbl.dates(strcmp(visits_tbl.desc, 's1_implant'));
-s1_first_week           = implant_date + caldays(7);
-
-
-i_s1_first_week         = ge(redcap.time, implant_date) & le(redcap.time, s1_first_week);
-
-% Stage 1 unless otherwise specified ignores the first week post-surgery
-i_s1(i_s1_first_week)   = 0;
 
 s2                      = find(i_s2);
 s2_s3_diff              = find(i_s2 - i_s3 == -1); 
 
-if ~isempty(s2_s3_diff)
-    i_s2(s2(1): s2_s3_diff(1) -1)                            = 1;
+if ~isempty(s2)
+    if ~isempty(s2_s3_diff)
+        i_s2(s2(1): s2_s3_diff(1) -1)                            = 1;
+    
+        i_s3(s2_s3_diff(1):end)                                  = 1;
+    else
+        i_s2(s2(1):end) = 1;
+    end
 
-    i_s3(s2_s3_diff(1):end)                                  = 1;
 else
-    i_s2(s2(1):end) = 1;
+    i_s2 = 1;
 end
-
 
 % remove if during washout testing or during a clinic/home visit
 i_washout         = contains(redcap.visits, 'washout_testing');
@@ -284,10 +263,10 @@ if ~strcmp(pt_id, 'RCS02')
     end
 
     % open-loop unilateral stim
-    i_R_on           = ~i_R_off & ~i_R_eq0 & ~i_bilat_on & ~strcmp(redcap.R_activeGroup, 'D')...
+    i_R_ol_on           = ~i_R_off & ~i_R_eq0 & ~i_bilat_on & ~strcmp(redcap.R_activeGroup, 'D')...
                            & (i_L_off | i_L_eq0); 
 
-    i_L_on           = ~i_L_off & ~i_L_eq0 & ~i_bilat_on & ~strcmp(redcap.L_activeGroup, 'D')...
+    i_L_ol_on           = ~i_L_off & ~i_L_eq0 & ~i_bilat_on & ~strcmp(redcap.L_activeGroup, 'D')...
                            & (i_R_off | i_R_eq0); 
     
     
@@ -295,16 +274,15 @@ if ~strcmp(pt_id, 'RCS02')
                        redcap.R_stimContacts, redcap.L_stimContacts, 'UniformOutput', false);
     
     
-    clDBS_stimCont    = cellfun(@(x) ['clDBS ' x], [unique(redcap.R_stimContacts(i_clDBS_ROn_Loff)),...
-                               unique(redcap.L_stimContacts(i_clDBS_LOn_Roff))], 'UniformOutput', false)';
+    clDBS_stimCont    = cellfun(@(x) ['clDBS ' x], [unique(redcap.R_stimContacts(i_clDBS_ROn_Loff));...
+                               unique(redcap.L_stimContacts(i_clDBS_LOn_Roff))], 'UniformOutput', false);
     
 
-    stimContacts     = [unique(redcap.R_stimContacts(i_R_on)); ...
-                        unique(redcap.L_stimContacts(i_L_on));...
+    stimContacts     = [unique(redcap.R_stimContacts(i_R_ol_on)); ...
+                        unique(redcap.L_stimContacts(i_L_ol_on));...
                         unique(both_contacts(i_bilat_on));...
                         clDBS_stimCont];
 end
-
 
 
 
@@ -318,12 +296,12 @@ if ~strcmp(pt_id, 'RCS02')
         if strcmp('R', stimContacts{i}(1)) && length(stimContacts{i}) < 20
     
             stim_groups.(stimContacts{i}) = {redcap(strcmp(redcap.R_stimContacts, stimContacts{i}) &... 
-                                                                  i_R_on & i_s2, :)};
+                                                                  i_R_ol_on & i_s2, :)};
         
         elseif strcmp('L', stimContacts{i}(1))  && length(stimContacts{i}) < 20
     
             stim_groups.(stimContacts{i}) = {redcap(strcmp(redcap.L_stimContacts, stimContacts{i}) &... 
-                                                                  i_L_on & i_s2 , :)};
+                                                                  i_L_ol_on & i_s2 , :)};
     
         elseif strcmp('cl', stimContacts{i}(1:2))
     
@@ -407,13 +385,13 @@ elseif strcmp(pt_id, 'RCS02')
     stim_groups.('s1, week 1, both 0 mA')       = {redcap(i_s1_first_week & (i_R_off | i_R_eq0) ,:)};
     
 
-    stim_groups.('s1 0mA | Off')     = {redcap(i_s1 & (i_R_off | i_R_eq0) ,:)};
+    stim_groups.('s1 0mA | Off')                = {redcap(i_s1 & (i_R_off | i_R_eq0) ,:)};
 
 
-    stim_groups.('s2 Off')     = {redcap(i_R_off  & i_s2, :)};
+    stim_groups.('s2 Off')              = {redcap(i_R_off  & i_s2, :)};
 
-    stim_groups.('s2 0mA')     = {redcap(i_R_eq0 & i_s2 & ...
-                                  ~i_R_off & ~strcmp(redcap.R_activeGroup, 'D') ,:)};
+    stim_groups.('s2 0mA')              = {redcap(i_R_eq0 & i_s2 & ...
+                                          ~i_R_off & ~strcmp(redcap.R_activeGroup, 'D') ,:)};
 
     stim_groups.('washout testing')     = {redcap(i_washout ,:)};
 
@@ -426,8 +404,7 @@ end
 times       = cellfun(@(x) x.time, table2cell(stim_groups), 'UniformOutput', false);
 times       = vertcat(times{:});
 
-
-[~,ia] = setdiff(redcap.time, times);
+[~,ia]      = setdiff(redcap.time, times);
 
 stim_groups.('inclinic, home visits, etc')   = {redcap(ia,:)};
 
@@ -437,8 +414,8 @@ times       = cellfun(@(x) x.time, table2cell(stim_groups), 'UniformOutput', fal
 times       = vertcat(times{:});
 
 
-disp([pt_id, ': ', num2str(sum(n_reports)), ' reports assigned to stim_groups']);
+disp([pt_id, ' | ', num2str(sum(n_reports)), ' reports assigned to stim_groups']);
 
-disp([pt_id, ': ', num2str(length(unique(times))), ' unique reports possible']);
+disp([pt_id, ' | ', num2str(length(unique(times))), ' unique reports possible']);
 
 end

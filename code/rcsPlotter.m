@@ -2019,7 +2019,7 @@ classdef rcsPlotter < handle
                         hplt.LineStyle = '-.';
                         obj.addLocalTimeDataTip(hplt,datetime(dt.localTime(idplot)));
                         % get input power bands
-                        LDfnUse = sprintf('Ld%d',chan);
+                        LDfnUse         = sprintf('Ld%d',chan);
                         detectionString = obj.Data(i).DetectorSettings.(LDfnUse)(end).detectionInputs_BinaryCode;
                         detectionString = fliplr(detectionString); % bcs binary is read L to R but our last channel is first idx in binary
                         pwrSettings = obj.Data(i).powerSettings;

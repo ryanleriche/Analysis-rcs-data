@@ -33,9 +33,11 @@ if ~isempty(eventLog)
     i_beep         = strcmp(eventLogTable.EventType, 'Log Beep');
 
     beeps          = find(i_beep);
-
-    eventLogTable  = [eventLogTable(~i_beep & ~i_same_as_next,:); eventLogTable([beeps(1), beeps(end)],:)];
     
+    if ~isempty(beeps)
+        eventLogTable  = [eventLogTable(~i_beep & ~i_same_as_next,:); eventLogTable([beeps(1), beeps(end)],:)];
+    end
+
     eventLogTable  = sortrows(eventLogTable, 'UnixOnsetTime');
 end
 end

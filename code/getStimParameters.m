@@ -12,11 +12,11 @@ updatedGroupData = priorGroupData;
 
 % ratePeriod LBS is 10 us (Medtronic.NeuroStim.Olympus.DataTypes.Therapy.TherapyGroup.RatePeriod)
 if isfield(currentGroupData, 'ratePeriod')
-    updatedGroupData.ratePeriod = currentGroupData.ratePeriod;
+    updatedGroupData.ratePeriodInSecs = currentGroupData.ratePeriod / (10^5);
 end
 
 if isfield(currentGroupData, 'RateInHz')
-    updatedGroupData.RateInHz = currentGroupData.RateInHz;
+    updatedGroupData.rateInHz = currentGroupData.RateInHz;
 end
 
 if isfield(currentGroupData, 'program0')

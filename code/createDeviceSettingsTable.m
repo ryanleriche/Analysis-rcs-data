@@ -33,34 +33,35 @@ metaData.UTCoffset = DeviceSettings{1,1}.UtcOffset;
 
 % Battery information, as of beginning of the current recording
 metaData.batteryLevelPercent = DeviceSettings{1}.BatteryStatus.batteryLevelPercent;
-metaData.batteryVoltage = DeviceSettings{1}.BatteryStatus.batteryVoltage;
-metaData.estimatedCapacity = DeviceSettings{1}.BatteryStatus.estimatedCapacity;
-metaData.batterySOC = DeviceSettings{1}.BatteryStatus.batterySOC;
+metaData.batteryVoltage      = DeviceSettings{1}.BatteryStatus.batteryVoltage;
+metaData.estimatedCapacity   = DeviceSettings{1}.BatteryStatus.estimatedCapacity;
+metaData.batterySOC          = DeviceSettings{1}.BatteryStatus.batterySOC;
 
 % Get actual amplifier gains
-ampGains = getActualAmplifierGains(folderPath);
+ampGains          = getActualAmplifierGains(folderPath);
 metaData.ampGains = ampGains;
 
 %%
-TD_SettingsTable = table(); % Initalize table
+TD_SettingsTable    = table(); % Initalize table
 Power_SettingsTable = table(); % Initalize table
-FFT_SettingsTable = table(); % Initalize table
+FFT_SettingsTable   = table(); % Initalize table
 
-recordCounter = 1; % Initalize counter for records in DeviceSetting
+recordCounter       = 1; % Initalize counter for records in DeviceSetting
 
-inStream_TD = 0; % Initalize as streaming off
-inStream_Power = 0; % Initalize as streaming off
-inStream_FFT = 0; % Initalize as streaming off
+inStream_TD         = 0; % Initalize as streaming off
+inStream_Power      = 0; % Initalize as streaming off
+inStream_FFT        = 0; % Initalize as streaming off
 
-streamStartCounter_TD = 1; % Initalize counter for streaming starts
-streamStopCounter_TD = 1; % Initalize counter for streaming stops
-streamStartCounter_Power = 1; % Initalize counter for streaming starts
-streamStopCounter_Power = 1; % Initalize counter for streaming stops
-streamStartCounter_FFT = 1; % Initalize counter for streaming starts
-streamStopCounter_FFT = 1; % Initalize counter for streaming stops
-TDsettings = [];
-powerChannels = [];
-fftConfig = [];
+streamStartCounter_TD       = 1; % Initalize counter for streaming starts
+streamStopCounter_TD        = 1; % Initalize counter for streaming stops
+streamStartCounter_Power    = 1; % Initalize counter for streaming starts
+streamStopCounter_Power     = 1; % Initalize counter for streaming stops
+streamStartCounter_FFT      = 1; % Initalize counter for streaming starts
+streamStopCounter_FFT       = 1; % Initalize counter for streaming stops
+
+TDsettings                  = [];
+powerChannels               = [];
+fftConfig                   = [];
 
 while recordCounter <= length(DeviceSettings)
     currentSettings = DeviceSettings{recordCounter};
@@ -105,8 +106,13 @@ while recordCounter <= length(DeviceSettings)
             % Gather data for creating new row in table
             actionType = 'Sense Config';
             recNum = NaN;
-            [newEntry, fftConfig] = addNewEntry_FFTSettings(actionType,recNum,currentSettings,TDsettings,fftConfig);
-            FFT_SettingsTable = addRowToTable(newEntry,FFT_SettingsTable);
+            [newEntry, fftConfig] ...
+                ...
+                = addNewEntry_FFTSettings(...
+                ...
+                actionType,recNum,currentSettings,TDsettings,fftConfig);
+
+            FFT_SettingsTable = addRowToTable(newEntry, FFT_SettingsTable);
         end
     end
     %%
@@ -145,7 +151,7 @@ while recordCounter <= length(DeviceSettings)
             actionType = sprintf('Start Stream FFT %d',streamStartCounter_FFT);
             recNum = streamStartCounter_FFT;
             [newEntry,fftConfig] = addNewEntry_FFTSettings(actionType,recNum,currentSettings,TDsettings,fftConfig);
-            FFT_SettingsTable = addRowToTable(newEntry,FFT_SettingsTable);
+            FFT_SettingsTable    = addRowToTable(newEntry, FFT_SettingsTable);
             
             streamStartCounter_FFT = streamStartCounter_FFT + 1;
             inStream_FFT = 1;
@@ -372,7 +378,7 @@ end
 Power_SettingsOut = table();
 
 % Indices in table of start/stop actions
-indices = ~isnan(Power_SettingsTable.recNum);
+indices         = ~isnan(Power_SettingsTable.recNum);
 recordingChunks = unique(Power_SettingsTable.recNum(indices));
 
 for iChunk = 1:length(recordingChunks)
@@ -441,12 +447,12 @@ if isempty(recordingChunks)
     % Indicates that FFT was not enabled for streaming, but may still want
     % FFT config info (i.e. if adaptive was enabled) -- take this info from
     % first record
-    selectData = FFT_SettingsTable(1,:);
-    toAdd.recNum = NaN;
-    toAdd.duration = NaN;
-    toAdd.timeStart = NaN;
-    toAdd.timeStop = NaN;
-    toAdd.fftConfig = selectData.fftConfig(1);
+    selectData          = FFT_SettingsTable(1,:);
+    toAdd.recNum        = NaN;
+    toAdd.duration      = NaN;
+    toAdd.timeStart     = NaN;
+    toAdd.timeStop      = NaN;
+    toAdd.fftConfig     = selectData.fftConfig(1);
     toAdd.TDsampleRates = selectData.TDsampleRates(1);
     
     FFT_SettingsOut = struct2table(toAdd,'AsArray',true);

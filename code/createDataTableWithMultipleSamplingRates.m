@@ -29,7 +29,7 @@ end
 numSegments = length(segmentIndices);
 for iSegment = 1:numSegments
     timeStart = dataStreamSettings.timeStart(segmentIndices(iSegment));
-    timeStop = dataStreamSettings.timeStop(segmentIndices(iSegment));
+    timeStop  = dataStreamSettings.timeStop(segmentIndices(iSegment));
     
     [tempStartIndex, ~] = knnsearch(outtable_data.PacketGenTime,timeStart);
     [tempStopIndex, ~] = knnsearch(outtable_data.PacketGenTime,timeStop);

@@ -44,12 +44,12 @@ unwrapped_powerBandsToConvert = unwrapped_powerBandsToConvert + 1; % since C# is
 powerBandsInHz = {};
 powerBinsInHz = {};
 for iBand = 1:size(unwrapped_powerBandsToConvert,1)
-    % Lower and upper bounds of the power band (a BAND being difined by 3 frequencies: lower, center, and upper frequencies)
+    % Lower and upper bounds of the power band (a BAND being defined by 3 frequencies: lower, center, and upper frequencies)
     lowerBounds(iBand) = fftParameters.lower(unwrapped_powerBandsToConvert(iBand,1));
     upperBounds(iBand) = fftParameters.upper(unwrapped_powerBandsToConvert(iBand,2));
     powerBandsInHz{iBand,1} = sprintf('%.2fHz-%.2fHz', lowerBounds(iBand),upperBounds(iBand));
     
-    % Bins used for FFT computed power in band (number of pins in a power
+    % Bins used for FFT computed power in band (number of bins in a power
     % band are >=1)
     lowerBin(iBand) = fftParameters.fftBins(unwrapped_powerBandsToConvert(iBand,1));
     upperBin(iBand) = fftParameters.fftBins(unwrapped_powerBandsToConvert(iBand,2));

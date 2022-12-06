@@ -380,7 +380,7 @@ if ~isempty(Ind)
         error(sprintf('wrong MeanColor input'))
     end
 else
-    MeanColor='k';
+    MeanColor='b';
 end
 
 Ind=strmatch('SEMColor',stringVars);
@@ -497,8 +497,9 @@ if strcmp(Whiskers,'box') && numel(yValues)~=1
     %plot the mean+-SEM box
     rectangle('Position',[c-Width/WhiskersWidthRatio,yMean-yCI,2*Width/WhiskersWidthRatio,2*yCI ],'FaceColor',SEMColor(SEMIndex,:),'EdgeColor', SEMColor(SEMIndex,:),'LineWidth',0.1);
     %plot the mean line 
-    plot([c-Width/WhiskersWidthRatio c+Width/WhiskersWidthRatio],[yMean yMean],'Color',MeanColor(MeanIndex,:),'LineWidth',2)
+    lh = plot([c-Width/WhiskersWidthRatio c+Width/WhiskersWidthRatio],[yMean yMean],'Color', MeanColor(MeanIndex,:), 'LineWidth',2);
 
+    lh.Color(4)=0.5;
 end
 %% Changing the xValue of each point
 % This is done the following way: The points are sorted in equidistant

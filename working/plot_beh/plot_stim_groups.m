@@ -1,11 +1,12 @@
-function varargout= plot_stim_groups(cfg, stim_groups)
+function varargout = plot_stim_groups(cfg, stim_groups)
 
 
 n_reports   = cellfun(@(x) height(x), table2cell(stim_groups));
 
+i_kept      = n_reports >= cfg.min_n_reports;
 
-stim_groups = stim_groups(1, ...
-             (n_reports >= cfg.min_n_reports));
+n_reports   = n_reports(i_kept);
+stim_groups = stim_groups(1, i_kept);
 
 
 %% visualize pain metrics by contact
@@ -42,7 +43,11 @@ mpq_tot_by_contacts     = padcat(mpq_tot_by_contacts{:});
 
 % VAS intensity------------------------------------------------------------
 by_cont_dir = [cd,'/plot_beh/figs/stim_groups/', cfg.pt_id, '/by_contacts/'];
-mkdir(by_cont_dir)
+
+if ~exist(by_cont_dir, 'dir')  
+    
+    mkdir(by_cont_dir)
+end
 
 
 figure('Units', 'Inches', 'Position', [0, 0, 18 , 8]);
@@ -207,8 +212,9 @@ for i = 1 : size(stim_groups(1,contains(stim_group_label, '+')),2)
     cfg.stim_group_label = stim_group_label{1,i};
 
     
-    % conceputally unimportant to seperate clDBS by its freq-amp-pw-cyc
-    if ~strcmp('cl', cfg.stim_group_label(1:2))
+    % conceputally unimportant to seperate clDBS by its freq-amp-pw-cyc OR
+    % bilateral stim
+    if ~strcmp('cl', cfg.stim_group_label(1:2)) && length(cfg.stim_group_label) < 20
 
         plot_freq_amp_pw_cyc(cfg, stim_groups.(i){1})
 
@@ -216,6 +222,16 @@ for i = 1 : size(stim_groups(1,contains(stim_group_label, '+')),2)
 end
 
 varargout{1} = stim_groups;
+
+
+
+
+
+%% summary across stim groups
+
+
+
+%varargout{2}
 
 % BELOW is scratch code of manually seperating out the stim parameters
 % RCS04

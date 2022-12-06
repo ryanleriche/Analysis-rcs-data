@@ -1,216 +1,230 @@
-function [stimLog_w_redcap] = align_REDcap_to_stimLog(cfg, db_RCSXXX, redcap)
-% cfg                 = [];
-% cfg.stage_dates     = stage_dates{2};
-% cfg.pt_id           = 'RCS02';
+function [stimLog, redcap] ...
+    ...
+    = align_REDcap_to_stimLog(...
+    ...
+    cfg, db_RCSXXX, redcap)
+
+% cfg                    = [];
+% cfg.load_EventLog      = false;
+% cfg.ignoreold          = false;
+% cfg.raw_dir            = pia_raw_dir;
+% cfg.stage_dates                 = stage_dates{str2double(pt_sides{i}(end-1))};
+% cfg.pt_id                       = pt_sides{i}(1:end-1);
 % 
+% db_RCSXXX = db.(pt_sides{i});
+% redcap    = REDcap.(pt_sides{i}(1:end-1));
 % 
-% db_RCSXXX           = db.RCS02R;
-% redcap              = REDcap.RCS02;
-% 
 
 
-% only takes REDcap surverys from AFTER Stage I implant
-redcap   = redcap(ge(redcap.time, datetime(cfg.stage_dates(1),'TimeZone','America/Los_Angeles')),...
-                  :); 
 
-i_stimlog = cellfun(@(x) ~isempty(x), db_RCSXXX.stimLogSettings);
+i_stimlog    = find(cellfun(@(x) ~isempty(x), db_RCSXXX.stimLogSettings));
+i_devset     = find(cellfun(@(x) ~isempty(x), db_RCSXXX.stimSettingsOut));
 
-db_RCSXXX  = db_RCSXXX(i_stimlog,:);
+i_metadata   = find(cellfun(@(x) ~isempty(x), db_RCSXXX.metaData));
 
-if strcmp('RCS07', cfg.pt_id) 
-    i_wo_time_stimLog   = cellfun(@(x) ~any(strcmp(x.Properties.VariableNames,'time_stimLog')), db_RCSXXX.stimLogSettings);
-    i_w_time_stimLog    = find(~i_wo_time_stimLog);
-    i_wo_time_stimLog    = find(i_wo_time_stimLog);
-    
-    
-    [~, i_near] = min(abs(i_wo_time_stimLog' - i_w_time_stimLog));
-    
-    
-    near_UTCoffset = cellfun(@(x) sprintf('%+03.0f:00', x.UTCoffset), db_RCSXXX.metaData(i_w_time_stimLog(i_near)), 'UniformOutput', false);
-    
-    time_stimLog   = cellfun(@(x) {x.HostUnixTime ./ 1000}, db_RCSXXX.stimLogSettings(i_wo_time_stimLog));
-    
-    % takes timezone from next StimLog's timezone
-    now_w_datetime = cellfun(@(x,y) datetime(x,'ConvertFrom','posixTime','TimeZone', ...
-                        y,'Format','dd-MMM-yyyy HH:mm:ss.SSS'),  time_stimLog, near_UTCoffset);
-    
-    j = 1;
-    for i = i_wo_time_stimLog'
-    
-        db_RCSXXX.stimLogSettings{i,1}.time_stimLog = now_w_datetime(j);
-        j = j+1;
-    
-    end
-
-    for i =  1 : height(db_RCSXXX)
- 
-        if db_RCSXXX.stimSettingsOut{i,1}.cyclingEnabled{1}
-
-            db_RCSXXX.stimLogSettings{i,1}.cycleOnTime = ...
-                repmat(db_RCSXXX.stimSettingsOut{i,1}.cycleOnTime{1}, height(db_RCSXXX.stimLogSettings{i,1}), 1);
-    
-            db_RCSXXX.stimLogSettings{i,1}.cycleOffTime = ...
-                repmat(db_RCSXXX.stimSettingsOut{i,1}.cycleOffTime{1}, height(db_RCSXXX.stimLogSettings{i,1}), 1);
-
+for i = 1 : height(db_RCSXXX.stimLogSettings)
+    if any(i == i_stimlog)
+         % easy case, use metaData UTC offset from the SAME streaming session
+        if any(i == i_metadata)
+            j = i;
         else
-             db_RCSXXX.stimLogSettings{i,1}.cycleOnTime = ...
-                NaN(height(db_RCSXXX.stimLogSettings{i,1}), 1);
+            % per non-empty StimLog, find the nearest non-empty metaData log 
+            t_diff        = i - i_metadata;
+            near_t        = min(t_diff(t_diff >= 0));
     
-            db_RCSXXX.stimLogSettings{i,1}.cycleOffTime = ...
-                NaN(height(db_RCSXXX.stimLogSettings{i,1}), 1);
-
-        end
-
-    end
-
-        
-else
-    
-    for i =  1 : height(db_RCSXXX)
-    
-        if ~any(strcmp(db_RCSXXX.stimLogSettings{i,1}.Properties.VariableNames, 'time_stimLog'))
-    
-            % finds proper timezone for StimLog.json based off of nearest
-            % metaData
-            try
-                time_stimLog = db_RCSXXX.stimLogSettings{i,1}.HostUnixTime / 1000;
-
-                if ~isempty(db_RCSXXX.metaData{i+1})
-                    % takes timezone from next StimLog's timezone
-                    timeFormat = sprintf('%+03.0f:00', ...
-                        db_RCSXXX.metaData{i+1}.UTCoffset);
-
-                else
-                    timeFormat = sprintf('%+03.0f:00', ...
-                        db_RCSXXX.metaData{i-1}.UTCoffset);
-                    
-                end
-
-            catch
-
-                if i == 1
-                    timeFormat = sprintf('%+03.0f:00', ...
-                        db_RCSXXX.metaData{i+2}.UTCoffset);
-                    
-                elseif ~isempty(db_RCSXXX.metaData{i-1}) % for single case in RCS04R w/ empty metaData
-                    % takes previous StimLog's timezone
-                    timeFormat = sprintf('%+03.0f:00', ...
-                        db_RCSXXX.metaData{i-1}.UTCoffset);
-                
-                else
-                    timeFormat = sprintf('%+03.0f:00', ...
-                        db_RCSXXX.metaData{i-2}.UTCoffset);
-                
-                end
+            if isempty(near_t)
+                near_t     = max(t_diff(t_diff < 0));
             end
-
-            db_RCSXXX.stimLogSettings{i,1}.time_stimLog = datetime(time_stimLog,...
-                'ConvertFrom','posixTime','TimeZone',timeFormat,...
-                'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-              
+            j             = i_metadata(t_diff == near_t);   
         end
 
+     UTCoffset     = sprintf('%+03.0f:00', db_RCSXXX.metaData{j}.UTCoffset);
+     HostUnixTime  = db_RCSXXX.stimLogSettings{i}.HostUnixTime; 
 
- 
-        if db_RCSXXX.stimSettingsOut{i,1}.cyclingEnabled{1}
 
-            db_RCSXXX.stimLogSettings{i,1}.cycleOnTime = ...
-                repmat(db_RCSXXX.stimSettingsOut{i,1}.cycleOnTime{1}, height(db_RCSXXX.stimLogSettings{i,1}), 1);
-    
-            db_RCSXXX.stimLogSettings{i,1}.cycleOffTime = ...
-                repmat(db_RCSXXX.stimSettingsOut{i,1}.cycleOffTime{1}, height(db_RCSXXX.stimLogSettings{i,1}), 1);
+     db_RCSXXX.stimLogSettings{i}.time_stimLog = ...
+            datetime(HostUnixTime /1000,'ConvertFrom','posixTime','TimeZone', ...
+            UTCoffset,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+    end
 
+
+    if any(i == i_devset)
+         % easy case, use metaData UTC offset from the SAME streaming session
+        if any(i == i_metadata)
+            j = i;
         else
-             db_RCSXXX.stimLogSettings{i,1}.cycleOnTime = ...
-                NaN(height(db_RCSXXX.stimLogSettings{i,1}), 1);
+            % per non-empty StimLog, find the nearest non-empty metaData log 
+            t_diff        = i - i_metadata;
+            near_t        = min(t_diff(t_diff >= 0));
     
-            db_RCSXXX.stimLogSettings{i,1}.cycleOffTime = ...
-                NaN(height(db_RCSXXX.stimLogSettings{i,1}), 1);
-
+            if isempty(near_t)
+                near_t     = max(t_diff(t_diff < 0));
+            end
+            j             = i_metadata(t_diff == near_t);   
         end
+        
+        % also add datetime to 'stimSettingsOut' which are the final
+        % settings from a streaming session
+        UTCoffset     = sprintf('%+03.0f:00', db_RCSXXX.metaData{j}.UTCoffset);
+        HostUnixTime  = db_RCSXXX.stimSettingsOut{i}.HostUnixTime; 
+    
+        db_RCSXXX.stimSettingsOut{i}.time_devset = ...
+            datetime(HostUnixTime /1000,'ConvertFrom','posixTime','TimeZone', ...
+            UTCoffset,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
     end
 end
 
 % takes stimLogSettings to a single sorted timetable and removes redundant fields
-stimLog_w_redcap = sortrows(...
-                table2timetable(...
-                    vertcat(db_RCSXXX.stimLogSettings{:})));
+stimLog =   movevars(...
+                     vertcat(db_RCSXXX.stimLogSettings{i_stimlog}),...
+            'time_stimLog', 'Before', 'HostUnixTime');
+   
 
-for i = 1 : height(stimLog_w_redcap)
 
-    stim_para = strsplit(char(stimLog_w_redcap.stimParams_prog1(i)),',');
+
+vars    = {'time_stimLog', 'activeGroup', 'therapyStatus', 'therapyStatusDescription',...
+           'stimParams_prog1', 'stimParams_prog2', 'stimParams_prog3', 'stimParams_prog4'};
+
+
+[~, i_u]  = unique(stimLog(:, vars), 'rows');
+stimLog   = stimLog(i_u, :);
+
+
+% As of Nov. 2022, we have not intentionally used multiple programs w/n a
+% group, display all the unique stim settings of Programs 2, 3, and 4
+disp(strjoin(...
+        [cfg.pt_id,'| Unique Program 2 Settings ->', unique(stimLog.stimParams_prog2)]...
+            ));
+
+disp(strjoin(...
+        [cfg.pt_id, '| Unique Program 3 Settings ->', unique(stimLog.stimParams_prog3)']...
+            ));
+
+disp(strjoin(...
+        [cfg.pt_id, '| Unique Program 4 Settings ->', unique(stimLog.stimParams_prog4)]...
+            ));
+
+% remove redundant fields
+stimLog = removevars(stimLog, ...
+                      {'therapyStatus','HostUnixTime','updatedParameters',...
+                      'stimParams_prog2', 'stimParams_prog3', 'stimParams_prog4'});
+%% assign nearest REDcap to StimLog and vice versa
+% use comprehensive stim parameters (from DeviceSettings.json) to add in cycling, ramping, and Active Recharging
+
+stimSettingsOut  = vertcat(db_RCSXXX.stimSettingsOut{i_devset});
+
+% use of Program 1 is fine assumption given lack of meaningful stim params
+% in Programs 2, 3, and 4
+
+for i = 1 : height(stimLog)
+
+    stim_para = strsplit(char(stimLog.stimParams_prog1(i)),',');
     
-    if isempty(stim_para{1})
-        stimLog_w_redcap.stimContacts{i} = '';
-    else
-        stimLog_w_redcap.stimContacts{i}     = stim_para{1};
-    end
 
-    stimLog_w_redcap.stimAmp(i)          = str2double(stim_para{2}(2:end -2));
-    stimLog_w_redcap.stimPW(i)           = str2double(stim_para{3}(2:end -2));
-    stimLog_w_redcap.stimfreq(i)         = str2double(stim_para{4}(2:end -2));
+    if ~strcmp(stim_para, 'Disabled')
 
-
-    if i < height(stimLog_w_redcap)
-        btwn_this_and_next = ...
-            find(ge(redcap.time, stimLog_w_redcap.time_stimLog(i)) & ...
-            le(redcap.time, stimLog_w_redcap.time_stimLog(i + 1)));
-    
-        if ~isempty(btwn_this_and_next)
-        
-            stimLog_w_redcap.redcap_btwn_stimLogs{i}     = 'btwn_stimLogs';
-            
-            stimLog_w_redcap.redcap_reports{i}     = redcap(btwn_this_and_next,:);
-            stimLog_w_redcap.i_redcap(i)           = {btwn_this_and_next};
-    
-        else 
-    
-            stimLog_w_redcap.redcap_btwn_stimLogs{i}     = 'none_btwn_stimLogs';
-            stimLog_w_redcap.i_redcap(i)           = {NaN};
+        if isempty(stim_para{1})
+            stimLog.stimContacts{i}  = '';
+        else
+            stimLog.stimContacts{i}  = stim_para{1};
         end
-
-    % for last stimLog associate all reports from then to NOW rather than
-    % next stimLog
-    else
-
-        btwn_this_and_next = ...
-            find(ge(redcap.time, stimLog_w_redcap.time_stimLog(i)) & ...
-            le(redcap.time, datetime('now','TimeZone','America/Los_Angeles')));
     
-        if ~isempty(btwn_this_and_next)
+        stimLog.ampInMilliamps(i)              = str2double(stim_para{2}(2:end -2));
+        stimLog.pulseWidthInMicroseconds(i)    = str2double(stim_para{3}(2:end -2));
+        stimLog.rateInHz(i)                    = str2double(stim_para{4}(2:end -2));
+    
+        % from nearest, previous 'stimSettingsOut' 
+    
+        t_diff        = stimLog.time_stimLog(i) - stimSettingsOut.time_devset;
+        near_t        = min(t_diff(t_diff >= 0));
+    
+        j             = t_diff == near_t;
+        abcd          = stimLog.activeGroup{i};
+    
+        ss_group      = stimSettingsOut.(['Group' abcd])(j);
+    
+    
+        stimLog.cycleEnabled(i)    = ss_group.cyclingEnabled;
+        stimLog.cycleOnInSecs(i)   = ss_group.cycleOnInSecs;
+        stimLog.cycleOffInSecs(i)  = ss_group.cycleOffInSecs;
         
-            stimLog_w_redcap.redcap_btwn_stimLogs{i}     = 'btwn_stimLogs_and_now';
+        stimLog.rampInSecs(i)      = ss_group.rampInSecs;
+        stimLog.rampRepeat(i)      = ss_group.rampRepeat;
+    
+        stimLog.achRechRatio(i)    = ss_group.actRechRatio(1);
+    
+    
+        % find REDcap setting that occurs AFTER given stimLog entry, but BEFORE
+        % the subsequent entry -> pull that REDcap survey
+        if i < height(stimLog)
+            btwn_this_and_next = ...
+                find(ge(redcap.time, stimLog.time_stimLog(i)) & ...
+                le(redcap.time, stimLog.time_stimLog(i + 1)));
+        
+            if ~isempty(btwn_this_and_next)
             
-            stimLog_w_redcap.redcap_reports{i}     = redcap(btwn_this_and_next,:);
-            stimLog_w_redcap.i_redcap(i)           = {btwn_this_and_next};
+                stimLog.redcap_btwn_stimLogs{i}     = 'btwn_stimLogs';
+                stimLog.redcap_reports{i}           = redcap(btwn_this_and_next,:);
+                stimLog.i_redcap(i)                 = {btwn_this_and_next};
     
-        else 
+                % take ALL stim params and add wrt original redcap table
+                vars = stimLog.Properties.VariableNames(1:end-3);
+                
+                for h = 1 : length(vars)
+                    for k = 1 : length(btwn_this_and_next)
     
-            stimLog_w_redcap.redcap_btwn_stimLogs{i}     = 'none_btwn_stimLogs_and_now';
+                        redcap.(vars{h})(btwn_this_and_next(k)) = stimLog.(vars{h})(i);
     
+                    end
+                end
+        
+            else 
+        
+                stimLog.redcap_btwn_stimLogs{i}     = 'none_btwn_stimLogs';
+                stimLog.i_redcap(i)           = {NaN};
+            end
+    
+        % for last stimLog associate all reports from then to NOW rather than
+        % next stimLog
+        else
+    
+            btwn_this_and_next = ...
+                find(ge(redcap.time, stimLog.time_stimLog(i)) & ...
+                le(redcap.time, datetime('now','TimeZone','America/Los_Angeles')));
+        
+            if ~isempty(btwn_this_and_next)
+            
+                stimLog.redcap_btwn_stimLogs{i}     = 'btwn_stimLogs_and_now';
+                
+                stimLog.redcap_reports{i}     = redcap(btwn_this_and_next,:);
+                stimLog.i_redcap(i)           = {btwn_this_and_next};
+        
+            else 
+        
+                stimLog.redcap_btwn_stimLogs{i}     = 'none_btwn_stimLogs_and_now';
+            end
         end
     end
 end
 
 % remove redundant fields
-stimLog_w_redcap = removevars(stimLog_w_redcap, {'GroupA','GroupB','GroupC',...
-                      'GroupD','therapyStatus','HostUnixTime','stimParams_prog1','stimParams_prog2',...
-                      'stimParams_prog3','stimParams_prog4','updatedParameters',...
-                       });
+stimLog  = removevars(stimLog, {'stimParams_prog1'});
+redcap   = removevars(redcap, {'stimParams_prog1'});
 
-all_i_redcap = vertcat(stimLog_w_redcap.i_redcap{:});
+
+% verify REDcap to StimLog assignment
+all_i_redcap      = vertcat(stimLog.i_redcap{:});
 
 if length(all_i_redcap(~isnan(all_i_redcap))) == length(unique(all_i_redcap(~isnan(all_i_redcap)))) 
     
-    disp([cfg.pt_id, ': ','All REDcap report(s) assigned to unique stim settings.'])
+    disp([cfg.pt_id, ' | ','All REDcap report(s) assigned to unique stim settings.'])
 else
-    error('REDcap report(s) are assigned to multiple stim settings.')
+    error('REDcap report(s) are assigned to multiple stim settings (RBL message).')
 end
 
 per_assigned = length(unique(all_i_redcap(~isnan(all_i_redcap)))) ./ height(redcap) * 100;
 
 
-disp([cfg.pt_id, ': ', num2str(per_assigned), '% of REDcap report(s) assigned to stim settings.']);
-
+disp([cfg.pt_id, ' | ', num2str(per_assigned), '% of REDcap report(s) assigned to stim settings.']);
 
 end

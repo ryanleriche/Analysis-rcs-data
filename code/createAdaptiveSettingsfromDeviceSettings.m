@@ -32,7 +32,10 @@ for iRecord = 1:length(DeviceSettings)
     HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
     
     % If applicable, update DetectorSettings
-    if isfield(currentSettings,'DetectionConfig') && ((isfield(currentSettings.DetectionConfig,'Ld0') || isfield(currentSettings.DetectionConfig,'Ld1')))
+    if isfield(currentSettings,'DetectionConfig') && ...
+            ((isfield(currentSettings.DetectionConfig,'Ld0') || ...
+            isfield(currentSettings.DetectionConfig,'Ld1')))
+        
         updatedParameters = {};
         % Create variable with Ld0 and Ld1 settings
         if isfield(currentSettings.DetectionConfig,'Ld0')

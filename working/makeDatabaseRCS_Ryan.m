@@ -1,13 +1,13 @@
-function [RCSdatabase_out, varargout] = makeDatabaseRCS_Ryan(dirname, ptIDside, cfg)
+function [RCSdatabase_out, varargout] = makeDatabaseRCS_Ryan(cfg, pt_id_side)
 %{
-function database_out = makeDatabaseRCS_Ryan(dirname)
+function database_out = makeDatabaseRCS_Ryan(cfg.raw_dir)
 
 
 This function creates a database of rcs data
 
-INPUT:   DIRNAME should be the root folder of the Session Files (e.g. SCBS folder)
-              e.g. DIRNAME = '/Desktop/[PATIENTID]/'
-              e.g. DIRNAME = '/Volumes/Prasad_X5/RCS02/;
+INPUT:   cfg.raw_dir should be the root folder of the Session Files (e.g. SCBS folder)
+              e.g. cfg.raw_dir = '/Desktop/[PATIENTID]/'
+              e.g. cfg.raw_dir = '/Volumes/Prasad_X5/RCS02/;
 
 
           PATIENTIDside = should specify what the Patient ID name is, and
@@ -19,7 +19,7 @@ INPUT:   DIRNAME should be the root folder of the Session Files (e.g. SCBS folde
 
 
 OUTPUT:   RCSdatabase_out is a table with fields ordered in importance, which will
-           be saved as a mat file and csv to DIRNAME
+           be saved as a mat file and csv to cfg.raw_dir
 
           (OPTIONAL)
           SECOND OUTPUT could be provided to collect list of bad sessions
@@ -87,22 +87,16 @@ Add to DataBase:
     X parsed stim parameters
 
     X duty cycle
-        * (close, but) figure out unit conversion into seconds 
+        X figure out unit conversion into seconds 
         - see Metronic.SummitAPI
-
     X find impedance wrt to each stimparams output
         - reported in EventLog.json each Lead Integrity check
-
     X see below, but figure out sessions w/ multiple stim parameters and
     effective time stamping
         - return as table w/ each change per session
-
-    
     X pain report timestamps
         - REDcap timestamps are darn close to API logs (see
         'db_sort_beh()')
-
-
 
 Ryan Leriche Aug 20, 2022
 
@@ -112,13 +106,13 @@ Ryan Leriche Aug 20, 2022
 tic
 
 % match the PATIENTID up to 2 digits: ie RCS02
-pt_rootdir  = fullfile(dirname,char(regexp(ptIDside,...
+pt_rootdir  = fullfile(cfg.raw_dir,char(regexp(pt_id_side,...
                         '\w*\d\d','match'))); 
 
 
 %  Define the directories to search in (SCBS and aDBS)
-scbs_dir_root       = fullfile(pt_rootdir,'/SummitData/SummitContinuousBilateralStreaming/', ptIDside);
-adbs_dir_root       = fullfile(pt_rootdir, '/SummitData/StarrLab/', ptIDside);
+scbs_dir_root       = fullfile(pt_rootdir,'/SummitData/SummitContinuousBilateralStreaming/', pt_id_side);
+adbs_dir_root       = fullfile(pt_rootdir, '/SummitData/StarrLab/', pt_id_side);
 
 scbs_sess_dirs      = findFilesBVQX(scbs_dir_root,'Sess*',struct('dirs',1,'depth',1));
 adbs_sess_dirs      = findFilesBVQX(adbs_dir_root,'Sess*',struct('dirs',1,'depth',1));
@@ -147,9 +141,9 @@ db_out      = struct('rec',[],...
 % needed, so as not to replicate whole thing.
 % Can be turned off with third input 'ignoreold'
 
-proc_dirname      = [dirname(1:end-4), 'processed/databases/'];
+proc_cfg.raw_dir      = [cfg.raw_dir(1:end-4), 'processed/databases/'];
 
-outputFileName    = fullfile(proc_dirname,[ptIDside '_database.mat']);
+outputFileName    = fullfile(proc_cfg.raw_dir,[pt_id_side '_database.mat']);
 
 
 if isfile(outputFileName) && ~cfg.ignoreold
@@ -316,10 +310,11 @@ for d = 1: length(sess_dirs)
                 stimLogSettings.stimParams_prog1;
                 
             stimnamegroup        = {'A','B','C','D'; '1' , '5', '9','13'};
+
             [~,j]                = find(contains(stimnamegroup,stimLogSettings.activeGroup));
             stimname             =  metaData.stimProgramNames(str2double(stimnamegroup{2,j(1)}));
 
-            db_out(d).stimReg   =  stimname{1};    
+            db_out(d).stimReg    =  stimname{1};    
 
           
     
@@ -341,8 +336,6 @@ for d = 1: length(sess_dirs)
             end         
         end
 
-        % commented out as only trying open-loop data right now
-        %{
         try
 
             % Get Adaptive settings info
@@ -356,12 +349,12 @@ for d = 1: length(sess_dirs)
 
         catch
         end
-        %}
+        
     end
 end
 
 
-database_out            = struct2table(db_out,'AsArray',true);
+database_out                = struct2table(db_out,'AsArray',true);
 
 if ~cfg.ignoreold
     database_out.rec        = (1:height(database_out))' + height(old_database);
@@ -443,14 +436,14 @@ if nargout == 2
 end
 
 % Rename file to include patient ID
-% writetable(RCSdatabase_out,fullfile(proc_dirname,[ptIDside...
+% writetable(RCSdatabase_out,fullfile(proc_cfg.raw_dir,[pt_id_side...
 %     '_database.csv']));
-% 
-save(fullfile(proc_dirname,[ptIDside '_database.mat']),...
+
+save(fullfile(proc_cfg.raw_dir,[pt_id_side '_database.mat']),...
     'RCSdatabase_out','badsessions');
 
 fprintf('csv and mat of database saved as %s to %s \n',...
-    [ptIDside '_database.mat'],proc_dirname);
+    [pt_id_side '_database.mat'],proc_cfg.raw_dir);
 
 %==================================================================
 

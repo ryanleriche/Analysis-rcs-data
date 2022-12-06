@@ -154,7 +154,7 @@ while recordCounter <= numRecords
                 
                 stimParamsString{iProgram} = sprintf('%s%s, %.1fmA, %0.fus, %.1fHz',anodeString,...
                     cathodeString, currentGroup.ampInMilliamps(iProgram),...
-                    currentGroup.pulseWidthInMicroseconds(iProgram),currentGroup.RateInHz );
+                    currentGroup.pulseWidthInMicroseconds(iProgram),currentGroup.rateInHz );
             end
         end
     end

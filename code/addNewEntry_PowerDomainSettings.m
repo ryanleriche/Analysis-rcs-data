@@ -27,13 +27,30 @@ TDsampleRates = unique(TDsampleRates);
 currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
 newEntry.TDsampleRates = currentTDsampleRate;
 
-% Get fftConfig info if updated
-if isfield(currentSettings,'SensingConfig') && isfield(currentSettings.SensingConfig,'fftConfig')
-    % Convert fftConfig values
-    fftConfig = convertFFTCodes(currentSettings.SensingConfig.fftConfig);
-end
-newEntry.fftConfig = fftConfig;
+% parse and save FFT configuration
+if isfield(currentSettings,'SensingConfig') 
+    
+    if isfield(currentSettings.SensingConfig,'fftConfig')
+        fftConfig   = convertFFTCodes(currentSettings.SensingConfig.fftConfig);
+        
+    end
 
+    if isfield(currentSettings,'StreamState')
+        % return streamed FFT channel or if it's disabled
+        if  currentSettings.StreamState.FftStreamEnabled == 1
+            fftConfig.fftStreamChannel      = num2str(currentSettings.SenseState.fftStreamChannel);
+        
+        elseif currentSettings.StreamState.FftStreamEnabled == 0
+            fftConfig.fftStreamChannel      = 'Disabled';
+        end
+
+    else
+        fftConfig.fftStreamChannel      = 'No Stream State field';
+
+    end
+end
+
+newEntry.fftConfig = fftConfig;
 % Convert powerBands to Hz
 [currentPowerBands] = getPowerBands(powerChannels,fftConfig,currentTDsampleRate);
 newEntry.powerBands = currentPowerBands;

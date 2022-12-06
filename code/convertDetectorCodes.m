@@ -13,8 +13,8 @@ convertedLd.updateRate = (FFTinterval/1000)*inputLd.updateRate;
 convertedLd.blankingDurationUponStateChange = (FFTinterval/1000)*inputLd.blankingDurationUponStateChange;
 
 % Fields which are in units of updateRate
-convertedLd.onsetDuration = inputLd.onsetDuration * convertedLd.updateRate;
-convertedLd.holdoffTime = inputLd.holdoffTime * convertedLd.updateRate;
+convertedLd.onsetDuration      = inputLd.onsetDuration * convertedLd.updateRate;
+convertedLd.holdoffTime         = inputLd.holdoffTime * convertedLd.updateRate;
 convertedLd.terminationDuration =  inputLd.terminationDuration * convertedLd.updateRate;
 
 % Fields which encode information per bit
