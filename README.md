@@ -18,6 +18,7 @@ Currently:
 | stim groups by contacts-freq-amp-PW-cyc to motivate aDBS settings| Ryan |
 | incrp RCS02's textlogs into stim group changes via 'RCS_logs()'| Ryan|
 | ensuring quality of RCS neural data via rcsPlotter| Joanna |
+| statistical framework-- Bayer factor for null comparisons | Joanna & Ryan|
 
 Up Next:
 | Functions to edit/create  | Person |
