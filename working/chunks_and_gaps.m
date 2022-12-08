@@ -1,8 +1,6 @@
-function [comb_dt_chunks, per_TD_lost] ...
-    = chunks_and_gaps(comb_dt) 
+function [comb_dt_chunks, per_TD_lost] = chunks_and_gaps(comb_dt) 
 
     per_TD_lost         = sum(isnan(comb_dt.TD_key0)) * 100 / height(comb_dt);
-    
     
     i_nan = isnan(comb_dt.TD_key0);
     % report gaps 
@@ -28,13 +26,19 @@ function [comb_dt_chunks, per_TD_lost] ...
     comb_dt_chunks.i_gap_end        = i_gap_end;
     
     % report chunks
-    diff_nans       = diff(i_nan);
+%     if i_nan(1) == 1 % if starts w/ gap, first "from gap" is first chunk start
+%         from_gap = find(diff_nans == -1);
+% 
+%         diff_nans(from_gap(1)) = 1;
+% 
+%     end
     
-    i_chunk_start  = find(diff_nans == 1);
-    i_chunk_end    = find(diff_nans == -1); 
+    i_chunk_start  = find(diff_nans == -1) + 1;
+    i_chunk_end    = find(diff_nans == 1); 
     
     if i_nan(1) == 0 % if data start w/ chunk (generally, should)
-        i_chunk_start = [1; i_chunk_start ];
+        i_chunk_start = [1; i_chunk_start];
+
     end
     if i_nan(end) == 0 % if data ends w/ chunk (generally, should)
         i_chunk_end   = [i_chunk_end ; length(i_nan) ];

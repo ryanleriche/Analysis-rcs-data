@@ -122,8 +122,8 @@ for p = 1:numel(pt_id_list)
         case  'RCS04new'
             PATIENT_ARM = 'rcs04_new_pain_rep_arm_18';
             reportid = '112132';
+
         case  'RCS05new'
-           
             PATIENT_ARM      = 'rcs05_new_pain_rep_arm_19';
             reportid         = '112133';
             
@@ -140,6 +140,7 @@ for p = 1:numel(pt_id_list)
         case 'RCS04_STREAMING_v2'          %NOTE That RCS04 has a second streaming arm
             PATIENT_ARM = 'rcs04_streaming_ac_arm_16';
             reportid = '110756';
+
         case 'RCS05_STREAMING'
             PATIENT_ARM = 'rcs05_recording_se_arm_14';  %NOTE this field is named 'recording' unusually
             reportid = '109668';
@@ -189,7 +190,8 @@ for p = 1:numel(pt_id_list)
             'rawOrLabelHeaders','label',...
             'exportCheckboxLabel','false',...
             'exportSurveyFields','true',...
-            'returnformat','csv');
+            'returnformat','csv', ...
+            'Timeout', 10);
         
         
         alltable = data;
@@ -205,7 +207,8 @@ for p = 1:numel(pt_id_list)
         'rawOrLabelHeaders','raw',...
         'exportCheckboxLabel','false',...
         'exportSurveyFields','true',...
-        'returnformat','csv');
+        'returnformat','csv',...
+        'Timeout', 10);
     
     
         alltable = data;

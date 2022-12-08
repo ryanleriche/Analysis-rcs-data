@@ -21,10 +21,10 @@ cd([github_dir, 'Analysis-rcs-data/working']);
 
 addpath(genpath([github_dir, 'Analysis-rcs-data/']));
 
-REDcap                = RCS_redcap_painscores(rcs_API_token);
+REDcap                 = RCS_redcap_painscores(rcs_API_token);
 
 % stage dates and, home/clinic visits for RCS pts 1-7 w/ brief descriptions
-[visits, stage_dates] = make_visit_dates;
+[visits, stage_dates]  = make_visit_dates;
 
 
 % need to further distill by pts initals
@@ -140,6 +140,12 @@ stats framework:
 
 see for multivariate approach (predict many pain metrics)
 https://www.mathworks.com/help/stats/specify-the-response-and-design-matrices.html
+
+* RCS02 stage 3:
+    * phase 1: ol- blinded testing (visits, and days off)
+    * phase 2: cl-parameter testing (for our purposes)
+    * phase 3: cl vs ol testing
+
 
 
 * run Kolmogorov–Smirnov test (see's if data are normal--explore pain

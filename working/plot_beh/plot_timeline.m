@@ -127,7 +127,19 @@ switch cfg.pt_id(7:end)
             scatter(redcap.time, redcap.npNRS, 50, 'filled');
 
             legend({'NRS Intensity', '','NRS Nociceptive',...
-                    'NRS Neuropathic'}, 'Location','northeastoutside'); 
+                    'NRS Neuropathic'}, 'Location','northeastoutside');
+
+        elseif strcmp(cfg.pt_id, 'RCS07')
+
+            scatter(redcap.time, redcap.unpNRS, 75, 'filled');   
+            scatter(redcap.time, redcap.leftarmNRS, 50, 'filled');
+
+            scatter(redcap.time, redcap.leftlegNRS, 50 , 'filled');   
+            scatter(redcap.time, redcap.leftfaceNRS, 50, 'filled');
+
+            legend({'NRS Intensity', '','NRS Unpleasantness',...
+                    'NRS Left Arm', 'NRS Left Leg', 'NRS LeftFace'},...
+                    'Location','northeastoutside');
      
 
         end
@@ -137,7 +149,7 @@ switch cfg.pt_id(7:end)
     
      ylabel('Numeric Rating Scale');     ylim([0,10]); yticks(1:2:10);
          
-     if ~strcmp(cfg.pt_id, 'RCS06')
+     if ~strcmp(cfg.pt_id, {'RCS06', 'RCS07'})
 
         legend({'NRS Intensity', 'NRS Worst Intensity'}, 'Location','northeastoutside'); 
      
@@ -185,14 +197,21 @@ switch cfg.pt_id(7:end)
 
             legend({'VAS Intensity', 'VAS Unpleasantness', '', 'VAS Nociceptive',...
                 'VAS Neuropathic'}, ...
-            'Location','northeastoutside'); 
+            'Location','northeastoutside');
+
+        elseif strcmp(cfg.pt_id, 'RCS07')
+
+            scatter(redcap.time, redcap.moodVAS, 75, 'filled');
+            legend({'VAS Intensity', 'VAS Unpleasantness', '', 'VAS Mood'},...
+                    'Location','northeastoutside');
+
         end
 
     end
 
      ylabel('Visual Analog Scale');         ylim([0,100]);  yticks(0:20:100);
 
-     if ~strcmp(cfg.pt_id, 'RCS06')
+     if ~strcmp(cfg.pt_id, {'RCS06', 'RCS07'})
 
         legend({'VAS Intensity', 'VAS Unpleasantness', 'VAS Worst Intensity'}, ...
             'Location','northeastoutside'); 

@@ -288,8 +288,19 @@ cfg.ndays               = 7;
 cfg.subplot             = true;
 
     plot_timeline(cfg, REDcap.RCS04);
+%%
+cfg                     = [];
+cfg.pt_id               = 'RCS07';
+cfg.stage_dates         = stage_dates{7}; % starts at Stage 1
+cfg.subplot             = true;
 
+cfg.stim_parameter      = '';
 
+cfg.dates               = 'PreviousDays';
+cfg.ndays               = 7;
+cfg.subplot             = true;
+
+    plot_timeline(cfg, REDcap.RCS07);
 
 
 %% organize Streaming Notes, clinic dates, etc
@@ -345,11 +356,14 @@ xlabel('PC 1')
  set(gca,'fontSize',14, 'TickLength', [0 0]); 
         grid on;    grid MINOR;      box off
 %}
-%% simulate LD activity 
 
-% parse RCS02R to human-readable format
+%% parse db to human-readable format
 i                   = cellfun(@(x) length(x) == 1, db.RCS02R.duration);
 db_RCS02R           = db.RCS02R(i, :);
+
+[~, i_u] = unique(db_RCS02R.sess_name);
+
+db_RCS02R = db_RCS02R(i_u, :);
 
 db_RCS02R.timeStart = cellfun(@(x) x, db_RCS02R.timeStart);
 db_RCS02R.timeStop  = cellfun(@(x) x, db_RCS02R.timeStop);
@@ -369,9 +383,16 @@ db_RCS02R.activeGroup(i_stim)  ...
 
 db_RCS02R  = sortrows(db_RCS02R, 'timeStart', 'descend');
 
+% try to simulate certain sessions
+sess_oi    = [2, 15, 18:19];
+db_RCS02R  = db_RCS02R(sess_oi,:);
 
+nickname = {'i'; 'ii';'iii';'iv'};
+db_RCS02R.sess_name = cellfun(@(x,y) [x,'_',y], db_RCS02R.sess_name, nickname, 'UniformOutput', false);
 
-for i_sess = 1 : 25 %height(db_RCS02R)
+db_RCS02R.per_TD_lost = nan(height(db_RCS02R),1);
+
+for i_sess = 1 : height(db_RCS02R)
 
     data_dir = db_RCS02R.path{i_sess};
     
@@ -394,51 +415,32 @@ for i_sess = 1 : 25 %height(db_RCS02R)
 
     comb_dt = createCombinedTable(dataStreams, unifiedDerivedTimes, metaData);
     
-    [comb_dt_chunks, per_TD_lost]  = chunks_and_gaps(comb_dt);
+    [comb_dt_chunks, per_TD_lost]    = chunks_and_gaps(comb_dt);
 
    
     db_RCS02R.per_TD_lost(i_sess)    = per_TD_lost;
     db_RCS02R.comb_dt_chunks(i_sess) = comb_dt_chunks;
 end
+%% simulate LD activity 
+set(0,'DefaultFigureVisible','off')
+for i_sess = 1 : height(db_RCS02R)
+
+    sim_tbl     = td_to_fft_pb(i_sess, db_RCS02R);
+end
+set(0,'DefaultFigureVisible','on')
 %%
+% pull out all sessions w/ FFT channel streamed
+
 fftSettings  = vertcat(db_RCS02R.fftSettings{:});
 fftSettings  = struct2table(fftSettings.fftConfig);
 
-
+% length of 1 implies that it is a channel name rather than 'Disabled'
 i_fft_stream = find(cellfun(@(x)  length(x.fftConfig.fftStreamChannel) == 1, ...
                         db_RCS02R.fftSettings));
 
-i_sess       = i_fft_stream(5);
+i_sess       = i_fft_stream(1);
 
-
-fprintf(['DBS %s | starting at %s | duration %s (HH:MM:SS.sss)', newline], ...
-    db_RCS02R.sess_name{i_sess}, ...
-    db_RCS02R.timeStart(i_sess),...
-    db_RCS02R.duration(i_sess));
-
-%{
-
-RCS02:
-
-W/ streamed FFT channel:
-Session1654016453080
-     timeStart 31-May-2022 10:00:53.243
-     duration 00:25:35.174
-     TD dropped 1.138%
-
-Session1652315504283
-     timeStart 11-May-2022 17:31:44.344
-     duration 00:16:10.473
-     TD dropped 0.737%
-
-aDBS:
-Session1612221839819 | 01-Feb-2021 16:24:16.741 | duration 00:08:59.357
-TD  0.146% of TD samp dropped | Shift7, throw away upper 7 bits
-
-
-
-
-%}
+td_to_fft_pb(i_sess, db_RCS02R);
 
 %%
 
@@ -448,16 +450,7 @@ TD  0.146% of TD samp dropped | Shift7, throw away upper 7 bits
 i_sess                 = find(strcmp(db_RCS02R.activeGroup, 'D'));
 i_sess                 = i_sess(2);
 
-% session that Jackson used in Nov ~10th(?) update for LD0 simulation
-%i_sess                = strcmp(db.RCS02R.sess_name, 'Session1667401080242');
 
-
-%%
-i_sess                = find(strcmp(db_RCS02R.sess_name, 'Session1612221839819'));
-
-
-%%
-[data, settings]      = extract_data(db_RCS02R.path{i_sess});
 
 fprintf(['aDBS %s | starting at %s | duration %s (HH:MM:SS.sss)', newline], ...
     db_RCS02R.sess_name{i_sess}, ...
@@ -470,8 +463,6 @@ fprintf(['aDBS %s | starting at %s | duration %s (HH:MM:SS.sss)', newline], ...
 v = RecordRotation(h);
 
 %%
-
-
 
 playRecording(v);
 %%
