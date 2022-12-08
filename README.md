@@ -14,9 +14,11 @@ Note: This research is funded by UH# HEAL Grant; IRB Study: G190160.
 Currently:
 | Functions to edit/create  | Person |
 | ------------- | ------------- |
+| RCS07 plot_timeline() | Ryan|
 | stim groups by contacts-freq-amp-PW-cyc to motivate aDBS settings| Ryan |
 | incrp RCS02's textlogs into stim group changes via 'RCS_logs()'| Ryan|
 | ensuring quality of RCS neural data via rcsPlotter| Joanna |
+| statistical framework-- Bayer factor for null comparisons | Joanna & Ryan|
 
 Up Next:
 | Functions to edit/create  | Person |
