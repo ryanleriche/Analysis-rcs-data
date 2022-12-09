@@ -15,7 +15,7 @@ Currently:
 | Functions to edit/create  | Person |
 | ------------- | ------------- |
 | statistical framework for stim groups-- Bayer factor for null comparisons | Joanna & Ryan |
-| simulate RCS onboard calcuation <br> power-band time series (when stim is above 0 mA)<br> power-band to LD <br> LD to state/stim | Ryan|
+| simulate RCS onboard calcuation <br> ~~power-band time series w/ stim at 0 mA~~ <br> power-band time series (when stim is above 0 mA) <br> power-band to LD <br> LD to state/stim | Ryan|
 
 
 Up Next:
