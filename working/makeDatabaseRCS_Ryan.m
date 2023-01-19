@@ -202,7 +202,7 @@ for d = 1: length(sess_dirs)
 
     else % data may exist, check for time domain data
 
-        clear devicepath settingsfile 
+        %clear devicepath settingsfile 
         td_file      = findFilesBVQX(sess_dirs{d},'EventLog.json');
         dev_file     = findFilesBVQX(sess_dirs{d},'DeviceSettings.json');
 

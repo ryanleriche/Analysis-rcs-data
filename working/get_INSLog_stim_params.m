@@ -1,4 +1,4 @@
-function beh_stim  = get_INSLog_stim_params(cfg, group_changes, db_RCSXXX, redcap, visits_tbl)
+%function beh_stim  = get_INSLog_stim_params(cfg, group_changes, db_RCSXXX, redcap, visits_tbl)
 
 
 %{
@@ -6,8 +6,14 @@ from group_changes (as written to EventLog.txts), find explicit stim paramemters
 (from StimLog.jsons)
 
 %}
+cfg                    = [];
+cfg.stage_dates        = stage_dates{2};
+cfg.pt_id              = 'RCS02';
 
-
+group_changes          = INS_logs.RCS02R.group_changes;
+db_RCSXXX              = db.RCS02R;
+redcap                 = REDcap.RCS02;
+visits_tbl             = visits.RCS02;
 
 % only takes REDcap surveys from AFTER Stage I implant
 redcap   = redcap(ge(redcap.time, datetime(cfg.stage_dates(1),'TimeZone','America/Los_Angeles')),...
@@ -26,6 +32,9 @@ time_API = datetime(dev_w_rcap.HostUnixTime /1000,...
 
 dev_w_rcap = addvars(dev_w_rcap, time_API ,'after',"HostUnixTime");
 
+[~, i_unique] = unique(dev_w_rcap.time_API);
+
+dev_w_rcap    = dev_w_rcap(i_unique,:);
 %% organize INS logs and then infer contacts, amp, pw, and rate based off of DeviceSettings.txt
 
 group_changes   = group_changes(~contains(group_changes.event, "Lead"),:);
@@ -122,7 +131,13 @@ for i = 1 : height(group_changes)
         group_changes.cycleOnInSecs(i)    = group.cycleOnInSecs;
         group_changes.cycleOffInSecs(i)   = group.cycleOffInSecs;
         group_changes.rampInSecs(i)       = group.rampInSecs;
-        group_changes.rampRepeat(i)     = group.rampRepeat;
+        group_changes.rampRepeat(i)       = group.rampRepeat;
+    
+    
+    else
+
+        group_changes.stimContacts{i} = 'No valid program';
+    
     end
 end
 
@@ -131,6 +146,99 @@ i_off = find(strcmp(group_changes.therapyStatusDescription, 'Off'));
 off_rep = [diff(i_off); 0] == 1;
 
 group_changes(i_off(off_rep), :) = [];
+
+
+
+
+%% adding in side + region for unambiguous contacts when comparing both sides
+tmp_group_changes = group_changes;
+
+switch cfg.pt_id
+    
+    case 'RCS02'
+        stimRegR      = [{'RACC ', ["0","1","2","3"]}; {'RThal ', ["8","9","10","11"]}];
+end
+
+i_valid         = cellfun(@(x) ~isempty(x),...
+                       tmp_group_changes.ampInMilliamps);
+
+temp_cont       = cellfun(@(x) x, ...
+                    tmp_group_changes.stimContacts,'UniformOutput', false);
+
+
+ind_contacts    = cellfun(@(x) regexp(x,'\d*','Match'), ...
+                               temp_cont(i_valid), 'UniformOutput', false);
+
+ind_contacts    = cellfun(@(x) x{1}(1), ind_contacts);
+
+
+i_small         = cellfun(@(x) any(strcmp(x, stimRegR{1,2})), ind_contacts);
+i_large         = cellfun(@(x) any(strcmp(x, stimRegR{2,2})), ind_contacts);
+
+i_con           = find(i_valid);
+
+
+tmp_group_changes.stimContacts(i_con(i_small)) =...
+    ...
+    cellfun(@(x) [stimRegR{1,1}, x{1}], ...
+    temp_cont(i_con(i_small)), 'UniformOutput', false);
+
+tmp_group_changes.stimContacts(i_con(i_large)) =...
+    ...
+    cellfun(@(x) [stimRegR{2,1}, x{1}], ...
+    temp_cont(i_con(i_large)), 'UniformOutput', false);
+
+% reformat given that all programs are at 0 mA
+for i = 1 : height(tmp_group_changes)
+    if length(tmp_group_changes.ampInMilliamps{i}) > 1 && all(tmp_group_changes.ampInMilliamps{i} == 0)
+
+        tmp_group_changes.ampInMilliamps{i} = 0;
+
+        tmp_group_changes.pulseWidthInMicroseconds{i}...
+            =...
+        tmp_group_changes.pulseWidthInMicroseconds{i}(1);
+
+    elseif length(tmp_group_changes.ampInMilliamps{i}) < 1
+
+        tmp_group_changes.ampInMilliamps{i}             = NaN;
+        tmp_group_changes.pulseWidthInMicroseconds{i}   = NaN;
+
+        tmp_group_changes.rateInHz(i)                   = NaN;
+
+        tmp_group_changes.cycleOnInSecs(i)              = NaN;
+        tmp_group_changes.cycleOffInSecs(i)             = NaN;
+
+        tmp_group_changes.rampInSecs(i)                 = NaN;
+        tmp_group_changes.rampRepeat(i)                 = NaN;
+
+    end
+end
+
+tmp_group_changes.ampInMilliamps             = vertcat(tmp_group_changes.ampInMilliamps{:});
+tmp_group_changes.pulseWidthInMicroseconds   = vertcat(tmp_group_changes.pulseWidthInMicroseconds{:});
+ 
+group_changes  = tmp_group_changes;
+
+
+%%
+tmp_group_changes         = group_changes;
+
+groups                     = tmp_group_changes.activeGroup;
+therapyStatusDescription   = tmp_group_changes.therapyStatusDescription;
+time_INS                   = tmp_group_changes.time_INS;
+
+group_tbl                  = table(time_INS, groups, therapyStatusDescription);
+
+Didx                       = strcmp(groups, 'D') & strcmp(therapyStatusDescription, 'On');
+
+
+group_tbl.groupD_ON_diff      = [0; diff(Didx)];
+
+offline_cl_sess            = tmp_group_changes(Didx,:);
+
+
+
+
 
 %% w/ explicit INS logs, now align to nearest REDcap
 
@@ -148,7 +256,7 @@ for i = 1 : height(redcap)
 
         t_diff   = redcap.time(i) - dev_w_rcap.time_API;
         near_t   = min(t_diff(t_diff > 0));
-        j        = (t_diff == near_t);
+        j        = find(t_diff == near_t);
 
         act_group       = dev_w_rcap.activeGroup{j};
 
@@ -242,16 +350,10 @@ end
 
 %%
 
-beh_stim      = redcap;
 
 
 %beh_stim_R.R_stimContacts(i_con) = [beh_stim_R.R_stimContacts{i_con}];
 
-switch cfg.pt_id
-    
-    case 'RCS02'
-        stimRegR      = [{'RACC ', ["0","1","2","3"]}; {'RThal ', ["8","9","10","11"]}];
-end
 
 %%
 %{
@@ -261,45 +363,8 @@ here
 
 %}
 
-% adding in side + region for unambiguous contacts when comparing both sides
-i_con        = cellfun(@(x) all(~strcmp(x, '   ')), beh_stim.stimContacts);
- 
-ind_contacts    = cellfun(@(x) regexp(x,'\d*','Match'), ...
-                               beh_stim.stimContacts(i_con), 'UniformOutput', false);
-
-ind_contacts    = cellfun(@(x) x{1}(1), ind_contacts);
 
 
-i_small         = cellfun(@(x) any(strcmp(x, stimRegR{1,2})), ind_contacts);
-i_large         = cellfun(@(x) any(strcmp(x, stimRegR{2,2})), ind_contacts);
 
-i_con           = find(i_con);
-
-
-beh_stim.stimContacts(i_con(i_small)) =...
-    ...
-    cellfun(@(x) [stimRegR{1,1}, x{1}], ...
-    beh_stim.stimContacts(i_con(i_small)), 'UniformOutput', false);
-
-beh_stim.stimContacts(i_con(i_large)) =...
-    ...
-    cellfun(@(x) [stimRegR{2,1}, x{1}], ...
-    beh_stim.stimContacts(i_con(i_large)), 'UniformOutput', false);
-
-% reformat given that all programs are at 0 mA
-for i = 1 : height(beh_stim)
-    if length(beh_stim.ampInMilliamps{i}) > 1 && all(beh_stim.ampInMilliamps{i} == 0)
-
-        beh_stim.ampInMilliamps{i} = 0;
-        beh_stim.pulseWidthInMicroseconds{i} = beh_stim.pulseWidthInMicroseconds{i}(1);
-
-    end
-end
-
-beh_stim.ampInMilliamps               = vertcat(beh_stim.ampInMilliamps{:});
-beh_stim.pulseWidthInMicroseconds     = vertcat(beh_stim.pulseWidthInMicroseconds{:});
- 
-
-beh_stim.stimContacts = cellfun(@(x) x,  beh_stim.stimContacts, 'UniformOutput',false);
-beh_stim                 = movevars(beh_stim,'time_INS', 'After','MPQcruel');
-end
+group_changes                 = movevars(group_changes,'time_INS', 'After','MPQcruel');
+%end

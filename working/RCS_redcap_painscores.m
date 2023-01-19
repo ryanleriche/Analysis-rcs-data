@@ -48,9 +48,9 @@ if nargin == 0
 elseif nargin == 1
     rcs_TOKEN = varargin{1};
     pt_id_list = ...
-        {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06', 'RCS07',...
+        {'RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06', 'RCS07',...
         ...
-        'RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING',...
+        'RCS02_STREAMING','RCS04_STREAMING',...
         'RCS04_STREAMING_v2','RCS05_STREAMING', 'RCS06_STREAMING', 'RCS07_STREAMING'...
         ...
         'RCS_Weekly', 'RCS_Monthly',...
@@ -514,7 +514,7 @@ end
 oldscores = painscores_out;
 clear painscores_out
  
-newscores.RCS01 =  oldscores.RCS01;
+%newscores.RCS01 =  oldscores.RCS01;
 newscores.RCS02 = [oldscores.RCS02; oldscores.RCS02new];
 newscores.RCS04 = [oldscores.RCS04; oldscores.RCS04new];
 newscores.RCS05 = [oldscores.RCS05; oldscores.RCS05new];
@@ -523,7 +523,7 @@ newscores.RCS06 = oldscores.RCS06;
 newscores.RCS07 = oldscores.RCS07;
     
     
-newscores.RCS01_STREAMING = oldscores.RCS01_STREAMING;
+%newscores.RCS01_STREAMING = oldscores.RCS01_STREAMING;
 newscores.RCS02_STREAMING = oldscores.RCS02_STREAMING;
 newscores.RCS04_STREAMING = [oldscores.RCS04_STREAMING; oldscores.RCS04_STREAMING_v2];
 newscores.RCS05_STREAMING = oldscores.RCS05_STREAMING;

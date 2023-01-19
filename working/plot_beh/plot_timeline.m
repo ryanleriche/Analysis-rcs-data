@@ -1,4 +1,4 @@
-function plot_timeline(cfg, redcap, varargin)
+function plot_timeline(cfg, REDcap, varargin)
     
 
 % cfg                     = [];
@@ -14,11 +14,21 @@ function plot_timeline(cfg, redcap, varargin)
 % 
 % redcap                  = wrt_stim_REDcap.RCS04;
 %%
-    figure('Units', 'Inches', 'Position', [0, 0, 25, 10])
+
+redcap                  = REDcap.(cfg.pt_id);
+[~, stage_dates]        = make_visit_dates;
+
+cfg.stage_dates         = stage_dates{str2double(cfg.pt_id(end))}; % starts at Stage 1
+
+    figure('Units', 'Inches', 'Position', [0, 0, 15, 7])
 
     [redcap, date_range] = date_parser(cfg, redcap);
     
     ds =        datestr(date_range,'dd-mmm-yyyy');
+
+
+    sum_stats =   calc_sum_stats(cfg, redcap);
+    
 
 % allows exploratory analysis w/ consistent nice formatting
 switch cfg.pt_id(7:end)
@@ -66,6 +76,7 @@ switch cfg.pt_id(7:end)
 
         hold off;
 
+
         exportgraphics(gcf,...
             [cd,'/plot_beh/figs/beh_only/RCS02/nrs_vas_timeline.png'],...
             'Resolution',300); 
@@ -97,7 +108,7 @@ switch cfg.pt_id(7:end)
     otherwise
 %% NRS
     if cfg.subplot == true
-        subplot(311)
+        ax=subplot(311);
         sgtitle([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
 
     else
@@ -118,44 +129,66 @@ switch cfg.pt_id(7:end)
 
     else
 
-        scatter(redcap.time, redcap.mayoNRS, 175, 'filled');   hold on;
-        scatter(redcap.time, redcap.worstNRS, 125, 'filled');
+        plot(redcap.time, movmean(redcap.mayoNRS, [2 0], 'omitnan'),...
+            'LineWidth', 2); hold on;
 
+        set(gca,'ColorOrderIndex',1)
+
+        scatter(redcap.time, redcap.mayoNRS, 125, 'filled','MarkerFaceAlpha', 0.6);    
+        
         if strcmp(cfg.pt_id, 'RCS06')
+            set(gca,'ColorOrderIndex',3)
 
-            scatter(redcap.time, redcap.nocNRS, 100, 'filled');   
-            scatter(redcap.time, redcap.npNRS, 50, 'filled');
+            plot(redcap.time, movmean(redcap.nocNRS, [2 0], 'omitnan'),...
+                'LineWidth', 2); hold on;
+                set(gca,'ColorOrderIndex',3)
+            scatter(redcap.time, redcap.nocNRS, 75, 'filled','MarkerFaceAlpha', 0.6); 
 
-            legend({'NRS Intensity', '','NRS Nociceptive',...
-                    'NRS Neuropathic'}, 'Location','northeastoutside');
+
+            plot(redcap.time, movmean(redcap.npNRS, [2 0], 'omitnan'),...
+                'LineWidth', 2); hold on;
+                set(gca,'ColorOrderIndex',4)
+            scatter(redcap.time, redcap.npNRS, 50, 'filled', 'MarkerFaceAlpha', 0.6);
+
+            legend({'','NRS Intensity','','NRS Nociceptive',...
+                    '','NRS Neuropathic'}, 'Location','northeastoutside');
 
         elseif strcmp(cfg.pt_id, 'RCS07')
 
-            scatter(redcap.time, redcap.unpNRS, 75, 'filled');   
-            scatter(redcap.time, redcap.leftarmNRS, 50, 'filled');
+            scatter(redcap.time, redcap.unpNRS, 50, 'filled','MarkerFaceAlpha', 0.6); 
+            scatter(redcap.time, redcap.leftarmNRS, 65, 'filled', 'MarkerFaceAlpha', 0.6);
 
-            scatter(redcap.time, redcap.leftlegNRS, 50 , 'filled');   
-            scatter(redcap.time, redcap.leftfaceNRS, 50, 'filled');
+            scatter(redcap.time, redcap.leftlegNRS, 50 , 'filled', 'MarkerFaceAlpha', 0.6);  
+            scatter(redcap.time, redcap.leftfaceNRS, 35, 'filled', 'MarkerFaceAlpha', 0.6);
 
-            legend({'NRS Intensity', '','NRS Unpleasantness',...
+            legend({'','NRS Intensity', '','NRS Unpleasantness',...
                     'NRS Left Arm', 'NRS Left Leg', 'NRS LeftFace'},...
                     'Location','northeastoutside');
      
+        else
+            scatter(redcap.time, redcap.worstNRS, 75, 'filled', 'MarkerFaceAlpha', 0.6);
 
         end
 
 
     end
-    
+  
      ylabel('Numeric Rating Scale');     ylim([0,10]); yticks(1:2:10);
          
      if ~strcmp(cfg.pt_id, {'RCS06', 'RCS07'})
 
-        legend({'NRS Intensity', 'NRS Worst Intensity'}, 'Location','northeastoutside'); 
+        legend({'','NRS Intensity', 'NRS Worst Intensity'}, 'Location','northeastoutside'); 
      
      end
      
      hold on
+     
+     if cfg.sum_stat_txt
+         sum_stat_str =  sprintf('mean: %0.2f ± %0.2f\nrange: %0.0f (max %0.0f – min %0.0f)',...
+                                  sum_stats.mayoNRS({'mean','std', 'range', 'max', 'min'}));
+         
+         text(ax.XTick(round(length(ax.XTick)/3)), 8, sum_stat_str, 'Interpreter','none', 'FontSize', 10)
+     end
 
      if ~strcmp(cfg.stim_parameter, '')
          overlay_stim(gca, cfg.stim_parameter, redcap);   
@@ -165,7 +198,7 @@ switch cfg.pt_id(7:end)
      
 %% VAS
     if cfg.subplot == true
-        subplot(312)
+        ax=subplot(312);
     else
         figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
         title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16); 
@@ -184,36 +217,66 @@ switch cfg.pt_id(7:end)
         plot(redcap.time, [redcap.painVAS,redcap.unpleasantVAS,redcap.worstVAS], '.', 'MarkerSize',5);
     
     else
-        
-        scatter(redcap.time, redcap.painVAS, 200, 'filled');   
-        hold on;
-        scatter(redcap.time, redcap.unpleasantVAS, 175, 'filled');
-        scatter(redcap.time, redcap.worstVAS, 150, 'filled');
+
+        scatter(redcap.time, redcap.painVAS, 100, 'filled', 'MarkerFaceAlpha', 0.6);
+            hold on;
 
         if strcmp(cfg.pt_id, 'RCS06')
 
-            scatter(redcap.time, redcap.nocVAS, 100, 'filled');   
-            scatter(redcap.time, redcap.npVAS, 75, 'filled');
+            set(gca,'ColorOrderIndex',3);
+            plot(redcap.time, movmean(redcap.nocVAS, [2 0], 'omitnan'),...
+            'LineWidth', 2.5); hold on;
 
-            legend({'VAS Intensity', 'VAS Unpleasantness', '', 'VAS Nociceptive',...
-                'VAS Neuropathic'}, ...
-            'Location','northeastoutside');
+            set(gca,'ColorOrderIndex',3);
+            scatter(redcap.time, redcap.nocVAS, 75, 'filled', 'MarkerFaceAlpha', 0.6);
 
-        elseif strcmp(cfg.pt_id, 'RCS07')
+            set(gca,'ColorOrderIndex',4);
+            plot(redcap.time, movmean(redcap.npVAS, [2 0], 'omitnan'),...
+            'LineWidth', 1.5); hold on;
 
-            scatter(redcap.time, redcap.moodVAS, 75, 'filled');
-            legend({'VAS Intensity', 'VAS Unpleasantness', '', 'VAS Mood'},...
-                    'Location','northeastoutside');
+            set(gca,'ColorOrderIndex',4);
+            scatter(redcap.time, redcap.npVAS, 50, 'filled', 'MarkerFaceAlpha', 0.6);
+
+
+        else
+            set(gca,'ColorOrderIndex',1);
+
+             plot(redcap.time, movmean(redcap.painVAS, [2 0], 'omitnan'),...
+            'LineWidth', 2.5); hold on;
+
+            scatter(redcap.time, redcap.unpleasantVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
+            scatter(redcap.time, redcap.worstVAS, 50, 'filled','MarkerFaceAlpha', 0.6);
 
         end
-
     end
+
+    if strcmp(cfg.pt_id, 'RCS07')
+
+        
+        plot(redcap.time, movmean(redcap.moodVAS, [2 0], 'omitnan'),...
+            'LineWidth', 1.5); hold on;
+
+        set(gca,'ColorOrderIndex',4);
+        
+        scatter(redcap.time, redcap.moodVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
+    end
+
 
      ylabel('Visual Analog Scale');         ylim([0,100]);  yticks(0:20:100);
 
-     if ~strcmp(cfg.pt_id, {'RCS06', 'RCS07'})
+     if strcmp(cfg.pt_id, 'RCS06')
 
-        legend({'VAS Intensity', 'VAS Unpleasantness', 'VAS Worst Intensity'}, ...
+        legend({'VAS Intensity','', 'VAS Nociceptive', '',...
+            'VAS Neuropathic'}, ...
+            'Location','northeastoutside');
+
+     elseif strcmp(cfg.pt_id, 'RCS07')
+
+        legend({'VAS Intensity', '','VAS Unpleasantness', '','', 'VAS Mood'},...
+            'Location','northeastoutside');
+     else
+
+        legend({'VAS Intensity', '','VAS Unpleasantness', 'VAS Worst Intensity'}, ...
             'Location','northeastoutside'); 
 
      end
@@ -221,12 +284,19 @@ switch cfg.pt_id(7:end)
      if ~strcmp(cfg.stim_parameter, '')
          overlay_stim(gca, cfg.stim_parameter, redcap);   
      end
+
+     if cfg.sum_stat_txt
+        sum_stat_str =  sprintf('mean: %0.2f ± %0.2f\nrange: %0.0f (max %0.0f – min %0.0f)',...
+                              sum_stats.painVAS({'mean','std', 'range', 'max', 'min'}));
+     
+        text(ax.XTick(round(length(ax.XTick)/3)), 80, sum_stat_str, 'Interpreter','none', 'FontSize', 10)
+     end
      format_plot();
             
 %% MPQ
     if cfg.subplot == true
 
-        subplot(313)
+        ax = subplot(313);
     else
         figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
         title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16); 
@@ -249,18 +319,32 @@ switch cfg.pt_id(7:end)
         plot(redcap.time, [MPQsom, MPQaff], '.', 'MarkerSize',5);
 
     else
+
+        plot(redcap.time, movmean(redcap.MPQtotal, [3 0], 'omitnan'),...
+            'LineWidth', 2); hold on;
+
+        set(gca,'ColorOrderIndex',1);
  
-        scatter(redcap.time, redcap.MPQtotal , 100, 'filled');   
+        scatter(redcap.time, redcap.MPQtotal , 75, 'filled','MarkerFaceAlpha', 0.6);   
         hold on;
-        scatter(redcap.time, MPQsom, 50, 'filled');
-        scatter(redcap.time, MPQaff, 50, 'filled');
+        scatter(redcap.time, MPQsom, 50, 'filled', 'MarkerFaceAlpha', 0.6);
+        scatter(redcap.time, MPQaff, 50, 'filled', 'MarkerFaceAlpha', 0.6);
 
     end
     
     ylabel('McGill Pain Questionaire');     ylim([0,45]); yticks(0:15:45)
     
-    legend({ 'MPQ Total (0-45)','MPQ Somatic (0-33)', 'MPQ Affective (0-12)'}, ...
+    legend({ '','MPQ Total (0-45)','MPQ Somatic (0-33)', 'MPQ Affective (0-12)'}, ...
         'Location','northeastoutside'); 
+
+    if cfg.sum_stat_txt
+
+        
+        sum_stat_str =  sprintf('mean: %0.2f ± %0.2f\nrange: %0.0f (max %0.0f – min %0.0f)',...
+                              sum_stats.MPQtotal({'mean','std', 'range', 'max', 'min'}));
+     
+        text(ax.XTick(round(length(ax.XTick)/3)), 30, sum_stat_str, 'Interpreter','none', 'FontSize', 10)
+    end
 
    % overlay_stim(cfg.stim_parameter)
     format_plot();
@@ -557,7 +641,7 @@ function format_plot()
 
     grid on;    grid MINOR;   legend boxoff;    box off;
 
-    set(gca,'FontSize',16, 'xlim', date_range , 'TickLength', [0 0],...
+    set(gca,'FontSize',12, 'xlim', date_range , 'TickLength', [0 0],...
         'GridAlpha',0.4,'MinorGridAlpha',0.7, 'GridColor', 'k', 'MinorGridColor', 'k'); 
 
     t = datetime(cfg.stage_dates, 'TimeZone', '-07:00');

@@ -5,15 +5,25 @@ function rcap_stats = calc_sum_stats(cfg, redcap, varargin)
     % Simple sub-function to rearrange RCSXX table (from REDcap),
     % and calculate summary statistics (option for CI).
     stats_to_calc = {'min','max','range','mean','std'};
-    sum_stats      = grpstats(redcap(:,2:end), [], stats_to_calc);
+
+    i_vars         = find(contains(redcap.Properties.VariableNames,...
+                          {'NRS', 'VAS', 'MPQ', 'PBM'}));
+
+    sum_stats      = grpstats(redcap(:,i_vars), [], stats_to_calc);
     
     temp_table     = rows2vars(splitvars(sum_stats(1, 2:end)));
     
     rcap_stats = ...
         array2table(...
-        reshape(temp_table.All, [length(stats_to_calc), (size(redcap,2) -1)]), ...
-        'VariableNames', redcap.Properties.VariableNames(2:end),...
-        'RowNames',stats_to_calc);
+        reshape(temp_table.All, [length(stats_to_calc), length(i_vars)]), ...
+        'VariableNames', redcap.Properties.VariableNames(i_vars),...
+        'RowNames', stats_to_calc);
+
+    % add in number of non-NaN surveys per variable and N surveys total
+    for i=1:length(i_vars)
+        rcap_stats{'N_variable', i} = sum(~isnan(redcap{:,i_vars(i)}));
+
+    end
 
     varnames = rcap_stats.Properties.VariableNames;
 

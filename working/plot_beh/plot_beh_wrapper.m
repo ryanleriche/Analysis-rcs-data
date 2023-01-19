@@ -29,6 +29,24 @@ REDcap                 = RCS_redcap_painscores(rcs_API_token);
 
 % need to further distill by pts initals
 % fluct                 = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
+
+
+%%
+% last 7 days for: 
+cfg                     = [];
+
+cfg.pt_id               = 'RCS07';
+cfg.dates               = 'PreviousDays';
+cfg.ndays               = 10;
+
+cfg.subplot             = true;
+cfg.sum_stat_txt        = false;
+cfg.stim_parameter      = '';
+
+    plot_timeline(cfg, REDcap);
+
+
+
 %% import RCS databases per pt side
 %{
 
@@ -258,55 +276,3 @@ for i = 1 : length(pts) - 1
     [pain_space.(pts{i})] = plot_pain_space(cfg, REDcap);
 end
 
-
-%%
-% last 7 days for: 
-cfg                     = [];
-cfg.pt_id               = 'RCS04';
-cfg.stage_dates         = stage_dates{4}; % starts at Stage 1
-cfg.subplot             = true;
-
-cfg.stim_parameter      = '';
-
-cfg.dates               = 'PreviousDays';
-cfg.ndays               = 7;
-cfg.subplot             = true;
-
-    plot_timeline(cfg, REDcap.RCS04);
-
-
-
-
-
-
-
-
-%% Stage 0 Behavioral Analysis
-%{
- * same histogram, scatter plots, and clusering analyses as above
-
-Note that 'plot_timeline' and 'plot_versus' have NOT yet been fleshed out
-to hander stage 0 pain metrics.
-%}
-
-s0_dir          = [dropbox_dir, ...
-                    '/DATA ANALYSIS/Stage 0 ALL PATIENTS Redcap Records/'];
-
-% load in from Dropbox folder and format like Stages 1, 2, and 3
-s0_REDcap       = load_s0_arm1s(s0_dir, visits);
-
-cfg             = [];
-cfg.dates       = 'AllTime';
-cfg.pca         = false;
-
-for i  =  1 : length(pts)
-
-    cfg.pt_id  = ['stage0', pts{i}];       
-
-    % build intuition of behavioral distribution via histograms
-    plot_hist(cfg, REDcap);         
-    
-    % plot_versus(cfg, REDcap);
-    pain_space.(pts{i}) = plot_pain_space(cfg, s0_REDcap);
-    
-end    

@@ -49,15 +49,20 @@ the same values)."
 %}
 
 cfg                    = [];
-cfg.load_EventLog      = false;
+cfg.load_EventLog      = true;
 cfg.ignoreold          = false;
 cfg.raw_dir            = pia_raw_dir;
 
+%pt_sides               = {'RCS02R'};
+
+%pt_sides               = {'RCS04L','RCS04R'};
 
 pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R',...
                           'RCS06L','RCS06R','RCS07L','RCS07R'};
 
-for i = 1 : length(pt_sides)
+%pt_sides               = {'RCS06L','RCS06R','RCS07L','RCS07R'};
+
+for i = 2 : length(pt_sides)
 
     cfg.pt_id                       = pt_sides{i}(1:end-1);
 
@@ -68,6 +73,62 @@ for i = 1 : length(pt_sides)
     cfg, (pt_sides{i}));
 
 end
+
+
+
+
+%%
+i                   = cellfun(@(x) length(x) == 1, db.RCS04R.duration);
+db_RCS04R           = db.RCS04R(i, :);
+
+[~, i_u] = unique(db_RCS04R.sess_name);
+
+db_RCS04R = db_RCS04R(i_u, :);
+
+db_RCS04R.timeStart = cellfun(@(x) x, db_RCS04R.timeStart);
+db_RCS04R.timeStop  = cellfun(@(x) x, db_RCS04R.timeStop);
+db_RCS04R.duration  = cellfun(@(x) x, db_RCS04R.duration);
+
+% take sessions of useful yet managable duration
+i_sess              = ge(db_RCS04R.duration , duration('00:05:00'));
+
+db_RCS04R = db_RCS04R(i_sess,:);
+
+    %%
+    eventLog_jsons = vertcat(db.RCS04R.eventLogTable{:});
+
+    u_event_names  = unique(eventLog_jsons.EventType);
+
+    i_lead_int     = strcmp(eventLog_jsons.EventType, 'Lead Integrity');
+
+    lead_int_tbl   = eventLog_jsons(i_lead_int, :);
+%%
+% lead integrity test is likely in kiloohms
+ohms = kiloohms / 1000;
+amps = milliamps * 1000;
+
+
+volts = ohms * amps;
+%%
+i                   = cellfun(@(x) length(x) == 1, db.RCS04L.duration);
+db_RCS04L           = db.RCS04L(i, :);
+
+[~, i_u] = unique(db_RCS04L.sess_name);
+
+db_RCS04L = db_RCS04L(i_u, :);
+
+db_RCS04L.timeStart = cellfun(@(x) x, db_RCS04L.timeStart);
+db_RCS04L.timeStop  = cellfun(@(x) x, db_RCS04L.timeStop);
+db_RCS04L.duration  = cellfun(@(x) x, db_RCS04L.duration);
+
+% take sessions of useful yet managable duration
+i_sess              = ge(db_RCS04L.duration , duration('00:05:00'));
+
+db_RCS04L = db_RCS04L(i_sess,:);
+
+
+
+%db_RCSXX = sortrows([db_RCS04L; db_RCS04R], 'timeStart');
 
 
 %% from databases, parse through StimLog.json files and align to REDcap
@@ -90,11 +151,22 @@ end
 %% RCS02 --> use INS logs to generate more accurate stim groups
 cfg                    = [];
 cfg.rootdir            = pia_raw_dir;
-cfg.pt_id              = 'RCS02R';
-       
-INS_logs.RCS02R        = RCS_logs(cfg);
+cfg.ignoreold          = false;
 
-% add stim params to REDcap based off of EventLog.txt, and DeviceSettings.json files
+pt_sides               = {'RCS02R'};
+
+% 
+% pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R',...
+%                           'RCS06L','RCS06R','RCS07L','RCS07R'};
+
+for i = 1 %: length(pt_sides)
+
+    cfg.pt_id                 = pt_sides{i};
+
+    INS_logs.(cfg.pt_id)      = RCS_logs(cfg);
+end
+
+%% add stim params to REDcap based off of EventLog.txt, and DeviceSettings.json files
 cfg                    = [];
 cfg.stage_dates        = stage_dates{2};
 cfg.pt_id              = 'RCS02';
@@ -106,7 +178,35 @@ INSLog_w_redcap.RCS02R  = get_INSLog_stim_params(cfg,...
                                      visits.RCS02...
                                     );
 
-% unilateral implant AND used INS logs to capture PTM intiated group changes
+
+
+%{
+% 
+
+
+* plot of the State of the device overlayed with the mA delivered at that time
+
+    * all the meta data (closest Streaming sessions, date(s) in DD/MM/YYYY, 
+      stim contacts, stim freq, sensing contacts and power-bands, LD parameters, etc.,)
+
+* report duty cycle over specified timeframe 
+
+* report min, max, mean, and std of State durations
+
+* visualize distribution of State durations 
+
+* report TEED over specified timeframe
+
+    * use impedance checks calculate TEED per second
+
+%}
+%%
+
+
+
+
+
+%% unilateral implant AND used INS logs to capture PTM intiated group changes
 [wrt_stim_REDcap.RCS02, stimGroups.RCS02] ...
     ...
     = make_stim_groups(...
@@ -174,6 +274,8 @@ https://www.mathworks.com/help/stats/specify-the-response-and-design-matrices.ht
 % RCS04, RCS05, RCS06, and RCS07 can be handled together
 pts = {'RCS04', 'RCS05', 'RCS06', 'RCS07'};
 
+% pts = {'RCS06', 'RCS07'};
+
 for i = length(pts)
 
     [wrt_stim_REDcap.(pts{i}), stimGroups.(pts{i})] ...
@@ -220,14 +322,14 @@ pts = {'RCS02', 'RCS04', 'RCS05', 'RCS06', 'RCS07'};
 cfg                     = [];
 cfg.dates               = 'AllTime';
 
-
-for i = 1:length(pts)
+for i = 4%1:length(pts)
     cfg.pt_id  = pts{i};       
 
-    plot_hist(cfg, REDcap);          plot_versus(cfg, REDcap);
+    %plot_hist(cfg, REDcap);          
+    plot_versus(cfg, REDcap);
 end
 
-% RCS02: explore NRS and VAS "mismatch" 
+%% RCS02: explore NRS and VAS "mismatch" 
 cfg.pt_id               = 'RCS02-mismatch';
 cfg.stage_dates         = stage_dates{2}; % starts at Stage 1
 
@@ -255,52 +357,53 @@ Takeaways:
     * assess/finalize stability of inputs to PC and outputs
 
 %}
+pts = {'RCS02', 'RCS04', 'RCS05', 'RCS06', 'RCS07'};
 
 pain_space      = [];
 
 cfg             = [];     
 cfg.dates       = 'AllTime';
 cfg.pca         = false;
+cfg.plt_VAS     = true;
+cfg.VAS_only    = false;
 
-for i = 1 : length(pts) - 1
+cfg.CBDP_method = 'top_two';
+
+cfg.source_dir  = ['/Users/Leriche/',...
+                   'Dropbox (UCSF Department of Neurological Surgery)/',...
+                   'UFlorida_UCSF_RCS_collab/Pain Reports/beh_clustered/'];
+
+cfg.fig_dir     = [github_dir, 'Analysis-rcs-data/working/plot_beh/figs/beh_only/stages1_2_3/'];
+
+set(0,'DefaultFigureVisible','off')
+
+for i =  length(pts)
 
     cfg.pt_id  = pts{i};
 
     [pain_space.(pts{i})] = plot_pain_space(cfg, REDcap);
 end
 
-
+set(0,'DefaultFigureVisible','on')
 %%
 %
 %% ******************** in-progress versions below ******************** %%
 %
 %%
-% last 7 days for: 
+% last N days for: 
 cfg                     = [];
+
 cfg.pt_id               = 'RCS04';
-cfg.stage_dates         = stage_dates{4}; % starts at Stage 1
-cfg.subplot             = true;
+cfg.dates               = 'PreviousDays';
+cfg.ndays               = 10;
 
+cfg.subplot             = true;
+cfg.sum_stat_txt        = false;
 cfg.stim_parameter      = '';
 
-cfg.dates               = 'PreviousDays';
-cfg.ndays               = 7;
-cfg.subplot             = true;
 
-    plot_timeline(cfg, REDcap.RCS04);
-%%
-cfg                     = [];
-cfg.pt_id               = 'RCS07';
-cfg.stage_dates         = stage_dates{7}; % starts at Stage 1
-cfg.subplot             = true;
 
-cfg.stim_parameter      = '';
-
-cfg.dates               = 'PreviousDays';
-cfg.ndays               = 7;
-cfg.subplot             = true;
-
-    plot_timeline(cfg, REDcap.RCS07);
+    plot_timeline(cfg, REDcap);
 
 
 %% organize Streaming Notes, clinic dates, etc
@@ -458,19 +561,18 @@ fprintf(['aDBS %s | starting at %s | duration %s (HH:MM:SS.sss)', newline], ...
     db_RCS02R.duration(i_sess));
 
 %% animate pain space visualization
+
+%v = RecordRotation();
+
+%
 %{
-
-v = RecordRotation(h);
-
-%%
-
 playRecording(v);
 %%
-function V2 = RecordRotation(h)
+function V2 = RecordRotation()
 
-n = 250;
+n = 300;
 V = zeros(n,2);
-T = timer('period',0.05,'executionmode','fixedrate',...
+T = timer('period',0.001,'executionmode','fixedrate',...
     'TimerFcn',@captureAzEl,'TasksToExecute',n);
 rotate3d on
 drawnow;
@@ -487,7 +589,7 @@ V2 = V;
 
 end
 
-%%
+
 
 function playRecording(V)
 frame_period = 0.01;
@@ -506,8 +608,8 @@ wait(T);
           drawnow;        
       end
   end
-%}
 
+%}
 
 %% RCS04 Stim Plan
 
@@ -575,15 +677,15 @@ amp              = sqrt(TEED_now ./ (lin_freqs.* pw .* duty_cycle))
 
 
 
-n_runs          = 5;            t_off           = 20;
-n_iter          = 2;            t_on            = 60;
-
-
-t_in_sec        = n_iter * n_runs * (t_off+ t_on);
-duty_cycle      = t_on / (t_off + t_on);
-
-t_in_min        = t_in_sec / 60;
-
+% n_runs          = 5;            t_off           = 20;
+% n_iter          = 2;            t_on            = 60;
+% 
+% 
+% t_in_sec        = n_iter * n_runs * (t_off+ t_on);
+% duty_cycle      = t_on / (t_off + t_on);
+% 
+% t_in_min        = t_in_sec / 60;
+% 
 
 
 %% old code:

@@ -1,5 +1,4 @@
-function [dec_fig, cl,halo] = cluster_dp(datcluster)
-
+function [dec_fig, cl,halo] = cluster_dp(cfg, datcluster)
 
 % do clustering
 % get distance matrix
@@ -50,7 +49,7 @@ for i=1:N
   dist(jj,ii) = xx(i,3);
 end
 
-percent= 2;
+percent= 1.25;
 fprintf('average percentage of neighbours (hard coded): %5.6f\n', percent);
 
 position = round(N*percent/100);
@@ -74,15 +73,15 @@ for i=1 : ND-1
 end
 %
 % "Cut off" kernel
-%
-%for i=1:ND-1
+
+% for i=1:ND-1
 %  for j=i+1:ND
 %    if (dist(i,j)<dc)
 %       rho(i)=rho(i)+1.;
 %       rho(j)=rho(j)+1.;
 %    end
 %  end
-%end
+% end
 
 maxd=max(max(dist));
 
@@ -102,9 +101,6 @@ end
 delta(ordrho(1))=max(delta(:));
 
 
-disp('Select a rectangle enclosing cluster centers')
-
-
 
 for i=1:ND
   ind(i)   = i;
@@ -118,17 +114,32 @@ subplot(211);
 plot(rho(:),delta(:),'o','MarkerSize',5,'MarkerFaceColor','k','MarkerEdgeColor','k');
 
 title ('Decision Graph','FontSize',15.0)
-xlabel ('Local Density, \rho')
-ylabel ('min(Dist to higher \rho point), \delta')
+xlabel ('Local Density, \rho'); 
+ylabel ('min(Dist to higher \rho point), \delta'); ylim([0, max(delta(:))*1.2]);
 set(gca, 'FontSize', 16)
 
 %% Draw rectangle of interest on density versus distance plot
-rect =  drawrectangle;
+if strcmp(cfg.CBDP_method, 'manual')
 
-rho_min    = rect.Position(1);
-delta_min  = rect.Position(2);
+    disp('Select a rectangle enclosing cluster centers')
+    
+    rect =  drawrectangle;
+    
+    rho_min    = rect.Position(1);
+    delta_min  = rect.Position(2);
 
+elseif strcmp(cfg.CBDP_method, 'top_two')
 
+    [~, i_sort] = sort(gamma, "descend");
+
+    rho_min   = min(rho(i_sort(1:2)));
+
+    %[~, i_sort] = sort(delta, "descend");
+    delta_min = min(delta(i_sort(1:2)));
+
+    
+
+end
 %%
 t = '';
 
@@ -139,7 +150,7 @@ for i=1:ND
 end
 
 for i=1:ND
-  if ( (rho(i)>rho_min) && (delta(i)>delta_min))
+  if ((rho(i)>=rho_min) && (delta(i)>=delta_min))
      NCLUST=NCLUST+1;
      cl(i)=NCLUST;
      icl(NCLUST)=i;
@@ -204,19 +215,20 @@ cmap = colormap(brewermap([],"Dark2"));
 for i = 1 : NCLUST
    ic = int8((i*64.)/(NCLUST*1.));
    hold on
-   plot(rho(icl(i)),delta(icl(i)),'o','MarkerSize',8,'MarkerFaceColor',cmap(ic,:),'MarkerEdgeColor',cmap(ic,:));
+   plot(rho(icl(i)),delta(icl(i)),'o','MarkerSize',8,'MarkerFaceColor',cmap(i,:),'MarkerEdgeColor',cmap(i,:));
 end
 
 
 subplot(212)
-ranked_gamma = sort(gamma, "descend") ./ max(gamma);
+
+ranked_gamma = sort(gamma, "descend") / max(gamma);
 
 for i = 1: length(ranked_gamma)
 
     if (ranked_gamma(i) >= rho_min * delta_min / max(gamma))
-
-    plot(i, ranked_gamma(i), 'o','Markersize', 10, 'MarkerFaceColor', cmap(i,:), 'MarkerEdgeColor', cmap(i,:))
-    hold on
+    
+        plot(i, ranked_gamma(i), 'o','Markersize', 10, 'MarkerFaceColor', cmap(i,:), 'MarkerEdgeColor', cmap(i,:))
+        hold on
     
     else
 
@@ -290,4 +302,3 @@ D2squared = sum(sqdx,2,'omitnan').*n./nstar; % Correction for missing coordinate
 D2 = sqrt(D2squared);
 end
 end
-   

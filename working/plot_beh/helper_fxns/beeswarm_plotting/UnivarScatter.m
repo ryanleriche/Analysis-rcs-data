@@ -380,7 +380,7 @@ if ~isempty(Ind)
         error(sprintf('wrong MeanColor input'))
     end
 else
-    MeanColor='b';
+    MeanColor='k';
 end
 
 Ind=strmatch('SEMColor',stringVars);
@@ -653,6 +653,23 @@ end
 xPositions(yValues_nanIndex,i)=xValues(x_SortingIndex);
 end
 set(gca,'xtick', 1:size(data,2))
+
+set(gca, 'XLim', [.5, size(data,2)+0.5])
+% 
+% % add spacing for first and/or last group having only one non-NaN value
+% if sum(~isnan(data(:,1))) == 1 && sum(~isnan(data(:,end))) ~= 1
+%     
+% 
+% elseif sum(~isnan(data(:,1))) ~= 1 && sum(~isnan(data(:,end))) == 1
+%     set(gca, 'XLim', [0, size(data,2)+0.5])
+% 
+% elseif sum(~isnan(data(:,1))) == 1 && sum(~isnan(data(:,end))) == 1
+%     set(gca, 'XLim', [0.5, size(data,2)+0.5])
+% end
+
+
+
+
 
 if ~isempty(Label)
 set(gca,'xticklabel',Label, 'FontSize', 12)
