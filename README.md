@@ -14,11 +14,9 @@ Note: This research is funded by UH# HEAL Grant; IRB Study: G190160.
 Currently:
 | Functions to edit/create  | Person |
 | ------------- | ------------- |
-| RCS07 plot_timeline() | Ryan|
-| stim groups by contacts-freq-amp-PW-cyc to motivate aDBS settings| Ryan |
-| incrp RCS02's textlogs into stim group changes via 'RCS_logs()'| Ryan|
-| ensuring quality of RCS neural data via rcsPlotter| Joanna |
-| statistical framework-- Bayer factor for null comparisons | Joanna & Ryan|
+| statistical framework for stim groups-- Bayer factor for null comparisons | Joanna & Ryan |
+| simulate RCS onboard calcuation <br> ~~power-band time series w/ stim at 0 mA~~ <br> power-band time series (when stim is above 0 mA) <br> power-band to LD <br> LD to state/stim | Ryan|
+
 
 Up Next:
 | Functions to edit/create  | Person |
@@ -28,3 +26,13 @@ Up Next:
 | 'plot_timeline()' with stim parameters as background colors (wait for 'wrt_stim_REDcap' struc (how we format pain reports to given stim settings) to be finalized| |
 | 'pain_versus()' residual plots for correlations| |
 | 'pain_versus()' linear mixed model w/ pts as random variables (group-analysis of relationships btwn pain metrics)| |
+
+
+Done:
+| Functions to edit/create  | Person |
+| ------------- | ------------- |
+| RCS07 plot_timeline() | Ryan|
+| stim groups by contacts-freq-amp-PW-cyc to motivate aDBS settings| Ryan |
+| incrp RCS02's textlogs into stim group changes via 'RCS_logs()'| Ryan|
+| ensuring quality of RCS neural data via rcsPlotter| Joanna |
+
