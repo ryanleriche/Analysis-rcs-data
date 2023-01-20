@@ -7,7 +7,7 @@ function rcap_stats = calc_sum_stats(cfg, redcap, varargin)
     stats_to_calc = {'min','max','range','mean','std'};
 
     i_vars         = find(contains(redcap.Properties.VariableNames,...
-                          {'NRS', 'VAS', 'MPQ', 'PBM'}));
+                          {'NRS', 'VAS', 'MPQ', 'PBD'}));
 
     sum_stats      = grpstats(redcap(:,i_vars), [], stats_to_calc);
     

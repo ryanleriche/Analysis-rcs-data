@@ -53,16 +53,15 @@ cfg.load_EventLog      = true;
 cfg.ignoreold          = false;
 cfg.raw_dir            = pia_raw_dir;
 
-%pt_sides               = {'RCS02R'};
+pt_sides               = {'RCS02R'};
 
 %pt_sides               = {'RCS04L','RCS04R'};
 
-pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R',...
-                          'RCS06L','RCS06R','RCS07L','RCS07R'};
 
-%pt_sides               = {'RCS06L','RCS06R','RCS07L','RCS07R'};
+%pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R','RCS06L','RCS06R','RCS07L','RCS07R'};
 
-for i = 2 : length(pt_sides)
+
+for i = 1 : length(pt_sides)
 
     cfg.pt_id                       = pt_sides{i}(1:end-1);
 
@@ -74,10 +73,32 @@ for i = 2 : length(pt_sides)
 
 end
 
+%% import INS logs per side 
+cfg                    = [];
+cfg.rootdir            = pia_raw_dir;
+cfg.ignoreold          = false;
+
+pt_sides               = {'RCS02R'};
+
+% pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R', 'RCS06L','RCS06R','RCS07L','RCS07R'};
+
+for i = 1 %: length(pt_sides)
+
+    cfg.pt_id                 = pt_sides{i};
+
+    INS_logs.(cfg.pt_id)      = RCS_logs(cfg);
+end
+%%
+
+
+
+
+
 
 
 
 %%
+%{
 i                   = cellfun(@(x) length(x) == 1, db.RCS04R.duration);
 db_RCS04R           = db.RCS04R(i, :);
 
@@ -94,22 +115,6 @@ i_sess              = ge(db_RCS04R.duration , duration('00:05:00'));
 
 db_RCS04R = db_RCS04R(i_sess,:);
 
-    %%
-    eventLog_jsons = vertcat(db.RCS04R.eventLogTable{:});
-
-    u_event_names  = unique(eventLog_jsons.EventType);
-
-    i_lead_int     = strcmp(eventLog_jsons.EventType, 'Lead Integrity');
-
-    lead_int_tbl   = eventLog_jsons(i_lead_int, :);
-%%
-% lead integrity test is likely in kiloohms
-ohms = kiloohms / 1000;
-amps = milliamps * 1000;
-
-
-volts = ohms * amps;
-%%
 i                   = cellfun(@(x) length(x) == 1, db.RCS04L.duration);
 db_RCS04L           = db.RCS04L(i, :);
 
@@ -129,6 +134,24 @@ db_RCS04L = db_RCS04L(i_sess,:);
 
 
 %db_RCSXX = sortrows([db_RCS04L; db_RCS04R], 'timeStart');
+%}
+    %%
+    eventLog_jsons = vertcat(db.RCS04R.eventLogTable{:});
+
+    u_event_names  = unique(eventLog_jsons.EventType);
+
+    i_lead_int     = strcmp(eventLog_jsons.EventType, 'Lead Integrity');
+
+    lead_int_tbl   = eventLog_jsons(i_lead_int, :);
+%%
+% lead integrity test is likely in kiloohms
+ohms = kiloohms / 1000;
+amps = milliamps * 1000;
+
+
+volts = ohms * amps;
+%%
+
 
 
 %% from databases, parse through StimLog.json files and align to REDcap
@@ -148,23 +171,7 @@ for i = 1 : length(pt_sides)
     end
 end
 
-%% RCS02 --> use INS logs to generate more accurate stim groups
-cfg                    = [];
-cfg.rootdir            = pia_raw_dir;
-cfg.ignoreold          = false;
 
-pt_sides               = {'RCS02R'};
-
-% 
-% pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R',...
-%                           'RCS06L','RCS06R','RCS07L','RCS07R'};
-
-for i = 1 %: length(pt_sides)
-
-    cfg.pt_id                 = pt_sides{i};
-
-    INS_logs.(cfg.pt_id)      = RCS_logs(cfg);
-end
 
 %% add stim params to REDcap based off of EventLog.txt, and DeviceSettings.json files
 cfg                    = [];
@@ -393,12 +400,12 @@ set(0,'DefaultFigureVisible','on')
 % last N days for: 
 cfg                     = [];
 
-cfg.pt_id               = 'RCS04';
+cfg.pt_id               = 'RCS07';
 cfg.dates               = 'PreviousDays';
-cfg.ndays               = 10;
+cfg.ndays               = 14;
 
 cfg.subplot             = true;
-cfg.sum_stat_txt        = false;
+cfg.sum_stat_txt        = true;
 cfg.stim_parameter      = '';
 
 

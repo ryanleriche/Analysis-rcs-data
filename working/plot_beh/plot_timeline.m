@@ -20,15 +20,16 @@ redcap                  = REDcap.(cfg.pt_id);
 
 cfg.stage_dates         = stage_dates{str2double(cfg.pt_id(end))}; % starts at Stage 1
 
-    figure('Units', 'Inches', 'Position', [0, 0, 15, 7])
 
-    [redcap, date_range] = date_parser(cfg, redcap);
-    
-    ds =        datestr(date_range,'dd-mmm-yyyy');
+figure('Units', 'Inches', 'Position', [0, 0, 15, 7])
+
+[redcap, date_range] = date_parser(cfg, redcap);
+
+ds =        datestr(date_range,'dd-mmm-yyyy');
 
 
-    sum_stats =   calc_sum_stats(cfg, redcap);
-    
+sum_stats =   calc_sum_stats(cfg, redcap);
+
 
 % allows exploratory analysis w/ consistent nice formatting
 switch cfg.pt_id(7:end)
@@ -129,7 +130,9 @@ switch cfg.pt_id(7:end)
 
     else
 
-        plot(redcap.time, movmean(redcap.mayoNRS, [2 0], 'omitnan'),...
+        n_back  = 21;
+
+        plot(redcap.time, movmean(redcap.mayoNRS, [n_back 0], 'omitnan'),...
             'LineWidth', 2); hold on;
 
         set(gca,'ColorOrderIndex',1)
@@ -139,13 +142,13 @@ switch cfg.pt_id(7:end)
         if strcmp(cfg.pt_id, 'RCS06')
             set(gca,'ColorOrderIndex',3)
 
-            plot(redcap.time, movmean(redcap.nocNRS, [2 0], 'omitnan'),...
+            plot(redcap.time, movmean(redcap.nocNRS, [n_back 0], 'omitnan'),...
                 'LineWidth', 2); hold on;
                 set(gca,'ColorOrderIndex',3)
             scatter(redcap.time, redcap.nocNRS, 75, 'filled','MarkerFaceAlpha', 0.6); 
 
 
-            plot(redcap.time, movmean(redcap.npNRS, [2 0], 'omitnan'),...
+            plot(redcap.time, movmean(redcap.npNRS, [n_back 0], 'omitnan'),...
                 'LineWidth', 2); hold on;
                 set(gca,'ColorOrderIndex',4)
             scatter(redcap.time, redcap.npNRS, 50, 'filled', 'MarkerFaceAlpha', 0.6);
@@ -224,14 +227,14 @@ switch cfg.pt_id(7:end)
         if strcmp(cfg.pt_id, 'RCS06')
 
             set(gca,'ColorOrderIndex',3);
-            plot(redcap.time, movmean(redcap.nocVAS, [2 0], 'omitnan'),...
+            plot(redcap.time, movmean(redcap.nocVAS, [n_back 0], 'omitnan'),...
             'LineWidth', 2.5); hold on;
 
             set(gca,'ColorOrderIndex',3);
             scatter(redcap.time, redcap.nocVAS, 75, 'filled', 'MarkerFaceAlpha', 0.6);
 
             set(gca,'ColorOrderIndex',4);
-            plot(redcap.time, movmean(redcap.npVAS, [2 0], 'omitnan'),...
+            plot(redcap.time, movmean(redcap.npVAS, [n_back 0], 'omitnan'),...
             'LineWidth', 1.5); hold on;
 
             set(gca,'ColorOrderIndex',4);
@@ -241,7 +244,7 @@ switch cfg.pt_id(7:end)
         else
             set(gca,'ColorOrderIndex',1);
 
-             plot(redcap.time, movmean(redcap.painVAS, [2 0], 'omitnan'),...
+             plot(redcap.time, movmean(redcap.painVAS, [n_back 0], 'omitnan'),...
             'LineWidth', 2.5); hold on;
 
             scatter(redcap.time, redcap.unpleasantVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
@@ -253,7 +256,7 @@ switch cfg.pt_id(7:end)
     if strcmp(cfg.pt_id, 'RCS07')
 
         
-        plot(redcap.time, movmean(redcap.moodVAS, [2 0], 'omitnan'),...
+        plot(redcap.time, movmean(redcap.moodVAS, [n_back 0], 'omitnan'),...
             'LineWidth', 1.5); hold on;
 
         set(gca,'ColorOrderIndex',4);
@@ -320,7 +323,7 @@ switch cfg.pt_id(7:end)
 
     else
 
-        plot(redcap.time, movmean(redcap.MPQtotal, [3 0], 'omitnan'),...
+        plot(redcap.time, movmean(redcap.MPQtotal, [n_back 0], 'omitnan'),...
             'LineWidth', 2); hold on;
 
         set(gca,'ColorOrderIndex',1);

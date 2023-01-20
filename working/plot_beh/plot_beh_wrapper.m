@@ -35,12 +35,12 @@ REDcap                 = RCS_redcap_painscores(rcs_API_token);
 % last 7 days for: 
 cfg                     = [];
 
-cfg.pt_id               = 'RCS07';
+cfg.pt_id               = 'RCS04';
 cfg.dates               = 'PreviousDays';
 cfg.ndays               = 10;
 
 cfg.subplot             = true;
-cfg.sum_stat_txt        = false;
+cfg.sum_stat_txt        = true;
 cfg.stim_parameter      = '';
 
     plot_timeline(cfg, REDcap);

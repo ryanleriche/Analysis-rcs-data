@@ -8,7 +8,7 @@ function [entr_pt_pain_tbl, entr_pt_pain_stats, inflation, pts_MI_in_bits, pts_M
 % 
 % 
 % cfg.tbl_pain_lbls   = {'mayoNRS','painVAS','unpleasantVAS', 'MPQtotal', ...
-%                        'PBM_sumpixelval', 'PBM_pixelspread', 'PBM_avgpixelval'};
+%                        'PBD_sumpixelval', 'PBD_pixelspread', 'PBD_avgpixelval'};
 % 
 % cfg.nice_plt_lbls   = {'NRS int.','VAS int.', 'VAS unpl.', 'MPQ total',...
 %                        'PBD sum', 'PBD cov.', 'PBD mean'};
