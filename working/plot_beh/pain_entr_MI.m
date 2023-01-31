@@ -8,19 +8,21 @@ function [entr_pt_pain_tbl, entr_pt_pain_stats, inflation, pts_MI_in_bits, pts_M
 % 
 % 
 % cfg.tbl_pain_lbls   = {'mayoNRS','painVAS','unpleasantVAS', 'MPQtotal', ...
-%                        'PBD_sumpixelval', 'PBD_pixelspread', 'PBD_avgpixelval'};
+%                        'PBD_sum', 'PBD_coverage', 'PBD_mean'};
 % 
 % cfg.nice_plt_lbls   = {'NRS int.','VAS int.', 'VAS unpl.', 'MPQ total',...
 %                        'PBD sum', 'PBD cov.', 'PBD mean'};
 % 
 % cfg.save_dir        = s0_results_dir;
 % 
-
+% 
 
 
 pts                 = cfg.pts;
 tbl_pain_lbls       = cfg.tbl_pain_lbls;
 nice_plt_lbls       = cfg.nice_plt_lbls;
+
+pt_lbls             = cfg.pt_lbls;
 
 
 %% calc N bins
@@ -67,7 +69,7 @@ for i = 1:length(pts)
     [entr_pt_pain(:, i), inflation, ~, ~] = entropy1D(data, n_bins_used);
 
     figure('Units', 'Inches', 'Position', [0, 0, 4, 3.25]);
-    sgtitle(pts{i},'Fontsize', 10);
+    sgtitle(pt_lbls{i},'Fontsize', 10);
 
     for j=1:length(nice_plt_lbls)
         subplot(4, 2, j)  
@@ -76,7 +78,7 @@ for i = 1:length(pts)
 
         title(nice_plt_lbls{j},'FontWeight', 'normal', 'Interpreter','none'); 
 
-        ylim([0, 1])
+        ylim([0, .6])
         set(gca, 'FontName', 'Arial','Fontsize',8);
         grid on; grid minor
     end
@@ -114,7 +116,7 @@ colors = brewermap(length(pts),'Dark2');
 
 set(h_mean, {'color'}, num2cell(colors,2));
 
-L = legend(h_mean,pts,'Box','off', 'Location','northoutside', ...
+L = legend(h_mean,pt_lbls,'Box','off', 'Location','northoutside', ...
     'Orientation', 'horizontal');
 
 L.ItemTokenSize(1) = 40;
@@ -168,11 +170,8 @@ pts_MI_in_bits    = nan(length(pts), length(tbl_pain_lbls), length(tbl_pain_lbls
 pts_MI_perm_p     = pts_MI_in_bits;
 
 pts_Pxy           = cell(length(pts),1);
-
 pts_Px_given_y    = pts_Pxy;
-
 pts_bin_edges     = nan(length(pts), length(tbl_pain_lbls), n_bins_used +1);
-
 pts_Px            = nan(length(pts), length(tbl_pain_lbls), n_bins_used);
 
 pts_i_x_states    = cell(length(pts),1);
@@ -185,6 +184,9 @@ for i = 1:length(pts)
 
     MI          = nan(length(tbl_pain_lbls), length(tbl_pain_lbls));      
     MI_perm_p   = MI;
+    RHO         = MI;
+    PVAL        = MI;
+
     Pxy         = cell(size(MI));
     Px_given_y  = Pxy;
 
@@ -211,6 +213,9 @@ for i = 1:length(pts)
                 'nbins', n_bins_used);
 
             N_comparisons = N_comparisons + 1;
+
+        [RHO(i,j,h), PVAL(i,j,h)] = corr(data{:, tbl_pain_lbls{j}},data{:, tbl_pain_lbls{h}},'Type','Spearman', 'rows','pairwise');
+    
 
         end
     end
@@ -248,17 +253,54 @@ for i = 1:length(pts)
     
     clear MI MI_perm_p Pxy Px_given_y bin_edges Px
 end
+%% Spearman's correlation--01/27/23 RBL--not fully implemented
+%{
+preset_colormap(@brewermap, "reds")
+figure('Units', 'Inches', 'Position', [0, 0, 6, 9])
 
+for i= 1 :length(pts)
+
+   
+    rho   = squeeze(RHO(i, :, :));
+    pval  = squeeze(PVAL(i,:,:));
+
+    % Bonferroni correction on the subject-level
+    corr_p = round(0.05/N_comparisons, 5);
+
+    rho(pval > corr_p) = nan;
+
+    rho      = triu(rho) + tril(nan(size(rho)));
+
+    plt_rho = zeros(size(rho ,1)+1, size(rho ,2)+1);
+    plt_rho(1:size(rho ,1), 1:size(rho ,2)) = rho';
+
+    mat_pos = 1:length(tbl_pain_lbls)+1;
+
+
+    subplot(3,2,i);
+    s = pcolor(mat_pos, flip(mat_pos), plt_rho); hold on
+
+    clim([0,1])
+
+    s.EdgeColor = [0.7 0.7 0.7];     s.LineWidth = 1.5;
+
+    colormap(flip(preset_colormap))
+    cb_hdl = colorbar; 
+
+
+
+end
+%}
 %% conditional probability surfaces amoungst pain metrics
-
+close all
 prop_mat   = pts_Px_given_y;
 sg_tit_txt = 'conditional probability [0,1] between pain metrics';
 
 
-preset_colormap(@brewermap, "blues")
+preset_colormap(@brewermap, "YlGnBu")
 
 cb_max = zeros(length(pts), 1);
-for i=1:length(pts)
+for i=1 :length(pts)
     cell_mat  = prop_mat{i};
     max_Pxy   = cellfun(@(x) max(x, [], 'all'), cell_mat, 'UniformOutput', false);
     i_emp     = cellfun(@(x) isempty(x), max_Pxy);
@@ -266,10 +308,10 @@ for i=1:length(pts)
 end
 
 [n_rows, n_cols] = size(cell_mat);
+hist_max = round(1.1*max(pts_Px,[], [2,3]),1);
 
-
-for i=1 :length(pts)
-    fig_prob_mat = figure('Units', 'Inches', 'Position', [0, 0, 7, 5]);
+for i= 1 : length(pts)
+    fig_prob_mat = figure('Units', 'Inches', 'Position', [0, 0, 5.5, 5]);
     clim_var =[0, 1];
 
     for i_row=1  : n_rows
@@ -283,12 +325,13 @@ for i=1 :length(pts)
 
             if i_row == i_col
 
-                % stem plot such aligned w/ middle of prob cells
+                % stem plot such aligned w/ middle of prob cell
+                stem(1.5:n_bins_used+1.5, [squeeze(pts_Px(i, i_col, :)); 0] , ...
+                    'Color','k','Marker', 'none', 'LineWidth', 1.75)
 
-                stem(1.5:n_bins_used+1.5, [squeeze(pts_Px(i, i_col, :)); 0], ...
-                    'Color','r','Marker', 'none', 'LineWidth', 1.75)
+                plt_prob =squeeze(pts_Px(i, :, :));
 
-                ylim([0, 1]);  yticklabels([]); 
+                ylim([0, hist_max(i)]);  yticklabels([]); 
                 
                 xlim([1, n_bins_used+1])
 
@@ -317,11 +360,11 @@ for i=1 :length(pts)
 
                 plt_mat_ax = pcolor(plt_mat);     hold on;    clim(clim_var); 
 
+                %plt_mat_ax.EdgeColor = [0.85, 0.85, 0.85];
                 plt_mat_ax.LineStyle = 'none';
 
                 yticklabels([]);  
-                xticklabels([]); 
-                
+                xticklabels([]);   
             end
 
             if i_row == n_rows
@@ -329,11 +372,11 @@ for i=1 :length(pts)
                 set(gca, 'Fontsize', 8)
 
                  if i_row ~= i_col
-                    x_lbl.Position(2) = -3.4;
+                    x_lbl.Position(2) = -4.8;
                     set(gca, 'Fontsize', 8)
 
                  else
-                     x_lbl.Position(2) = -0.4;
+                    x_lbl.Position(2) = x_lbl.Position(2) *1.1;
 
                  end
             end
@@ -346,7 +389,6 @@ for i=1 :length(pts)
         
             end 
         end
-            box on
     end
 
     % delete upper triangle
@@ -356,23 +398,29 @@ for i=1 :length(pts)
     delete(haxes(i_delete == true))
     
     % use unidirectional colormap
-    colormap(flip(preset_colormap))
+    colormap(preset_colormap)
     cb_hdl = colorbar(haxes(2,1));   cb_hdl.Limits = clim_var;     
-    cb_hdl.Position = [.92, .108, .02, .65];
+    cb_hdl.Position = [.925, .115, .02, .82];
     
     cb_hdl.FontSize = 8;             cb_hdl.Ticks  = 0:.5:1;
  
-    sgtitle([pts{i},' ',sg_tit_txt], 'FontSize', 10);
+    sgtitle([pt_lbls{i},' ',sg_tit_txt], 'FontSize', 12);
  
+
     exportgraphics(gcf, [save_dir,'intermediate_steps/stage0',pts{i}, '_CondProb_matrices.png'])
 end
-%%
-max_poss_infor  = log2(n_bins_used);
-
-pts_MI_in_per   = 100*pts_MI_in_bits ./ max_poss_infor;
 
 
 %% visualize pair-wise MI as matrix
+close all
+%
+%%%
+max_poss_infor  = log2(n_bins_used);
+pts_MI_in_per   = 100*pts_MI_in_bits ./ max_poss_infor;
+%%%
+%
+%
+preset_colormap(@brewermap, "YlOrRd");
 
 cb_lim = [min(pts_MI_in_per,[], 'all'), max(pts_MI_in_per,[], 'all')];
 
@@ -380,7 +428,7 @@ pts_plt_MI = pts_MI_in_per;
 
 for i= 1 :length(pts)
 
-    figure('Units', 'Inches', 'Position', [0, 0, 2.5, 1.75])
+    figure('Units', 'Inches', 'Position', [0, 0, 4, 3])
 
     MI      = squeeze(pts_MI_in_per(i, :, :));
     perm_MI = squeeze(pts_MI_perm_p(i,:,:));
@@ -389,88 +437,101 @@ for i= 1 :length(pts)
 %     corr_p = round(0.05/N_comparisons, 5);
 %     MI(perm_MI >= corr_p ) = nan;
 
-    MI(perm_MI >= 0.05 ) = nan;
+    MI(perm_MI > 0.05 ) = 0;
 
     MI      = tril(MI) + triu(nan(size(MI)));
 
-    plt_MI = zeros(size(MI,1)+1, size(MI,2)+1);
-    plt_MI(1:size(MI,1), 1:size(MI,2)) = MI;
+    plt_MI = nan(size(MI,1), size(MI,2));
+    plt_MI(1:size(MI,1)-1, 1:size(MI,2)) = MI(2:end,:);
 
-    mat_pos = 1:length(tbl_pain_lbls)+1;
+    mat_pos = 0:length(tbl_pain_lbls)-1;
 
     s = pcolor(mat_pos, flip(mat_pos), plt_MI);
 
-    s.EdgeColor = [0.7 0.7 0.7];     s.LineWidth = 1.5;
+    s.EdgeColor = [1 1 1];      s.LineWidth = 1.5;
     
     clim(cb_lim);
      
-    lbl_pos = 1.5:length(tbl_pain_lbls)+0.5;
+    lbl_pos = (0:length(tbl_pain_lbls))+0.5;
 
-    xticks(lbl_pos); xticklabels(nice_plt_lbls);       
-    yticks(lbl_pos); yticklabels(flip(nice_plt_lbls));
+    xticks(lbl_pos);    xticklabels(nice_plt_lbls);       
+    yticks(lbl_pos);    yticklabels(flip(nice_plt_lbls));
+
+    set(gca,'Fontsize',9,'TickLabelInterpreter','none','Color','w',...
+        'TickLength', [0,0]);
 
 
-    title(pts{i});
-
-    set(gca,'Fontsize',7,'TickLabelInterpreter','none','Color','k');
+    t=title(pt_lbls{i}, 'FontSize', 12);
 
     pts_plt_MI(i, :, :) = MI;
 
-    colormap(flip(preset_colormap))
-    cb_hdl = colorbar; 
-
-    cb_hdl.Label.Position(1)    = 3.8;
+    colormap([[.85 .85 .85];preset_colormap])
+    set(gcf, 'InvertHardCopy', 'off')
+    
+    
+    cb_hdl = colorbar;          cb_hdl.Limits = cb_lim; 
+    
     cb_hdl.Label.String         = "Percent of max possible MI";
     cb_hdl.Label.Rotation       = 270;
+    cb_hdl.Label.Position(1)    = 3.3;
+    cb_hdl.FontSize             = 10;
+    cb_hdl.Label.FontSize       = 12;
 
     exportgraphics(gcf, [save_dir,'stage0',pts{i}, '_MI_pain_matrix.png'])
 
 end
 
 %% visualize the group-level MI mean and prevelance of sig. subject-level comparisons
-grp_fig =  figure('Units', 'Inches', 'Position', [0, 0, 4, 2.8]);
+grp_fig =  figure('Units', 'Inches', 'Position', [0, 0, 4, 3]);
 
 
 MI   = squeeze(mean(pts_plt_MI,'omitnan'));
-prop = flip(squeeze(sum(~isnan(pts_plt_MI),1)));
+prop = flip(squeeze(sum(pts_plt_MI ~=0,1)));
 
-plt_MI = nan(size(MI,1)+1, size(MI,2)+1);
-plt_MI(1:size(MI,1), 1:size(MI,2)) = tril(MI,-1) + triu(nan(size(MI)));
 
-mat_pos = 1:length(tbl_pain_lbls)+1;
+plt_MI = nan(size(MI,1), size(MI,2));
+plt_MI(1:size(MI,1)-1, 1:size(MI,2)) = MI(2:end,:);
+
+mat_pos = 0:length(tbl_pain_lbls)-1;
 
 s = pcolor(mat_pos, flip(mat_pos), plt_MI);         clim(cb_lim);
 
-s.EdgeColor = [0.7 0.7 0.7];          s.LineWidth = 1.5;
+s.EdgeColor = [1 1 1];          s.LineWidth = 1.5;
  
-lbl_pos = 1.5:length(tbl_pain_lbls)+0.5;
 
-xticks(lbl_pos); xticklabels(nice_plt_lbls);       
-yticks(lbl_pos); yticklabels(flip(nice_plt_lbls));
+lbl_pos = (0:length(tbl_pain_lbls))+0.5;
 
-prop_MI = nan(size(prop,1)+1, size(prop,2)+1);
-prop_MI(1:size(MI,1), 1:size(MI,2)) = prop;
+xticks(lbl_pos);    xticklabels(nice_plt_lbls);       
+yticks(lbl_pos);    yticklabels(flip(nice_plt_lbls));
+
+
+prop_MI = nan(size(prop,1), size(prop,2));
+prop_MI(1:size(MI,1)-1, 2:size(MI,2)) = prop(1:end-1, 2:end);
 
 set(gcf, 'InvertHardCopy', 'off')
-set(gca,'Fontsize', 9,'TickLabelInterpreter','none','Color','k');
+set(gca,'Fontsize', 9,'TickLabelInterpreter','none',...
+    'Color','w', 'TickLength', [0,0]);
 
-colormap(flip(preset_colormap))
+colormap(preset_colormap);
 cb_hdl = colorbar;          cb_hdl.Limits = cb_lim; 
+
 cb_hdl.Label.String         = "Percent of max possible MI";
 cb_hdl.Label.Rotation       = 270;
 cb_hdl.Label.Position(1)    = 3.3;
 cb_hdl.FontSize             = 10;
 cb_hdl.Label.FontSize       = 12;
 
-title('Group-level mean')
+t = title("Group-level mean of sig. subjects");
 
-for i=1:length(grp_fig.CurrentAxes.XTick)
+t.FontSize    = 12;
+%%%
+ for i=1:length(grp_fig.CurrentAxes.XTick)-2
 
-    for j=1:length(grp_fig.CurrentAxes.YTick)
+    for j=1:length(grp_fig.CurrentAxes.YTick)-1 -i
 
         text(.95*grp_fig.CurrentAxes.XTick(i),...
              grp_fig.CurrentAxes.YTick(j), ...
-             [num2str(prop_MI(j,i)), '/5'],...
+             [num2str(prop(j,i)), '/5'],...
              'FontSize', 8);
     end
 end

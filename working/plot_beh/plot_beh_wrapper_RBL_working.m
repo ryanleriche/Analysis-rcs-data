@@ -31,7 +31,7 @@ REDcap                = RCS_redcap_painscores(rcs_API_token);
 
 % need to further distill by pts initals
 % fluct                 = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
-%% import RCS databases per pt side
+%% import RCS databases, and INS logs per pt side
 %{
 
 * saves RCS session summaries as databases (db) in struct per pt side
@@ -63,31 +63,52 @@ pt_sides               = {'RCS02R'};
 
 for i = 1 : length(pt_sides)
 
-    cfg.pt_id                       = pt_sides{i}(1:end-1);
+    cfg.pt_id_side                     = pt_sides{i};
 
-    [db.(pt_sides{i}), bs.(pt_sides{i})] ...
+    [db.(pt_sides{i}), bs.(pt_sides{i})]...
         ...
-        =  makeDatabaseRCS_Ryan(...
+        =  makeDatabaseRCS_Ryan(cfg);
+
+    INS_logs.(pt_sides{i})...
         ...
-    cfg, (pt_sides{i}));
+        = RCS_logs(cfg);
 
 end
+%%
+%%
 
-%% import INS logs per side 
+%%
+%{
+
+
+
+
+
+%}
+
+
+clear app_SS_tbl proc_app_log TD_FFT_PB_LD_State_tbl
+
+[app_SS_tbl.RCS02R, proc_app_log.RCS02R, TD_FFT_PB_LD_State_tbl.RCS02R]...
+...
+    = build_sense_summary_tbl(...
+...
+db.RCS02R, INS_logs.RCS02R.app);
+
 cfg                    = [];
-cfg.rootdir            = pia_raw_dir;
-cfg.ignoreold          = false;
+cfg.stage_dates        = stage_dates{2};
+cfg.pt_id              = 'RCS02';
 
-pt_sides               = {'RCS02R'};
-
-% pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R', 'RCS06L','RCS06R','RCS07L','RCS07R'};
-
-for i = 1 %: length(pt_sides)
-
-    cfg.pt_id                 = pt_sides{i};
-
-    INS_logs.(cfg.pt_id)      = RCS_logs(cfg);
-end
+%%
+%
+%
+%
+%
+[REDcap_INSLog.RCS02R, proc_group_changes.RCS02R]  ...
+    ...
+    = explicit_INS_stim_params(...
+    ...
+cfg, INS_logs.RCS02R.group_changes, db.RCS02R, REDcap.RCS02, visits.RCS02);
 %%
 
 
@@ -95,6 +116,11 @@ end
 
 
 
+
+time_API   = datetime(db_RCSXXX.eventLogTable{1809,1}.HostUnixTime /1000,...
+                        'ConvertFrom','posixTime',...
+                        'TimeZone','America/Los_Angeles',...
+                         'Format','dd-MMM-yyyy HH:mm:ss.SSS')
 
 
 %%
@@ -384,7 +410,7 @@ cfg.fig_dir     = [github_dir, 'Analysis-rcs-data/working/plot_beh/figs/beh_only
 
 set(0,'DefaultFigureVisible','off')
 
-for i =  length(pts)
+for i =  1:length(pts)
 
     cfg.pt_id  = pts{i};
 
@@ -400,14 +426,13 @@ set(0,'DefaultFigureVisible','on')
 % last N days for: 
 cfg                     = [];
 
-cfg.pt_id               = 'RCS07';
+cfg.pt_id               = 'RCS04';
 cfg.dates               = 'PreviousDays';
-cfg.ndays               = 14;
+cfg.ndays               = 5;
 
 cfg.subplot             = true;
 cfg.sum_stat_txt        = true;
 cfg.stim_parameter      = '';
-
 
 
     plot_timeline(cfg, REDcap);

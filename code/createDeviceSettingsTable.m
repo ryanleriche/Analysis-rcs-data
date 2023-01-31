@@ -1,4 +1,4 @@
-function [TD_SettingsOut, Power_SettingsOut, FFT_SettingsOut, metaData] = createDeviceSettingsTable(folderPath)
+function [TD_SettingsTable, TD_SettingsOut, Power_SettingsOut, FFT_SettingsOut, metaData] = createDeviceSettingsTable(folderPath)
 %%
 % Extract information from DeviceSettings related to configuration for time domain,
 % power, and FFT channels. All fields are present in first entry, but subsequent

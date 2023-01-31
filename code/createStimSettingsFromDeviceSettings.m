@@ -189,7 +189,7 @@ for iGroup = 0:3
         end
     end
 
-    stimSettingsOut.(currentGroupName)(entryNumber) = group;
+    stimSettingsOut.(currentGroupName)(entryNumber) = {group};
 end
 
 
@@ -243,134 +243,149 @@ for iRecord = 1 : length(DeviceSettings)
         toAdd.therapyStatus = therapyStatus;
         toAdd.therapyStatusDescription = convertTherapyStatus(therapyStatus);
 
+        try
+            for iGroup = 0:3
         
-        for iGroup = 0:3
-    
-            printGroupName = ['TherapyConfigGroup', num2str(iGroup)];
-        
-            temp_group                = currentSettings.(printGroupName);
-        
-            group                     = struct();
-        
-            group.rateInHz             = temp_group.rateInHz;
-            group.cyclingEnabled       = temp_group.cyclingEnabled;
-        
-            % four programs per group
-            group.ampInMilliamps             = [temp_group.programs.amplitudeInMilliamps];
-            group.pulseWidthInMicroseconds   = [temp_group.programs.pulseWidthInMicroseconds]; 
-        
-            temp                      = [temp_group.programs.miscSettings];
-            group.actRechRatio        = [temp.activeRechargeRatio];
-        
-        
-            % see'Medtronic.NeuroStim.Olympus.DataTypes.Therapy.CyclingUnits' w/n Summit API HTML 
-            if group.cyclingEnabled == 1 
-                cycleOnTime = temp_group.cycleOnTime.time;
+                printGroupName = ['TherapyConfigGroup', num2str(iGroup)];
             
-                switch temp_group.cycleOnTime.units
-                    % cycling unit "0" means LBS of 100 ms
-                    case 0
-                        group.cycleOnInSecs =  cycleOnTime/10;
+                temp_group                = currentSettings.(printGroupName);
+                group                     = struct();
+            
+                group.rateInHz             = temp_group.rateInHz;
+                group.cyclingEnabled       = temp_group.cyclingEnabled;
+            
+                % four programs per group
+                group.ampInMilliamps             = [temp_group.programs.amplitudeInMilliamps];
+                group.pulseWidthInMicroseconds   = [temp_group.programs.pulseWidthInMicroseconds]; 
+            
+                temp                      = [temp_group.programs.miscSettings];
+                group.actRechRatio        = [temp.activeRechargeRatio];
+            
+            
+                % see'Medtronic.NeuroStim.Olympus.DataTypes.Therapy.CyclingUnits' w/n Summit API HTML 
+                if group.cyclingEnabled == 1 
+                    cycleOnTime = temp_group.cycleOnTime.time;
                 
-                    % cycling unit "1" means LBS of 1s
-                    case 1
-                        group.cycleOnInSecs = cycleOnTime;
-                
-                    % cycling unit "2" means LBS of 10s
-                    case 2
-                        group.cycleOnInSecs = cycleOnTime * 10;
-                end
-            
-                cycleOffTime = temp_group.cycleOffTime.time;
-            
-                switch temp_group.cycleOffTime.units
-                    % cycling unit "0" means in 100 ms
-                    case 0
-                        group.cycleOffInSecs = cycleOffTime /10;
-                
-                    % cycling unit "1" means in 1s
-                    case 1
-                        group.cycleOffInSecs = cycleOffTime;
-                
-                    % cycling unit "2" means in 10s
-                    case 2
-                        group.cycleOffInSecs = cycleOffTime * 10;
-                end
-            
-            else
-                group.cycleOnInSecs  = NaN;
-                group.cycleOffInSecs = NaN;
-            end
-            
-            % rampTime LSB is 100 ms
-            % (Medtronic.NeuroStim.Olympus.DataTypes.Therapy.TherapyGroup.RampTime)
-            group.rampInSecs  = temp_group.rampTime /10;
-        
-            group.rampRepeat = temp_group.rampRepeat;
-
-           switch iGroup
-                case 0
-                    currentGroupName = 'GroupA';
-                case 1
-                    currentGroupName = 'GroupB';
-                case 2
-                    currentGroupName = 'GroupC';
-                case 3
-                    currentGroupName = 'GroupD';
-            end
-        
-            group.validPrograms     = [];
-        
-            group.validProgramNames  = cell(4,1);
-            group.contacts           = table();
-        
-            for iProgram = 1:4
-        
-                temp = temp_group.programs(iProgram).isEnabled;
-        
-                if temp == 0
-        
-                    group.validPrograms(iProgram)                   = 1;
-                    group.validProgramNames{iProgram}         = [currentGroupName '_program' num2str(iProgram)];
-        
-                    rawElectrodeTable = currentSettings.(printGroupName).programs(iProgram).electrodes.electrodes;
-                    % Find electrode(s) which are enabled; record if they are anode
-                    % (1) or cathode (0)
-                    temp_anode = [];
-                    temp_cathode = [];
-                    for iElectrode = 1:length(rawElectrodeTable)
-                        isOff = rawElectrodeTable(iElectrode).isOff;
-                        if isOff == 0 % Indicates channels is active
-                            
-                            % Subtract one to get electrode contact, because zero indexed
-                            if rawElectrodeTable(iElectrode).electrodeType == 1 % anode
-                                temp_anode = [temp_anode iElectrode - 1];
-                            elseif rawElectrodeTable(iElectrode).electrodeType == 0 % cathode
-                                temp_cathode = [temp_cathode iElectrode - 1];
-                            end
-                            
-                        end
-                    end
+                    switch temp_group.cycleOnTime.units
+                        % cycling unit "0" means LBS of 100 ms
+                        case 0
+                            group.cycleOnInSecs =  cycleOnTime/10;
                     
-                    group.contacts.anodes{iProgram}            = temp_anode;
-                    group.contacts.cathodes{iProgram}          = temp_cathode;
-        
+                        % cycling unit "1" means LBS of 1s
+                        case 1
+                            group.cycleOnInSecs = cycleOnTime;
+                    
+                        % cycling unit "2" means LBS of 10s
+                        case 2
+                            group.cycleOnInSecs = cycleOnTime * 10;
+                    end
+                
+                    cycleOffTime = temp_group.cycleOffTime.time;
+                
+                    switch temp_group.cycleOffTime.units
+                        % cycling unit "0" means in 100 ms
+                        case 0
+                            group.cycleOffInSecs = cycleOffTime /10;
+                    
+                        % cycling unit "1" means in 1s
+                        case 1
+                            group.cycleOffInSecs = cycleOffTime;
+                    
+                        % cycling unit "2" means in 10s
+                        case 2
+                            group.cycleOffInSecs = cycleOffTime * 10;
+                    end
+                
                 else
-                    group.validPrograms(iProgram)                 = 0;
-        
-        
-                    group.validProgramNames{iProgram}       = '';
-                    group.contacts.anodes{iProgram}         = '';
-                    group.contacts.cathodes{iProgram}       = '';
-        
+                    group.cycleOnInSecs  = NaN;
+                    group.cycleOffInSecs = NaN;
                 end
+                
+                % rampTime LSB is 100 ms
+                % (Medtronic.NeuroStim.Olympus.DataTypes.Therapy.TherapyGroup.RampTime)
+                group.rampInSecs  = temp_group.rampTime /10;
+            
+                group.rampRepeat = temp_group.rampRepeat;
+    
+               switch iGroup
+                    case 0
+                        currentGroupName = 'GroupA';
+                    case 1
+                        currentGroupName = 'GroupB';
+                    case 2
+                        currentGroupName = 'GroupC';
+                    case 3
+                        currentGroupName = 'GroupD';
+                end
+            
+                group.validPrograms     = [];
+            
+                group.validProgramNames  = cell(4,1);
+                group.contacts           = table();
+            
+                for iProgram = 1:4
+            
+                    temp = temp_group.programs(iProgram).isEnabled;
+            
+                    if temp == 0
+            
+                        group.validPrograms(iProgram)                   = 1;
+                        group.validProgramNames{iProgram}         = [currentGroupName '_program' num2str(iProgram)];
+            
+                        rawElectrodeTable = currentSettings.(printGroupName).programs(iProgram).electrodes.electrodes;
+                        % Find electrode(s) which are enabled; record if they are anode
+                        % (1) or cathode (0)
+                        temp_anode = [];
+                        temp_cathode = [];
+                        for iElectrode = 1:length(rawElectrodeTable)
+                            isOff = rawElectrodeTable(iElectrode).isOff;
+                            if isOff == 0 % Indicates channels is active
+                                
+                                % Subtract one to get electrode contact, because zero indexed
+                                if rawElectrodeTable(iElectrode).electrodeType == 1 % anode
+                                    temp_anode = [temp_anode iElectrode - 1];
+                                elseif rawElectrodeTable(iElectrode).electrodeType == 0 % cathode
+                                    temp_cathode = [temp_cathode iElectrode - 1];
+                                end
+                                
+                            end
+                        end
+                        
+                        group.contacts.anodes{iProgram}            = temp_anode;
+                        group.contacts.cathodes{iProgram}          = temp_cathode;
+            
+                    else
+                        group.validPrograms(iProgram)                 = 0;
+            
+            
+                        group.validProgramNames{iProgram}       = '';
+                        group.contacts.anodes{iProgram}         = '';
+                        group.contacts.cathodes{iProgram}       = '';
+            
+                    end
+                end
+            
+                toAdd.(currentGroupName)(entryNumber) = {group};
             end
-        
-            toAdd.(currentGroupName)(entryNumber) = group;
+    
+           
+        stimSettingsOut = [stimSettingsOut; struct2table(toAdd)];
+         
+        catch
+            toAdd = struct2table(toAdd);
+
+            t1colmissing = setdiff(stimSettingsOut.Properties.VariableNames, toAdd.Properties.VariableNames);
+            %t2colmissing = setdiff(toAdd.Properties.VariableNames, stimSettingsOut.Properties.VariableNames);
+
+            toAdd = [toAdd cell2table(cell(height(toAdd), numel(t1colmissing)), 'VariableNames', t1colmissing)];
+
+            %stimSettingsOut = [stimSettingsOutarray2table(nan(height(stimSettingsOut), numel(t2colmissing)), 'VariableNames', t2colmissing)];
+            stimSettingsOut = [stimSettingsOut; toAdd];
         end
 
-        stimSettingsOut = [stimSettingsOut; struct2table(toAdd)];
+           
         
+
         clear toAdd
         % Update for next loop
         previousActiveGroup   = activeGroup;

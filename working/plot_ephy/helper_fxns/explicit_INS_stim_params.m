@@ -1,47 +1,82 @@
-%function beh_stim  = get_INSLog_stim_params(cfg, group_changes, db_RCSXXX, redcap, visits_tbl)
+%function [redcap, group_changes]  = explicit_INS_stim_params(cfg, group_changes, db_RCSXXX, redcap, visits_tbl)
 
 
 %{
-from group_changes (as written to EventLog.txts), find explicit stim paramemters
-(from StimLog.jsons)
+
+from group_changes (as INS Group changes are written to EventLog.txts), 
+find explicit stim paramemters (from StimLog.jsons which are NOT saved on 
+the INS itself, but during Streaming Sessions)
 
 %}
+
+
+
+%%% uncomment below to troubleshoot as script:
 
 cfg                    = [];
 cfg.stage_dates        = stage_dates{2};
 cfg.pt_id              = 'RCS02';
 
 group_changes          = INS_logs.RCS02R.group_changes;
-app                    = INS_logs.RCS02R.app;
 db_RCSXXX              = db.RCS02R;
 
 visits_tbl             = visits.RCS02;
 redcap                 = REDcap.RCS02;
 %
 %
+%
+proc_app = proc_app_log.RCS02R;
+
+%%
 % only takes REDcap surveys from AFTER Stage I implant
 redcap     = redcap(ge(redcap.time, datetime(cfg.stage_dates(1),'TimeZone','America/Los_Angeles')),...
                   :); 
 
 i_stimSett   = cellfun(@(x) ~isempty(x), db_RCSXXX.stimSettingsOut);
 
-% takes stimSettingsOut to table
-stimSettingsOut_tbl = vertcat(db_RCSXXX.stimSettingsOut{i_stimSett});
+tmp_stim_tbl = db_RCSXXX.stimSettingsOut(i_stimSett);
+tmp_stim_tbl = cellfun(@(x) x(end,:), tmp_stim_tbl, 'UniformOutput', false);
 
-stimSettingsOut_tbl.sess_name = db_RCSXXX.sess_name(i_stimSett);
-stimSettingsOut_tbl.path      = db_RCSXXX.path(i_stimSett);
 
-%
-time_API   = datetime(stimSettingsOut_tbl.HostUnixTime /1000,...
+
+stim_tbl     = [db_RCSXXX(i_stimSett, {'sess_name', 'path'}),...
+                vertcat(tmp_stim_tbl{:})];
+
+i_entry    = find(~cellfun(@isempty, stim_tbl.GroupA));
+
+Groups              = {'GroupA', 'GroupB', 'GroupC', 'GroupD'};
+
+
+% replace empty Groups w/ previous non-empty group
+for i=1:height(stim_tbl)
+
+    if isempty(stim_tbl{i, 'GroupA'}{1})
+
+        emp_diff = (i - i_entry);
+
+        [~, i_prev] = min(emp_diff(emp_diff>0));
+
+        stim_tbl(i,Groups) = stim_tbl(i_entry(i_prev), Groups);
+
+    end
+end
+
+
+
+time_API   = datetime(stim_tbl.HostUnixTime /1000,...
                         'ConvertFrom','posixTime',...
                         'TimeZone','America/Los_Angeles',...
                          'Format','dd-MMM-yyyy HH:mm:ss.SSS');
 
-stimSettingsOut_tbl    = addvars(stimSettingsOut_tbl, time_API ,'after',"HostUnixTime");
-[~, i_unique]          = unique(stimSettingsOut_tbl.time_API);
-stimSettingsOut_tbl    = stimSettingsOut_tbl(i_unique,:);
 
-stimSettingsOut_tbl    = sortrows(stimSettingsOut_tbl, 'time_API');
+stim_tbl    = addvars(stim_tbl, time_API ,'after',"sess_name");
+
+
+[~, i_unique]          = unique(stim_tbl.time_API);
+stim_tbl    = stim_tbl(i_unique,:);
+
+stim_tbl    = sortrows(stim_tbl, 'time_API');
+
 
 %
 % organize INS logs and then infer contacts, amp, pw, and rate based off of DeviceSettings.txt
@@ -91,7 +126,7 @@ group_changes   = group_changes(i_rep_events,:);
 %% from previous StimLog.json get explicit stim params
 for i = 1 : height(group_changes)
 
-    t_diff   =  group_changes.time_INS(i) - stimSettingsOut_tbl.time_API;
+    t_diff   =  group_changes.time_INS(i) - stim_tbl.time_API;
 
     % find the smallest negative time difference to get nearest
     % stimLog.json settings BEFORE EventLog.txt settings
@@ -102,8 +137,8 @@ for i = 1 : height(group_changes)
     if ~isempty(near_t)
         j       = find(t_diff == near_t);
 
-        group_changes.prev_sess_name(i)         = stimSettingsOut_tbl.sess_name(j);
-        stimSettingsOut_tbl.prev_sess_path(i)      = stimSettingsOut_tbl.path(j);
+        group_changes.prev_sess_name(i)         = stim_tbl.sess_name(j);
+        group_changes.prev_sess_path(i)         = stim_tbl.path(j);
 
         % Since INS log can change groups SINCE last stimLog setting, find
         % explicit paramemters regardless of last activeGroup in StimLog
@@ -111,7 +146,7 @@ for i = 1 : height(group_changes)
         if contains(group_changes.event{i}, 'Group')
             act_group                     = group_changes.event{i}(1:6);
         
-            group                         = stimSettingsOut_tbl.(act_group)(j(1));
+            group                         = stim_tbl.(act_group){j(1)};
         
             h                             = find(group.validPrograms);
             
@@ -156,134 +191,6 @@ for i = 1 : height(group_changes)
         end
     end
 end
-%%
-proc_app        = INS_logs.RCS02R.app;
-
-
-i_detSett        = cellfun(@(x) ~isempty(x), db_RCSXXX.DetectorSettings);
-i_adapStimSett   = cellfun(@(x) ~isempty(x), db_RCSXXX.AdaptiveStimSettings);
-
-i_tmp            = cellfun(@(x) x(end,:), db_RCSXXX.DetectorSettings{i_detSett});
-
-unique(i_tmp)
-
-if ~isempty(find(i_detSett & ~i_adapStimSett, 1))
-
-    disp('possible misalignment of DetectorSettings and AdaptiveStimSettings')
-
-end
-%
-%
-% takes DetectorSettings to table
-
-
-
-LD_State_tbl_tbl = table();
-
-LD_State_tbl_tbl.prev_sess_name       = db_RCSXXX.sess_name(i_detSett);
-LD_State_tbl_tbl.prev_sess_path       = db_RCSXXX.path(i_detSett);
-
-
-tmp_lds           = cellfun(@(x) x(end,:), db_RCSXXX.DetectorSettings(i_detSett),...
-                             'UniformOutput',false);
-
-LD_State_tbl_tbl  = vertcat(tmp_lds{:});
-
-time_API          = datetime(LD_State_tbl_tbl.HostUnixTime /1000,...
-                        'ConvertFrom','posixTime',...
-                        'TimeZone','America/Los_Angeles',...
-                         'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-LD_State_tbl_tbl    = addvars(LD_State_tbl_tbl, time_API ,'after',"HostUnixTime");
-
-%
-
-LD0_tbl = struct2table(LD_State_tbl_tbl.Ld0);
-
-LD0_tbl = renamevars(LD0_tbl, LD0_tbl.Properties.VariableNames, ...
-            cellfun(@(x) ['LD0_',x], LD0_tbl.Properties.VariableNames, 'UniformOutput',false));
-
-
-LD1_tbl = struct2table(LD_State_tbl_tbl.Ld1);
-
-LD1_tbl = renamevars(LD1_tbl, LD1_tbl.Properties.VariableNames, ...
-            cellfun(@(x) ['LD0_',x], LD1_tbl.Properties.VariableNames, 'UniformOutput',false));
-
-
-
-
-%% from previous StimLog.json get explicit stim params
-for i = 1 : height(group_changes)
-
-    t_diff   =  group_changes.time_INS(i) - stimSettingsOut_tbl.time_API;
-
-    % find the smallest negative time difference to get nearest
-    % stimLog.json settings BEFORE EventLog.txt settings
-
-    near_t  = min(t_diff(t_diff > 0));
-
-    % need to have streaming session occuring BEFORE INS log time
-    if ~isempty(near_t)
-        j       = find(t_diff == near_t);
-
-        group_changes.prev_sess_name(i)         = stimSettingsOut_tbl.sess_name(j);
-        stimSettingsOut_tbl.prev_sess_path      = stimSettingsOut_tbl.path(j);
-
-        % Since INS log can change groups SINCE last stimLog setting, find
-        % explicit paramemters regardless of last activeGroup in StimLog
-    
-        if contains(group_changes.event{i}, 'Group')
-            act_group                     = group_changes.event{i}(1:6);
-        
-            group                         = stimSettingsOut_tbl.(act_group)(j(1));
-        
-            h                             = find(group.validPrograms);
-            
-            if ~isempty(h)
-                group_changes.stimContacts{i} = cell(length(h), 1);
-        
-                for k = 1 : length(h)
-                    % this is monopolar stimulation
-                    if group.contacts(h(k),:).anodes{1} == 16
-        
-                        group_changes.stimContacts{i}{k} = sprintf('c+%d-%d-%d-%d-%d-%d-',...,...
-                                                           group.contacts(h(k),:).cathodes{1}); 
-        
-                    else 
-        
-                                               % only one cathode, but MANY
-                                               % possible anodes
-                    group_changes.stimContacts{i}{k} = sprintf('%d+%d-%d-%d-%d-%d-%d-',...
-                                                           group.contacts(h(k),:).anodes{1},...
-                                                           group.contacts(h(k),:).cathodes{1}); 
-        
-                    end
-                end
-        
-        
-                group_changes.ampInMilliamps{i}               = group.ampInMilliamps(h);
-                group_changes.pulseWidthInMicroseconds{i}     = group.pulseWidthInMicroseconds(h);
-                
-                group_changes.rateInHz(i)         = group.rateInHz;
-                
-                group_changes.cycleOnInSecs(i)    = group.cycleOnInSecs;
-                group_changes.cycleOffInSecs(i)   = group.cycleOffInSecs;
-                group_changes.rampInSecs(i)       = group.rampInSecs;
-                group_changes.rampRepeat(i)       = group.rampRepeat;
-            
-            
-            else
-        
-                group_changes.stimContacts{i} = 'No valid program';
-            
-            end
-        end
-    end
-end
-
-
-%%
-
-
 
 
 %% adding in side + region for unambiguous contacts when comparing both sides
@@ -356,26 +263,6 @@ tmp_group_changes.pulseWidthInMicroseconds   = vertcat(tmp_group_changes.pulseWi
 group_changes  = tmp_group_changes;
 
 
-%%
-tmp_group_changes         = group_changes;
-
-tmp_groups                     = tmp_group_changes.activeGroup;
-therapyStatusDescription   = tmp_group_changes.therapyStatusDescription;
-time_INS                   = tmp_group_changes.time_INS;
-
-group_tbl                  = table(time_INS, tmp_groups, therapyStatusDescription);
-
-Didx                       = strcmp(tmp_groups, 'D') & strcmp(therapyStatusDescription, 'On');
-
-
-group_tbl.groupD_ON_diff      = [0; diff(Didx)];
-
-offline_cl_sess            = tmp_group_changes(Didx,:);
-
-
-
-
-
 %% w/ explicit INS logs, now align to nearest REDcap
 
 for i = 1 : height(redcap)
@@ -390,17 +277,17 @@ for i = 1 : height(redcap)
     % first INS Log started AFTER first month of REDcap -> use
     % DeviceSettings.json
 
-        t_diff   = redcap.time(i) - stimSettingsOut_tbl.time_API;
+        t_diff   = redcap.time(i) - stim_tbl.time_API;
         near_t   = min(t_diff(t_diff > 0));
         j        = find(t_diff == near_t);
 
-        act_group       = stimSettingsOut_tbl.activeGroup{j};
+        act_group       = stim_tbl.activeGroup{j};
 
-        group           = stimSettingsOut_tbl.(['Group', act_group])(j);
+        group           = stim_tbl.(['Group', act_group])(j);
 
         h               = find(group.validPrograms);
     
-        redcap.therapyStatusDescription(i) = stimSettingsOut_tbl.therapyStatusDescription(j);
+        redcap.therapyStatusDescription(i) = stim_tbl.therapyStatusDescription(j);
    
         if ~isempty(h)
              redcap.stimContacts{i} = cell(length(h), 1);
@@ -483,22 +370,12 @@ for i = 1 : height(redcap)
     end   
 end
 
-
-%%
-
+redcap                = movevars(redcap,'time_INS', 'After','MPQcruel');
 
 
-%beh_stim_R.R_stimContacts(i_con) = [beh_stim_R.R_stimContacts{i_con}];
 
+%%%% uncomment below to troubleshoot as script
 
-%%
-%{
-
-if amplitude is 0, then only return program 1 (0) contacts for simplity
-here
-
-%}
-
-
-group_changes                 = movevars(group_changes,'time_INS', 'After','MPQcruel');
+REDcap_INSLog.RCS02R        = redcap;
+proc_group_changes.RCS02R   = group_changes;
 %end

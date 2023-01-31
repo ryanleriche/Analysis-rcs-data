@@ -35,11 +35,11 @@ for i = 1 : length(s0_rcaps)
                 % fix datetime formatting
                 elseif any(le(arm1_tbl.(varnames{j}), datetime('01-Jan-2019','TimeZone','America/Los_Angeles')))
 
-                    % if every but NOT all datetimes are shifted -> toss error
-                    if all(le(arm1_tbl.(varnames{j}), datetime('01-Jan-2019','TimeZone','America/Los_Angeles')))
-
-                        error('RBL: inconsistent datetime formatting w/n %s .csv file', pt_id)
-                    end
+%                     % if some but NOT all datetimes are shifted -> toss error
+%                     if ~all(le(arm1_tbl.(varnames{j}), datetime('01-Jan-2019','TimeZone','America/Los_Angeles')))
+% 
+%                         error('RBL: inconsistent datetime formatting w/n %s .csv file', pt_id)
+%                     end
              
                     arm1_tbl.(varnames{j}) = arm1_tbl.(varnames{j}) + calyears(2000);
                     

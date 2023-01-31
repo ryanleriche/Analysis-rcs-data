@@ -1,4 +1,4 @@
-function [RCSdatabase_out, varargout] = makeDatabaseRCS_Ryan(cfg, pt_id_side)
+function [RCSdatabase_out, varargout] = makeDatabaseRCS_Ryan(cfg)
 %{
 function database_out = makeDatabaseRCS_Ryan(cfg.raw_dir)
 
@@ -106,13 +106,13 @@ Ryan Leriche Aug 20, 2022
 tic
 
 % match the PATIENTID up to 2 digits: ie RCS02
-pt_rootdir  = fullfile(cfg.raw_dir,char(regexp(pt_id_side,...
+pt_rootdir  = fullfile(cfg.raw_dir,char(regexp(cfg.pt_id_side,...
                         '\w*\d\d','match'))); 
 
 
 %  Define the directories to search in (SCBS and aDBS)
-scbs_dir_root       = fullfile(pt_rootdir,'/SummitData/SummitContinuousBilateralStreaming/', pt_id_side);
-adbs_dir_root       = fullfile(pt_rootdir, '/SummitData/StarrLab/', pt_id_side);
+scbs_dir_root       = fullfile(pt_rootdir,'/SummitData/SummitContinuousBilateralStreaming/', cfg.pt_id_side);
+adbs_dir_root       = fullfile(pt_rootdir, '/SummitData/StarrLab/', cfg.pt_id_side);
 
 scbs_sess_dirs      = findFilesBVQX(scbs_dir_root,'Sess*',struct('dirs',1,'depth',1));
 adbs_sess_dirs      = findFilesBVQX(adbs_dir_root,'Sess*',struct('dirs',1,'depth',1));
@@ -143,7 +143,7 @@ db_out      = struct('rec',[],...
 
 proc_cfg.raw_dir      = [cfg.raw_dir(1:end-4), 'processed/databases/'];
 
-outputFileName    = fullfile(proc_cfg.raw_dir,[pt_id_side '_database.mat']);
+outputFileName    = fullfile(proc_cfg.raw_dir,[cfg.pt_id_side '_database.mat']);
 
 
 if isfile(outputFileName) && ~cfg.ignoreold
@@ -180,7 +180,7 @@ else
 
 end
 
-
+%d = find(contains(sess_dirs, 'Session1673830359519'))
 
 %%
 for d = 1: length(sess_dirs)
@@ -223,10 +223,12 @@ for d = 1: length(sess_dirs)
 
                 if isfile(settingsfile)
     
-                    [timeDomainSettings, powerSettings, fftSettings, metaData] = ...
+                    [TD_settings_raw, timeDomainSettings, powerSettings, fftSettings, metaData] = ...
                         createDeviceSettingsTable(devicepath);
     
                     % save all outputs from 'DeviceSettings.json'
+
+                    db_out(d).TD_settings_raw       = TD_settings_raw;
                     db_out(d).timeDomainSettings    = timeDomainSettings;
                     db_out(d).fftSettings           = fftSettings;
                     db_out(d).powerSettings         = powerSettings;
@@ -237,28 +239,38 @@ for d = 1: length(sess_dirs)
         
                         % Get recording start time/ duration
                         timeStart = timeDomainSettings.timeStart / 1000;
-
                         timeStop = timeDomainSettings.timeStop / 1000;
                         
-                        % accounts for daylight savings and timezones based
-                        % off of UTC offset
-                        timeFormat = sprintf('%+03.0f:00', metaData.UTCoffset);
-        
-                        timeStart = datetime(timeStart,...
-                            'ConvertFrom','posixTime','TimeZone',timeFormat,...
-                            'Format','dd-MMM-yyyy HH:mm:ss.SSS');
 
-                        timeStop = datetime(timeStop,...
-                            'ConvertFrom','posixTime','TimeZone',timeFormat,...
-                            'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-        
-        
-                        db_out(d).timeStart = timeStart;
-                        db_out(d).timeStop  = timeStop;
-                        db_out(d).duration  = duration(timeStop - timeStart,'Format','hh:mm:ss.SSS');
-        
+                    % edge case where SCBS was logged into, but streaming
+                    % session never starts
+                    % --> pull TD settings anyways (01/24/23; RBL)
+                    elseif ~isempty(TD_settings_raw)
+
+                        timeStart = TD_settings_raw(1,:).time /1000;
+                        timeStop  = TD_settings_raw(end,:).time /1000;
+
+
                     end
-                
+                    % accounts for daylight savings and timezones based
+                    % off of UTC offset
+                    timeFormat = sprintf('%+03.0f:00', metaData.UTCoffset);
+                    
+                    timeStart = datetime(timeStart,...
+                    'ConvertFrom','posixTime','TimeZone',timeFormat,...
+                    'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                    
+                    timeStop = datetime(timeStop,...
+                    'ConvertFrom','posixTime','TimeZone',timeFormat,...
+                    'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                    
+                    
+                    
+                    db_out(d).timeStart = timeStart;
+                    db_out(d).timeStop  = timeStop;
+                    db_out(d).duration  = duration(timeStop - timeStart,'Format','hh:mm:ss.SSS');
+
+
     
                 else
                 warning('No DeviceSettings.json file')
@@ -286,7 +298,10 @@ for d = 1: length(sess_dirs)
             stimfile          = findFilesBVQX(sess_dirs{d},'StimLog.json');
             [stimpath,~,~]    = fileparts(stimfile{1});
 
+        catch
+        end
 
+        try
             [stimLogSettings] = createStimSettingsTable(stimpath, stimMetaData);
 
              if ~isempty(timeDomainSettings) && ~isempty(powerSettings)
@@ -462,14 +477,14 @@ if nargout == 2
 end
 
 % Rename file to include patient ID
-% writetable(RCSdatabase_out,fullfile(proc_cfg.raw_dir,[pt_id_side...
+% writetable(RCSdatabase_out,fullfile(proc_cfg.raw_dir,[cfg.pt_id_side...
 %     '_database.csv']));
 
-save(fullfile(proc_cfg.raw_dir,[pt_id_side '_database.mat']),...
+save(fullfile(proc_cfg.raw_dir,[cfg.pt_id_side '_database.mat']),...
     'RCSdatabase_out','badsessions');
 
 fprintf('mat of database saved as %s to %s \n',...
-    [pt_id_side '_database.mat'],proc_cfg.raw_dir);
+    [cfg.pt_id_side '_database.mat'],proc_cfg.raw_dir);
 
 %==================================================================
 

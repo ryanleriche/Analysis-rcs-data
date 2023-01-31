@@ -7,7 +7,7 @@ database of all RC+S metrics of interest including processing of the
 adaptive text logs
 
 INPUTS: 
-1. cfg.rootdir is the local root directory pathname for all patient session files
+1. cfg.raw_dir is the local root directory pathname for all patient session files
       ! ! Make sure patient name is NOT included (e.g RCS02 would be a subfolder in the input folder)
        This should look something like 'C:/Desktop/'
            ** including:
@@ -71,7 +71,7 @@ NOT Done:
 * same fieldnames for 'every_entry' versus 'blazing_fast' calls
 %}
 % cfg                    = [];
-% cfg.rootdir            = pia_raw_dir;
+% cfg.raw_dir            = pia_raw_dir;
 % cfg.pt_id              = 'RCS02R';
 % cfg.ignoreold          = false;
 
@@ -80,7 +80,7 @@ NOT Done:
 %warning("off", "all"); 
 tic
 
-pt_id_side = cfg.pt_id ;
+pt_id_side = cfg.pt_id_side ;
 
 % exception for CPRCS01
 if ~ (contains(pt_id_side,'CPRCS01'))
@@ -92,8 +92,8 @@ end
 fprintf('%s | compiling INS logs \n', pt_id_side)
     
     
-scbs_dir     = fullfile(cfg.rootdir, pt_id,'/SummitData/SummitContinuousBilateralStreaming/', pt_id_side);
-adbs_dir     = fullfile(cfg.rootdir, pt_id,'/SummitData/StarrLab/', pt_id_side);
+scbs_dir     = fullfile(cfg.raw_dir, pt_id,'/SummitData/SummitContinuousBilateralStreaming/', pt_id_side);
+adbs_dir     = fullfile(cfg.raw_dir, pt_id,'/SummitData/StarrLab/', pt_id_side);
 
 filelist     = dir(fullfile(scbs_dir,'**/*.txt')); % all txt files contains within session files
 % remove the files that start with ._  (some icloud issue of duplicate files to ignore)
@@ -123,7 +123,7 @@ AppLog_tbl.aDBS_state   = cell(sum(i_app),1);
 AppLog_tbl.adapt_stat   = cell(sum(i_app),1);
 AppLog_tbl.ld_detect    = cell(sum(i_app),1);
 
-INS_log_dir  = fullfile(cfg.rootdir(1:end-4), ...
+INS_log_dir  = fullfile(cfg.raw_dir(1:end-4), ...
                         'processed', 'INS_logs', ...
                         [pt_id_side '_INS_logs']);
 
@@ -287,7 +287,7 @@ end
  %end
  %% scratch code from slow parsing
 %{
-proc_dirname      = [cfg.rootdir(1:end-4), 'processed/INS_logs/'];
+proc_dirname      = [cfg.raw_dir(1:end-4), 'processed/INS_logs/'];
 
 outputFileName    = fullfile(proc_dirname,[cfg.pt_id, '_INS_logs.mat']);
 

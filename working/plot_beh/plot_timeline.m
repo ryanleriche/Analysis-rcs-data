@@ -21,9 +21,9 @@ redcap                  = REDcap.(cfg.pt_id);
 cfg.stage_dates         = stage_dates{str2double(cfg.pt_id(end))}; % starts at Stage 1
 
 
-figure('Units', 'Inches', 'Position', [0, 0, 15, 7])
+figure('Units', 'Inches', 'Position', [0, 0, 13, 7])
 
-[redcap, date_range] = date_parser(cfg, redcap);
+[~, date_range] = date_parser(cfg, redcap);
 
 ds =        datestr(date_range,'dd-mmm-yyyy');
 
@@ -179,25 +179,27 @@ switch cfg.pt_id(7:end)
      ylabel('Numeric Rating Scale');     ylim([0,10]); yticks(1:2:10);
          
      if ~strcmp(cfg.pt_id, {'RCS06', 'RCS07'})
+        nrs_str    =  ['NRS Intensity', newline,sprintf('  (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
+                                  sum_stats.mayoNRS({'mean','std',  'min', 'max'}))];
 
-        legend({'','NRS Intensity', 'NRS Worst Intensity'}, 'Location','northeastoutside'); 
+        nrs_wrs_str =  ['NRS Worst Intensity', newline,sprintf('   (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
+                                  sum_stats.worstNRS({'mean','std',  'min', 'max'}))];
+
+
+        legend({'',nrs_str , nrs_wrs_str,''}, 'Location','northeastoutside'); 
      
      end
      
      hold on
-     
-     if cfg.sum_stat_txt
-         sum_stat_str =  sprintf('mean: %0.2f ± %0.2f\nrange: %0.0f (max %0.0f – min %0.0f)',...
-                                  sum_stats.mayoNRS({'mean','std', 'range', 'max', 'min'}));
-         
-         text(ax.XTick(round(length(ax.XTick)/3)), 8, sum_stat_str, 'Interpreter','none', 'FontSize', 10)
-     end
 
+     format_plot();
+     
+   
      if ~strcmp(cfg.stim_parameter, '')
          overlay_stim(gca, cfg.stim_parameter, redcap);   
      end
 
-     format_plot();
+     
      
 %% VAS
     if cfg.subplot == true
@@ -257,7 +259,7 @@ switch cfg.pt_id(7:end)
 
         
         plot(redcap.time, movmean(redcap.moodVAS, [n_back 0], 'omitnan'),...
-            'LineWidth', 1.5); hold on;
+            'LineWidth', 2); hold on;
 
         set(gca,'ColorOrderIndex',4);
         
@@ -279,22 +281,26 @@ switch cfg.pt_id(7:end)
             'Location','northeastoutside');
      else
 
-        legend({'VAS Intensity', '','VAS Unpleasantness', 'VAS Worst Intensity'}, ...
-            'Location','northeastoutside'); 
 
+        vas_str    =  ['VAS Intensity', newline,sprintf('   (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
+                                  sum_stats.painVAS({'mean','std',  'min', 'max'}))];
+
+        vas_unp_str =  ['VAS Upleasantness', newline,sprintf('  (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
+                                  sum_stats.unpleasantVAS({'mean','std',  'min', 'max'}))];
+
+        vas_wrs_str =  ['VAS Worst', newline,sprintf('  (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
+                                  sum_stats.worstVAS({'mean','std',  'min', 'max'}))];
+
+        legend({vas_str, '', vas_unp_str, vas_wrs_str}, 'Location','northeastoutside'); 
+     
      end
 
      if ~strcmp(cfg.stim_parameter, '')
          overlay_stim(gca, cfg.stim_parameter, redcap);   
      end
 
-     if cfg.sum_stat_txt
-        sum_stat_str =  sprintf('mean: %0.2f ± %0.2f\nrange: %0.0f (max %0.0f – min %0.0f)',...
-                              sum_stats.painVAS({'mean','std', 'range', 'max', 'min'}));
-     
-        text(ax.XTick(round(length(ax.XTick)/3)), 80, sum_stat_str, 'Interpreter','none', 'FontSize', 10)
-     end
      format_plot();
+
             
 %% MPQ
     if cfg.subplot == true
@@ -337,24 +343,22 @@ switch cfg.pt_id(7:end)
     
     ylabel('McGill Pain Questionaire');     ylim([0,45]); yticks(0:15:45)
     
-    legend({ '','MPQ Total (0-45)','MPQ Somatic (0-33)', 'MPQ Affective (0-12)'}, ...
-        'Location','northeastoutside'); 
+    mpq_str    =  ['MPQ Total', newline,sprintf('   (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
+                                  sum_stats.MPQtotal({'mean','std',  'min', 'max'}))];
 
-    if cfg.sum_stat_txt
+    mpq_som_str    =  ['MPQ Somatic'];
+    mpq_aff_str    =  ['MPQ Affective'];
 
-        
-        sum_stat_str =  sprintf('mean: %0.2f ± %0.2f\nrange: %0.0f (max %0.0f – min %0.0f)',...
-                              sum_stats.MPQtotal({'mean','std', 'range', 'max', 'min'}));
-     
-        text(ax.XTick(round(length(ax.XTick)/3)), 30, sum_stat_str, 'Interpreter','none', 'FontSize', 10)
-    end
 
-   % overlay_stim(cfg.stim_parameter)
+
+   legend({'',  mpq_str,  mpq_som_str, mpq_aff_str}, 'Location','northeastoutside'); 
+
     format_plot();
     
-     if ~strcmp(cfg.stim_parameter, '')
-         overlay_stim(gca, cfg.stim_parameter, redcap);   
-     end
+    
+    if ~strcmp(cfg.stim_parameter, '')
+        overlay_stim(gca, cfg.stim_parameter, redcap);   
+    end
 end
 %% local functions
 %{
