@@ -53,15 +53,15 @@ cfg.load_EventLog      = true;
 cfg.ignoreold          = false;
 cfg.raw_dir            = pia_raw_dir;
 
-pt_sides               = {'RCS02R'};
+%pt_sides               = {'RCS02R'};
 
-%pt_sides               = {'RCS04L','RCS04R'};
+pt_sides               = {'RCS02R','RCS05L','RCS07L'};
 
 
 %pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R','RCS06L','RCS06R','RCS07L','RCS07R'};
 
 
-for i = 1 : length(pt_sides)
+for i = 2 : length(pt_sides)
 
     cfg.pt_id_side                     = pt_sides{i};
 
@@ -69,12 +69,25 @@ for i = 1 : length(pt_sides)
         ...
         =  makeDatabaseRCS_Ryan(cfg);
 
+
     INS_logs.(pt_sides{i})...
         ...
         = RCS_logs(cfg);
 
 end
 %%
+tt = datetime(1674492396175/1000,...
+                    'ConvertFrom','posixTime','TimeZone','America/Los_Angeles',...
+                    'Format','dd-MMM-yyyy HH:mm:ss.SSS')
+
+
+%datetime(1970,1,1,-8,0,0,1674492396175) -datetime(2000,3,1,-8,0,722516198)
+
+
+
+%temp_time = 
+
+temp_time.TimeZone = 'America/Los_Angeles';
 %%
 
 %%
@@ -87,13 +100,29 @@ end
 %}
 
 
-clear app_SS_tbl proc_app_log TD_FFT_PB_LD_State_tbl
+%clear app_SS_tbl proc_app_log TD_FFT_PB_LD_State_tbl
 
-[app_SS_tbl.RCS02R, proc_app_log.RCS02R, TD_FFT_PB_LD_State_tbl.RCS02R]...
-...
-    = build_sense_summary_tbl(...
-...
-db.RCS02R, INS_logs.RCS02R.app);
+%pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R','RCS06L','RCS06R','RCS07L','RCS07R'};
+
+pt_sides               = {'RCS02R','RCS05L','RCS07L'};
+
+
+
+for i=1 %:length(pt_sides)
+
+    [app_SS_tbl.(pt_sides{i}), proc_app_log.(pt_sides{i}), TD_FFT_PB_LD_State_tbl.(pt_sides{i})]...
+    ...
+        = build_sense_summary_tbl(...
+    ...
+    db.(pt_sides{i}), INS_logs.(pt_sides{i}).app);
+
+end
+
+
+
+%%
+
+%%
 
 cfg                    = [];
 cfg.stage_dates        = stage_dates{2};
@@ -104,12 +133,23 @@ cfg.pt_id              = 'RCS02';
 %
 %
 %
-[REDcap_INSLog.RCS02R, proc_group_changes.RCS02R]  ...
-    ...
-    = explicit_INS_stim_params(...
-    ...
-cfg, INS_logs.RCS02R.group_changes, db.RCS02R, REDcap.RCS02, visits.RCS02);
+
+
+    [REDcap_INSLog.RCS02R, proc_group_changes.RCS02R]  ...
+        ...
+        = explicit_INS_stim_params(...
+        ...
+    cfg, INS_logs.RCS02R.group_changes, db.RCS02R, REDcap.RCS02, visits.RCS02);
+
+
 %%
+%
+%
+%
+%
+
+
+
 
 
 

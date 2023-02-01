@@ -315,8 +315,24 @@ for p = 1:numel(pt_id_list)
 
     if ~contains(pt_id, {'STREAMING', 'Weekly', 'Monthly'}) 
         
+        vars = alltable.Properties.VariableNames;        
+
+        % if column was imported as cell array--> parse doubles and
+        % datetimes as their own arrays
+
+        for i=1:length(vars)
+
+            if iscell(alltable.(vars{i}))
+                if ~ischar(alltable.(vars{i}){1}) % character arrays are fine in cells
+
+                    alltable.(vars{i}) = [alltable.(vars{i}){:}]';
+
+                end
+            end
+        end
+
         timestampvars = ...
-            alltable.Properties.VariableNames(find(contains(alltable.Properties.VariableNames,'timestamp')) );
+            vars(find(contains(alltable.Properties.VariableNames,'timestamp')));
         
 
         %FOR PAIN SCORE ARMS

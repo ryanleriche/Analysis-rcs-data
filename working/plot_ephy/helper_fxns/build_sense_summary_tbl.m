@@ -1,9 +1,9 @@
-function ...
-    [app_ss_tbl, proc_app_log, td_fft_pm_ld_state_stim_tbl]...
-    ...
-    = build_sense_summary_tbl(...
-    ...
-    db_RCSXXX, proc_app_log)
+% function ...
+%     [app_ss_tbl, proc_app_log, td_fft_pm_ld_state_stim_tbl]...
+%     ...
+%     = build_sense_summary_tbl(...
+%     ...
+%     db_RCSXXX, proc_app_log)
 %%
 %{
 take every sub-setting (i.e., time-domain, FFT, power-band, linear discrinant,
@@ -25,8 +25,8 @@ subsequent plotting/analysis of aDBS settings
 %%% uncomment these to trouble-shoot as script:
 
 
-% db_RCSXXX    = db.RCS02R;
-% proc_app_log = INS_logs.RCS02R.app;
+db_RCSXXX    = db.RCS02R;
+proc_app_log = INS_logs.RCS02R.app;
 
 
 %% Expand DetectorSettings (i.e., the LD parameters)
@@ -385,11 +385,15 @@ i_emp = cellfun(@isempty,...
 td_fft_pm_ld_state_stim_tbl(i_emp,:) = [];
 
 % earliest timeStart minus latest timeStop
-td_fft_pm_ld_state_stim_tbl.timeStart = cellfun(@(x) x(1),   td_fft_pm_ld_state_stim_tbl.timeStart);
-td_fft_pm_ld_state_stim_tbl.timeStop  = cellfun(@(x) x(end), td_fft_pm_ld_state_stim_tbl.timeStop);
+% --> respecify TimeZone due to low-level assumption of SAME UTC offset which
+%     neglects daylight savings
+td_fft_pm_ld_state_stim_tbl.timeStart          = cellfun(@(x) x(1),   td_fft_pm_ld_state_stim_tbl.timeStart);
+td_fft_pm_ld_state_stim_tbl.timeStart.TimeZone = 'America/Los_Angeles';
 
-td_fft_pm_ld_state_stim_tbl.duration = td_fft_pm_ld_state_stim_tbl.timeStop - td_fft_pm_ld_state_stim_tbl.timeStart;
+td_fft_pm_ld_state_stim_tbl.timeStop           = cellfun(@(x) x(end), td_fft_pm_ld_state_stim_tbl.timeStop);
+td_fft_pm_ld_state_stim_tbl.timeStop.TimeZone  = 'America/Los_Angeles';
 
+td_fft_pm_ld_state_stim_tbl.duration           = td_fft_pm_ld_state_stim_tbl.timeStop - td_fft_pm_ld_state_stim_tbl.timeStart;
 
 td_fft_pm_ld_state_stim_tbl = sortrows(td_fft_pm_ld_state_stim_tbl, 'timeStart');
 %%%
@@ -433,7 +437,7 @@ end
 
 var_oi  = {'chanFullStr', ...
          'bandFormationConfig', 'interval', 'size','streamSizeBins','streamOffsetBins', 'windowLoad',...
-         'powerBandinHz', 'powerBinInHz','LD0', 'LD1', 'therapyStatus'};
+         'powerBandinHz', 'powerBinInHz','LD0', 'LD1'};
 
 
 u_aDBS_Settings = exp_sense_state_vars(...
@@ -478,4 +482,4 @@ app_ss_tbl   = td_fft_pm_ld_state_stim_tbl(i_sess_oi, :);
 % TD_FFT_PB_LD_State_stim_tbl.RCS02R  = td_fft_pm_ld_state_stim_tbl;
 
 
-end
+%end

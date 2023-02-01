@@ -1,8 +1,8 @@
 cfg             = [];
 cfg.pt_id       = 'RCS02';
 
-cfg.dates       = 'AllTime';
-%cfg.date_range  = {'20-Dec-2022', '24-Jan-2023'};
+cfg.dates       = 'DateRange';
+cfg.date_range  = {'20-Dec-2022', '31-Jan-2023'};
 
 cfg.save_dir    = [github_dir, 'Analysis-rcs-data/working/plot_ephy/aDBS_offline_sessions/'];
 
@@ -63,12 +63,14 @@ if ~isfolder(save_dir)
     mkdir(save_dir);
 
 end
-
+%%
 close all
 set(0,'DefaultFigureVisible','off')
 u_settings  = unique(app_oi.sess_w_same_settings);
 
-for i= 1 : 12%length(u_settings)
+%tmp_tbl = ss_tbl_oi([252,253], :)
+
+for i= 2: length(u_settings)
     
     i_ss           = find(ss_tbl_oi.sess_w_same_settings == u_settings(i));
     
@@ -93,7 +95,9 @@ for i= 1 : 12%length(u_settings)
 %     end
 
 
-    if ge(plt_app_oi.time_INS(end) -plt_app_oi.time_INS(1) , duration('00:10:00'))
+    if ge(plt_app_oi.time_INS(end) -plt_app_oi.time_INS(1) , duration('00:10:00')) &&...
+            le(plt_app_oi.time_INS(end) -plt_app_oi.time_INS(1) , duration('07:00:00:00'))
+
         t_in_state   = diff([NaT(1,1,'TimeZone', 'America/Los_Angeles'); plt_app_oi.time_INS]);
         
         
@@ -151,6 +155,8 @@ for i= 1 : 12%length(u_settings)
                         'Ch2_chanOut', 'Ch2_powerBinInHz4', 'Ch2_powerBinInHz5',...
                         'Ch3_chanOut', 'Ch3_powerBinInHz6', 'Ch3_powerBinInHz7'};
         
+
+
         vars          = table2cell(plt_ss_tbl_oi(1,  by_chans_pb));
         
         by_ch_pb_meta = sprintf(['Ch0 | %s',newline,...
@@ -182,14 +188,15 @@ for i= 1 : 12%length(u_settings)
         
         ld_meta_cell    = table2cell(plt_ss_tbl_oi(1,  plt_ld_vars));
         
-        by_ld_meta      = cellfun(@(x,y) [x, ' | ', num2str(y)], ...
+        by_ld_meta      = cellfun(@(x,y) [x(5:end), ' | ', num2str(y)], ...
                                   plt_ld_vars, ld_meta_cell,...
                                   'UniformOutput',false);
         
         str_form = repmat(['%s', newline], 1, length(by_ld_meta));
         
         
-        ld0_meta = sprintf(str_form, by_ld_meta{:});
+        ld0_meta = sprintf(['LD0\n',str_form], by_ld_meta{:});
+        
         
         %%%
         ld1_vars  = all_vars(contains(all_vars, {'LD1'}) & ... 
@@ -203,14 +210,14 @@ for i= 1 : 12%length(u_settings)
         
         ld_meta_cell    = table2cell(plt_ss_tbl_oi(1,  plt_ld_vars));
         
-        by_ld_meta      = cellfun(@(x,y) [x, '    | ', num2str(y)], ...
+        by_ld_meta      = cellfun(@(x,y) [x(5:end), '    | ', num2str(y)], ...
                                   plt_ld_vars, ld_meta_cell,...
                                   'UniformOutput',false);
         
         str_form = repmat(['%s', newline], 1, length(by_ld_meta));
         
         
-        ld1_meta = sprintf(str_form, by_ld_meta{:});
+        ld1_meta = sprintf(['LD1\n',str_form], by_ld_meta{:});
         
         
         %%%
@@ -222,13 +229,13 @@ for i= 1 : 12%length(u_settings)
         fig_h = subplot(1,1,1);
         fig_h.Position(4) = 0.6;
         
-        scatter(t_vec, movmean(on_off_vec, [30,0]), 5, 'k'); hold on
+        scatter(t_vec, movmean(on_off_vec, [6,0]), 5, 'k'); hold on
         
         plot(t_vec, movmean(on_off_vec, [120,0]), 'k');
     
         ylabel(['Percent time ON', newline,'(stim amplitude > 0 mA)'], 'FontSize',18)
         
-        ylim([0,40]);
+        ylim([0,100]);
     
         yyaxis right
     
@@ -290,9 +297,8 @@ for i= 1 : 12%length(u_settings)
     
         exportgraphics(gcf, [save_dir,filename]);
     end
-end
 
-  
+end  
 % 
 % ld0_bias0 = sprintf('%.0f, ' ,round(logspace(log10(11500), log10(512812), 4),-3))
 % ld0_bias0 = ld0_bias0(1:end-2)
