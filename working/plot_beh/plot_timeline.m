@@ -179,11 +179,9 @@ switch cfg.pt_id(7:end)
      ylabel('Numeric Rating Scale');     ylim([0,10]); yticks(1:2:10);
          
      if ~strcmp(cfg.pt_id, {'RCS06', 'RCS07'})
-        nrs_str    =  ['NRS Intensity', newline,sprintf('  (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
-                                  sum_stats.mayoNRS({'mean','std',  'min', 'max'}))];
+        nrs_str    =  ['NRS Intensity'];
 
-        nrs_wrs_str =  ['NRS Worst Intensity', newline,sprintf('   (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
-                                  sum_stats.worstNRS({'mean','std',  'min', 'max'}))];
+        nrs_wrs_str =  ['NRS Worst Intensity'];
 
 
         legend({'',nrs_str , nrs_wrs_str,''}, 'Location','northeastoutside'); 
@@ -282,14 +280,11 @@ switch cfg.pt_id(7:end)
      else
 
 
-        vas_str    =  ['VAS Intensity', newline,sprintf('   (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
-                                  sum_stats.painVAS({'mean','std',  'min', 'max'}))];
+        vas_str    =  ['VAS Intensity'];
 
-        vas_unp_str =  ['VAS Upleasantness', newline,sprintf('  (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
-                                  sum_stats.unpleasantVAS({'mean','std',  'min', 'max'}))];
+        vas_unp_str =  ['VAS Upleasantness'];
 
-        vas_wrs_str =  ['VAS Worst', newline,sprintf('  (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
-                                  sum_stats.worstVAS({'mean','std',  'min', 'max'}))];
+        vas_wrs_str =  ['VAS Worst'];
 
         legend({vas_str, '', vas_unp_str, vas_wrs_str}, 'Location','northeastoutside'); 
      
@@ -343,8 +338,7 @@ switch cfg.pt_id(7:end)
     
     ylabel('McGill Pain Questionaire');     ylim([0,45]); yticks(0:15:45)
     
-    mpq_str    =  ['MPQ Total', newline,sprintf('   (%0.2f ± %0.2f (min %0.0f, max %0.0f))',...
-                                  sum_stats.MPQtotal({'mean','std',  'min', 'max'}))];
+    mpq_str    =  ['MPQ Total'];
 
     mpq_som_str    =  ['MPQ Somatic'];
     mpq_aff_str    =  ['MPQ Affective'];
@@ -658,12 +652,20 @@ function format_plot()
             'HandleVisibility','off');
 
     elseif length(cfg.stage_dates) == 2
-        xline(t, '-', {'Stage 1', 'Stage 2'},...
+        xline(t(1), '-', {'Stage 1'},...
+            'HandleVisibility','off');
+        
+        xline(t(2), '-', {'Stage 2'},...
             'HandleVisibility','off');
 
     else
-        xline(t, '-', ...
-            {'Stage 1', 'Stage 2', 'Stage 3'},...
+         xline(t(1), '-', {'Stage 1'},...
+            'HandleVisibility','off');
+        
+        xline(t(2), '-', {'Stage 2'},...
+            'HandleVisibility','off');
+       
+         xline(t(3), '-', {'Stage 3'},...
             'HandleVisibility','off');
     
     end

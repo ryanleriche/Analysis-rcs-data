@@ -320,10 +320,15 @@ for p = 1:numel(pt_id_list)
         % if column was imported as cell array--> parse doubles and
         % datetimes as their own arrays
 
+
         for i=1:length(vars)
 
             if iscell(alltable.(vars{i}))
-                if ~ischar(alltable.(vars{i}){1}) % character arrays are fine in cells
+                if contains(vars{i}, 'timestamp')
+                    
+                    alltable.(vars{i}) = datetime(alltable.(vars{i}));    
+                
+                elseif ~ischar(alltable.(vars{i}){1}) % character arrays are fine in cells
 
                     alltable.(vars{i}) = [alltable.(vars{i}){:}]';
 
@@ -471,9 +476,28 @@ for p = 1:numel(pt_id_list)
         
     elseif ~contains(pt_id, {'Weekly', 'Monthly'}) 
         %FOR STREAMING NOTES ARMS
+        vars = alltable.Properties.VariableNames;
+
+         for i=1:length(vars)
+
+            if iscell(alltable.(vars{i}))
+                if contains(vars{i}, 'timestamp')
+                    
+                    alltable.(vars{i}) = datetime(alltable.(vars{i}));    
+                
+                elseif ~ischar(alltable.(vars{i}){1}) % character arrays are fine in cells
+
+                    alltable.(vars{i}) = [alltable.(vars{i}){:}]';
+
+                end
+            end
+         end
         
-        timevarNAME = alltable.Properties.VariableNames( ...
+         timevarNAME = alltable.Properties.VariableNames( ...
             contains(alltable.Properties.VariableNames,'timestamp'));
+        
+        
+        
         
         keeprows = strcmp(alltable.redcap_event_name, PATIENT_ARM) & ...
             (arrayfun(@(x) ~isnat(x),alltable.(timevarNAME{1})));

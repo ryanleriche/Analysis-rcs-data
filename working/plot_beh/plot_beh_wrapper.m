@@ -1,9 +1,7 @@
 %% user-inputs
 % where RCS files are saved from PIA server
-pia_raw_dir     = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/raw/';
 
 % where 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
-github_dir      = '/Users/Leriche/Github/';
 
 % where DropBox desktop is saved locally
 dropbox_dir     = ['/Users/Leriche/Dropbox (UCSF Department of Neurological Surgery)/',...
@@ -17,7 +15,6 @@ rcs_API_token   = '95FDE91411C10BF91FD77328169F7E1B';
 pcs_API_token   = 'DB65F8CB50CFED9CA5A250EFD30F10DB';
 
 % pulls/organizes arms from REDcap (go into fxn to add new arms)
-cd([github_dir, 'Analysis-rcs-data/working']);         
 
 addpath(genpath([github_dir, 'Analysis-rcs-data/']));
 
@@ -35,15 +32,27 @@ REDcap                 = RCS_redcap_painscores(rcs_API_token);
 % last 7 days for: 
 cfg                     = [];
 
-cfg.pt_id               = 'RCS04';
+cfg.pt_id               = 'RCS05';
 cfg.dates               = 'PreviousDays';
 cfg.ndays               = 10;
 
 cfg.subplot             = true;
-cfg.sum_stat_txt        = true;
 cfg.stim_parameter      = '';
 
     plot_timeline(cfg, REDcap);
+    
+    
+cfg                     = [];
+
+cfg.pt_id               = 'RCS06';
+cfg.dates               = 'PreviousDays';
+cfg.ndays               = 10;
+
+cfg.subplot             = true;
+cfg.stim_parameter      = '';
+
+    plot_timeline(cfg, REDcap);
+
 
 
 
