@@ -141,14 +141,12 @@ db_out      = struct('rec',[],...
 % needed, so as not to replicate whole thing.
 % Can be turned off with third input 'ignoreold'
 
-proc_cfg.raw_dir      = [cfg.raw_dir(1:end-4), 'processed/databases/'];
-
-outputFileName    = fullfile(proc_cfg.raw_dir,[cfg.pt_id_side '_database.mat']);
+outputFileName    = fullfile(cfg.proc_dir,[cfg.pt_id_side '_database.mat']);
 
 
 if isfile(outputFileName) && ~cfg.ignoreold
 
-    disp('Loading previously saved database');
+    fprintf('%s | Loading previously saved database', cfg.pt_id_side);
     D = load(outputFileName,'RCSdatabase_out','badsessions');
 
     old_database         = D.RCSdatabase_out;
@@ -161,7 +159,7 @@ if isfile(outputFileName) && ~cfg.ignoreold
 
     if isempty(sess_dirs)
 
-        fprintf("No new data to add!  Existing database returned \n")
+        fprintf('%s | No new data to add!  Existing database returned \n', cfg.pt_id_side)
         RCSdatabase_out = old_database;
         varargout{1}= old_badsessions;
 
@@ -170,20 +168,20 @@ if isfile(outputFileName) && ~cfg.ignoreold
 
 elseif isfile(outputFileName) && cfg.ignoreold
 
-    disp('Ignoring previous database(s) and compiling from scratch...')
+    fprintf('%s |Ignoring previous database(s) and compiling from scratch...', cfg.pt_id_side);
     old_database= [];
 
 else
 
-    disp('Compiling database from scratch...')
+   fprintf('%s | Compiling database from scratch...', cfg.pt_id_side)
     old_database= [];
 
 end
 
-%d = find(contains(sess_dirs, 'Session1673830359519'))
+%d = find(contains(sess_dirs, 'Session1675735974039'))
 
 %%
-for d = 1: length(sess_dirs)
+for d = 1 : length(sess_dirs)
 
     % run through all of sessions (aDBS then SCBS sessions)
     given_sess = findFilesBVQX(sess_dirs{d},'Device*',struct('dirs',1,'depth',1));
@@ -280,6 +278,8 @@ for d = 1: length(sess_dirs)
             end
         end
 
+
+
         
         try
 
@@ -364,7 +364,23 @@ for d = 1: length(sess_dirs)
 
         catch
         end
+
+        % use TimeSync.json to address INS log to API time latency
+        TimeSync_filename = findFilesBVQX(sess_dirs{d},'TimeSync.json');
+        try
+            if ~isempty(TimeSync_filename)
         
+                db_out(d).INS_API_latency  = INS_API_TimeSync(TimeSync_filename{1});
+        
+            else
+        
+                db_out(d).INS_API_latency  = {'No entry'};
+            end
+    
+        catch
+            db_out(d).INS_API_latency = {'Error'};
+    
+        end
     end
 end
 
@@ -385,19 +401,26 @@ RCSdatabase_out         = sortrows(database_out, 'sess_name'); %sorting by sessi
 % when database does not have any missing fields it is returned as a struct
 % array rather than a cell array of structures
 
-if isstruct(RCSdatabase_out.metaData)
+var_class = varfun(@class, RCSdatabase_out, "OutputFormat","cell");
+var_names = RCSdatabase_out.Properties.VariableNames;
 
-% -> meaning we need to convert to a cell array of structures before we
-% concatenate with the previous database
+for i=1:length(var_class)
+        
+    if any(...
+            strcmp(var_class{i}, {'struct', 'datetime', 'duration', 'table'}))
 
-    for i = 1: height(RCSdatabase_out)
+        % -> meaning we need to convert to a cell array of structures before we
+        % concatenate with the previous database
 
-        RCSdatabase_out.metaData_new(i) = {RCSdatabase_out.metaData(i)};
-    end
+        for j = 1: height(RCSdatabase_out)
+    
+            RCSdatabase_out{j, [var_names{i},'_new']} = {RCSdatabase_out{j, var_names{i}}}; %#ok<CCAT1> 
+        end
 
-    RCSdatabase_out = removevars(RCSdatabase_out , 'metaData');
+        RCSdatabase_out = removevars(RCSdatabase_out , var_names{i});
+        RCSdatabase_out = renamevars(RCSdatabase_out ,[var_names{i},'_new'], var_names{i});
 
-    RCSdatabase_out = renamevars(RCSdatabase_out ,'metaData_new', 'metaData');
+    end        
 end
 
 %% clear empty session rows and assign to new variable 'badsessions'
@@ -477,14 +500,14 @@ if nargout == 2
 end
 
 % Rename file to include patient ID
-% writetable(RCSdatabase_out,fullfile(proc_cfg.raw_dir,[cfg.pt_id_side...
+% writetable(RCSdatabase_out,fullfile(cfg.proc_dir,[cfg.pt_id_side...
 %     '_database.csv']));
 
-save(fullfile(proc_cfg.raw_dir,[cfg.pt_id_side '_database.mat']),...
+save(fullfile(cfg.proc_dir,[cfg.pt_id_side '_database.mat']),...
     'RCSdatabase_out','badsessions');
 
 fprintf('mat of database saved as %s to %s \n',...
-    [cfg.pt_id_side '_database.mat'],proc_cfg.raw_dir);
+    [cfg.pt_id_side '_database.mat'],cfg.proc_dir);
 
 %==================================================================
 

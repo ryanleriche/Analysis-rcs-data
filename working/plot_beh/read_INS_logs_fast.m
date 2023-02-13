@@ -196,8 +196,8 @@ elseif endsWith(fn, "AppLog.txt")
     
     if ~isempty(events)
         aDBS_log_tbl      = table('Size', [length(events) 10],...
-            'VariableTypes',{'datetime','double','double','double','double','double','double','double','double','cell'},...
-            'VariableNames',{'time','status','newstate','oldstate','prog0mA','prog1mA','prog2mA','prog3mA','rateHz','event_id'});
+            'VariableTypes',{'datetime',   'double',   'double',  'double', 'double', 'double', 'double',' double','double','cell'},...
+            'VariableNames',{    'time',    'status','newstate','oldstate','prog0mA','prog1mA','prog2mA','prog3mA','rateHz','event_id'});
         
         
         aDBS_log_tbl.time  = get_date_from_hexstring(events); % see subfunction below
@@ -428,15 +428,14 @@ function newstr_out = get_newstr(tempstr_input)
 end
 
 function date_out  = get_date_from_hexstring(events_input)
-xpr0 = 'Seconds = ';
-cac11 = cellfun(@(x) regexp(x, xpr0),events_input,'UniformOutput',false);
-xpr0 = 'DateTime = ';
-cac22 = cellfun(@(x) regexp(x, xpr0),events_input,'UniformOutput',false);
-
-hexstr0 = cellfun(@(x,a,b) x(a+12:b-3),events_input,cac11,cac22,'UniformOutput',false);
-
-rawsecs0 = hex2dec(hexstr0);
-date_out = datetime(datevec(rawsecs0./86400 + datenum(2000,3,1,0,0,0))); % medtronic time - least signififant bit (LSB) is seconds
-
+    xpr0 = 'Seconds = ';
+    cac11 = cellfun(@(x) regexp(x, xpr0),events_input,'UniformOutput',false);
+    xpr0 = 'DateTime = ';
+    cac22 = cellfun(@(x) regexp(x, xpr0),events_input,'UniformOutput',false);
+    
+    hexstr0 = cellfun(@(x,a,b) x(a+12:b-3),events_input,cac11,cac22,'UniformOutput',false);
+    
+    rawsecs0 = hex2dec(hexstr0);
+    date_out = datetime(datevec(rawsecs0./86400 + datenum(2000,3,1,0,0,0))); % medtronic time - least signififant bit (LSB) is seconds
 end
 end

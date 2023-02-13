@@ -1,7 +1,9 @@
 %% user-inputs
 % where RCS files are saved from PIA server
+pia_dir     = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/';
 
 % where 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
+github_dir      = '/Users/Leriche/Github/';
 
 % where DropBox desktop is saved locally
 dropbox_dir     = ['/Users/Leriche/Dropbox (UCSF Department of Neurological Surgery)/',...
@@ -15,18 +17,20 @@ rcs_API_token   = '95FDE91411C10BF91FD77328169F7E1B';
 pcs_API_token   = 'DB65F8CB50CFED9CA5A250EFD30F10DB';
 
 % pulls/organizes arms from REDcap (go into fxn to add new arms)
+cd([github_dir, 'Analysis-rcs-data/working']);         
 
 addpath(genpath([github_dir, 'Analysis-rcs-data/']));
+addpath(genpath([github_dir, 'rcs-simulation/']));
 
-REDcap                 = RCS_redcap_painscores(rcs_API_token);
+
+REDcap                  = RCS_redcap_painscores(rcs_API_token);
 
 % stage dates and, home/clinic visits for RCS pts 1-7 w/ brief descriptions
-[visits, stage_dates]  = make_visit_dates;
+[visits, stage_dates]   = make_visit_dates;
 
 
 % need to further distill by pts initals
 % fluct                 = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
-
 
 %%
 % last 7 days for: 
@@ -52,11 +56,7 @@ cfg.subplot             = true;
 cfg.stim_parameter      = '';
 
     plot_timeline(cfg, REDcap);
-
-
-
-
-%% import RCS databases per pt side
+%% import RCS databases, and INS logs per pt side
 %{
 
 * saves RCS session summaries as databases (db) in struct per pt side
@@ -70,45 +70,129 @@ limits, and electrode polarity are programmed separately for each program within
 program within the group can have different values). Pulse width limits, rate, rate limits, SoftStart/Stop,
 Cycling, and Active Recharge are programmed for each group (ie, each program within the group will have
 the same values)."
+
 %}
 
 cfg                    = [];
-cfg.load_EventLog      = false;
+cfg.load_EventLog      = true;
 cfg.ignoreold          = false;
-cfg.raw_dir            = pia_raw_dir;
+cfg.raw_dir            = [pia_dir, 'raw/'];
+
+% specify which patient's INS
+pt_sides               = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
 
 
-pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R',...
-                          'RCS06L','RCS06R','RCS07L','RCS07R'};
+for i =  1:length(pt_sides)
 
-for i = 1 : length(pt_sides)
+    % process RCS .jsons into searchable database
+    cfg.pt_id_side                     = pt_sides{i};
+    cfg.proc_dir           = [pia_dir, 'processed/databases/'];
 
-    cfg.pt_id                       = pt_sides{i}(1:end-1);
-
-    [db.(pt_sides{i}), bs.(pt_sides{i})] ...
+    [db.(pt_sides{i}), bs.(pt_sides{i})]...
         ...
-        =  makeDatabaseRCS_Ryan(...
+        =  makeDatabaseRCS_Ryan(cfg);
+
+    % now INS logs--inital run can take 15-30 minutes
+    cfg.proc_dir           = [pia_dir, 'processed/INS_logs/'];
+
+    INS_logs.(pt_sides{i})...
         ...
-    cfg, (pt_sides{i}));
+        = RCS_logs(cfg);
 
 end
-%% from databases, parse through StimLog.json files and align to REDcap
 
-for i = 1 : length(pt_sides)
-    cfg.pt_id                       = pt_sides{i}(1:end-1);
-    cfg.stage_dates                 = stage_dates{str2double(pt_sides{i}(end-1))};
+%% unpack all sense, LD, and stimulation settings as own variable in table
+% --> allows for programmatic discernment of unique RC+S settings
 
-    if ~strcmp(pt_sides{i}, 'RCS02R')
+pt_sides        = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
 
-        [stimLog.(pt_sides{i}), REDcap.(pt_sides{i})] ...
-            ...
-            = align_REDcap_to_stimLog(...
-            ...
-        cfg, db.(pt_sides{i}), REDcap.(pt_sides{i}(1:end-1)));
 
-    end
+cfg                    = [];
+cfg.ignoreold          = true;
+cfg.raw_dir            = [pia_dir, 'raw/'];
+cfg.proc_dir           = [pia_dir, 'processed/parsed_databases/'];
+
+
+for i= 1:length(pt_sides)
+
+    cfg.pt_id_side = pt_sides{i};
+
+
+    [par_db.(pt_sides{i}), ss_var_oi.(pt_sides{i})]...
+    ...
+        = makeParsedDatabaseRCS(...
+    ...
+    cfg, db);
+
+
 end
 
+%% find nearest (yet, preceding) streaming session to INS log entry
+%%% --> accounts for INS to API time latnecy
+
+for i=  1: length(pt_sides)
+
+
+   [app_SS_tbl.(pt_sides{i}), INS_logs_proc.(pt_sides{i}), INS_ss_merge_g_changes.(pt_sides{i})] ...
+    ...
+        = align_stream_sess_to_INSLogs(...
+    ...
+    INS_logs.(pt_sides{i}), par_db.(pt_sides{i}), ss_var_oi.(pt_sides{i}));
+end
+
+%% plot aDBS performance in-real time
+cfg             = [];
+cfg.dates       = 'AllTime';
+cfg.save_dir    = [github_dir, 'Analysis-rcs-data/working/plot_ephy/aDBS_offline_sessions/'];
+
+cfg.dates          = 'DateRange';
+cfg.date_range     = {'31-Dec-2022'; '30-May-2023'};
+
+% to avoid figures popping up in MATLAB (see cfg.save_dir for the aDBS longitudinal plots)
+set(0,'DefaultFigureVisible','off')
+
+for i=  1 : length(pt_sides)
+        cfg.pt_id_side = pt_sides{i};
+
+    plot_longitudinal_aDBS(cfg, REDcap, INS_logs_proc, app_SS_tbl, INS_ss_merge_g_changes);
+
+end
+
+%% per streaming session, visualize INS to API latnecy 
+% (i.e., how long is the INS ahead OR behind internet time)
+% commented out since only needs to be checked every month or so
+
+
+
+%{
+%pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R','RCS06L','RCS06R','RCS07L','RCS07R'};
+
+pt_sides               = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
+
+%pt_sides               = {'RCS02R','RCS05L'};
+%pt_sides               = {'RCS02R'};
+
+cfg             = [];
+cfg.dates       = 'AllTime';
+cfg.save_dir    = [github_dir, 'Analysis-rcs-data/working/plot_ephy/aDBS_offline_sessions/'];
+
+for i= 1:length(pt_sides)
+
+    cfg.pt_id_side = pt_sides{i};
+
+    plt_INS_lat_per_session(cfg, db.(pt_sides{i}));
+end
+%}
+
+%%
+%
+%
+%
+%
+%
+%
+%
+%%
 %% RCS02 --> use INS logs to generate more accurate stim groups
 cfg                    = [];
 cfg.rootdir            = pia_raw_dir;

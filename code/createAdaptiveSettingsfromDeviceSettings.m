@@ -40,10 +40,62 @@ for iRecord = 1:length(DeviceSettings)
         % Create variable with Ld0 and Ld1 settings
         if isfield(currentSettings.DetectionConfig,'Ld0')
             Ld0 = currentSettings.DetectionConfig.Ld0;
+                
+            Ld0.powerband_detectionInputs = cell(length(Ld0.detectionInputs),1);
+
+            for i=1:length(Ld0.detectionInputs)
+            
+                switch Ld0.detectionInputs(i)
+                    case 0;   pb  = 'None';
+            
+                    case 1;   pb  = 'Ch0Band0';
+                    case 2;   pb  = 'Ch0Band1';
+            
+                    case 4;   pb  = 'Ch1Band0';
+                    case 8;   pb  = 'Ch1Band1';
+            
+                    case 16;  pb  = 'Ch2Band0';
+                    case 32;  pb  = 'Ch2Band1';
+            
+                    case 64;  pb  = 'Ch3Band0';
+                    case 128; pb  = 'Ch3Band1';   
+                end
+            
+                Ld0.powerband_detectionInputs{i} = pb;
+            
+            end
         end
+
         if isfield(currentSettings.DetectionConfig,'Ld1')
             Ld1 = currentSettings.DetectionConfig.Ld1;
+
+            Ld1.powerband_detectionInputs = cell(length(Ld1.detectionInputs),1);
+            for i=1:length(Ld1.detectionInputs)
+            
+                switch Ld1.detectionInputs(i)
+                    case 0;   pb  = 'None';
+            
+                    case 1;   pb  = 'Ch0Band0';
+                    case 2;   pb  = 'Ch0Band1';
+            
+                    case 4;   pb  = 'Ch1Band0';
+                    case 8;   pb  = 'Ch1Band1';
+            
+                    case 16;  pb  = 'Ch2Band0';
+                    case 32;  pb  = 'Ch2Band1';
+            
+                    case 64;  pb  = 'Ch3Band0';
+                    case 128; pb  = 'Ch3Band1';   
+                end
+            
+                Ld1.powerband_detectionInputs{i} = pb;
+            
+            end
         end
+
+
+
+
         
         % If first record, need to initalize and flag to add entry to table
         if iRecord == 1

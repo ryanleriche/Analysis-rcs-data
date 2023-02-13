@@ -1,9 +1,9 @@
-% function ...
-%     [app_ss_tbl, proc_app_log, td_fft_pm_ld_state_stim_tbl]...
-%     ...
-%     = build_sense_summary_tbl(...
-%     ...
-%     db_RCSXXX, proc_app_log)
+function ...
+    [par_db_RCSXXX, exp_sense_state_vars]...
+    ...
+    = makeParsedDatabaseRCS(...
+    ...
+    cfg, db)
 %%
 %{
 take every sub-setting (i.e., time-domain, FFT, power-band, linear discrinant,
@@ -22,11 +22,59 @@ subsequent plotting/analysis of aDBS settings
 %}
 
 
-%%% uncomment these to trouble-shoot as script:
+%%% uncomment to trouble-shoot as script:
+% cfg                    = [];
+% cfg.ignoreold          = false;
+% cfg.raw_dir            = pia_raw_dir;
+% cfg.pt_id_side         = 'RCS07R';
 
 
-db_RCSXXX    = db.RCS02R;
-proc_app_log = INS_logs.RCS02R.app;
+
+%%
+
+db_RCSXXX             = db.(cfg.pt_id_side);
+
+%% option to add new streaming sessions rather than building from scratch
+outputFileName    = fullfile(cfg.proc_dir,[cfg.pt_id_side '_parsed_database.mat']);
+
+
+if isfile(outputFileName) && ~cfg.ignoreold
+
+    fprintf('%s | Loading previously saved parsed database\n', cfg.pt_id_side);
+
+    old = load(outputFileName,'par_db_RCSXXX');
+
+    % of those databases w/ session names, which of them are already parsed
+    i_parsed_sess         = contains(db_RCSXXX.sess_name(...
+                                        ~cellfun(@isempty,  db_RCSXXX.sess_name)),...
+                                        old.par_db_RCSXXX.sess_name);
+
+    % remove parsed sessions to expedient processing
+    db_RCSXXX(i_parsed_sess(~cellfun(@isempty,  db_RCSXXX.sess_name)),:) = [];
+
+    db_RCSXXX(cellfun(@isempty,  db_RCSXXX.timeStart),:) = [];
+    if isempty(db_RCSXXX)
+
+        fprintf('%s | No new data since %s!\n        --> Existing database returned\n', cfg.pt_id_side, old.par_db_RCSXXX.timeStart(end));
+
+        par_db_RCSXXX        = old.par_db_RCSXXX;
+        
+        % from sess_name -> duration onwards
+        exp_sense_state_vars = old.par_db_RCSXXX.Properties.VariableNames(5:end);
+        return
+
+    else
+        fprintf('%s | new RCS folders from %s --> %s\n', cfg.pt_id_side, db_RCSXXX.timeStart{1}, db_RCSXXX.timeStart{end});
+
+    end
+
+else
+
+    fprintf('%s | Compiling parsed database from scratch\n', cfg.pt_id_side)
+
+end
+
+
 
 
 %% Expand DetectorSettings (i.e., the LD parameters)
@@ -170,8 +218,9 @@ td_vars = TD_tbl.Properties.VariableNames;
 
 % remove sampleRate as every TD channel MUST have same sampleRate and this
 % is parsimonioulsy shown in the FFT settings
-TD_tbl= removevars(TD_tbl, td_vars(contains(td_vars, 'sampleRate')));
+TD_tbl = removevars(TD_tbl, td_vars(contains(td_vars, 'sampleRate')));
 
+TD_tbl = movevars(TD_tbl, {'Ch1_chanFullStr', 'Ch2_chanFullStr', 'Ch3_chanFullStr'}, 'After', 'Ch0_chanFullStr');
 %% expand FFT settings
 i_fftSett    = cellfun(@(x) ~isempty(x), db_RCSXXX.fftSettings);
 tmp_fft      = cellfun(@(x) x(end,:), db_RCSXXX.fftSettings(i_fftSett),...
@@ -200,6 +249,13 @@ tmp_pwr_tbl.sess_name =db_RCSXXX.sess_name(i_pwrSett);
 
 
 tmp_pwrband_tbl = struct2table(tmp_pwr_tbl.powerBands);
+
+if size(tmp_pwrband_tbl.fftBins,2) ~= 1
+
+    tmp_pwrband_tbl.fftBins = num2cell(tmp_pwrband_tbl.fftBins,2);
+
+end
+
 tmp_band_tbl  = table();
 i_ch            = [0 0 1 1 2 2 3 3];
 for i =1:8
@@ -229,7 +285,6 @@ tmp_stim_tbl = db_RCSXXX.stimSettingsOut(i_stimSett);
 tmp_stim_tbl = cellfun(@(x) x(end,:), tmp_stim_tbl, 'UniformOutput', false);
 
 
-
 stim_tbl     = [db_RCSXXX(i_stimSett, {'sess_name'}),...
                 vertcat(tmp_stim_tbl{:})];
 
@@ -247,12 +302,12 @@ for i=1:height(stim_tbl)
 
         [~, i_prev] = min(emp_diff(emp_diff>0));
 
-        stim_tbl(i,Groups) = stim_tbl(i_entry(i_prev), Groups);
 
+        stim_tbl(i,Groups) = stim_tbl(i_entry(i_prev), Groups);
     end
 end
 
-
+%%%
 
 for i =1:4
 
@@ -274,7 +329,7 @@ for i =1:4
         group_prog_tbl.([Groups{i}, Progs{j},'_', 'contacts']) ...
             ...
             = cellfun(@(x) ...
-            [num2str(x.anodes{j}),'+', num2str(x.cathodes{j}),'-'], tmp_group.contacts, ...
+            ['+',num2str(x.anodes{j}), '-', num2str(x.cathodes{j})], tmp_group.contacts, ...
                        'UniformOutput', false);
 
         if i ==1
@@ -301,6 +356,18 @@ i_grp_struct = any(vertcat(i_grp_struct{:}));
 
 
 stim_tbl(:, i_grp_struct) = [];
+%% from TimeSync.json, return mean INS latency per session (INS time - API time)
+
+i_TimeSync          = find(cellfun(@isstruct, db_RCSXXX.INS_API_latency));
+
+
+INS_lat_tbl = [db_RCSXXX(i_TimeSync, {'sess_name'})...
+                        ...
+              renamevars(struct2table([db_RCSXXX.INS_API_latency{i_TimeSync}]),...
+              {'mean', 'std', 'max', 'min'},...
+               {'INS_lat_mean', 'INS_lat_std', 'INS_lat_max', 'INS_lat_min'})];
+
+
 %% combine all expanded settings into summary table based off of Session name
 
 % make sumary table based on sub-table that has GREATEST N sessions
@@ -308,7 +375,7 @@ stim_tbl(:, i_grp_struct) = [];
 
 setting_tbls    = {TD_tbl,  fftSett_tbl, power_band_tbl, ...
                    LD_State_tbl, state_delta_tbl,...
-                   stim_tbl};
+                   stim_tbl, INS_lat_tbl};
 
 
 sess_name       = unique([TD_tbl.sess_name;...
@@ -316,7 +383,8 @@ sess_name       = unique([TD_tbl.sess_name;...
                           power_band_tbl.sess_name; ...
                           LD_State_tbl.sess_name; ...
                           state_delta_tbl.sess_name;...
-                          stim_tbl.sess_name]);
+                          stim_tbl.sess_name;...
+                          INS_lat_tbl.sess_name]);
 
 tmp_tbl          = table(sess_name);
 
@@ -329,10 +397,12 @@ pwr_vars        = power_band_tbl.Properties.VariableNames(2:end);
 ld_vars         = LD_State_tbl.Properties.VariableNames(2:end);
 state_vars      = state_delta_tbl.Properties.VariableNames(2:end);
 
+INS_lat_vars    = INS_lat_tbl.Properties.VariableNames(2:end); 
 
 % from sub-tbls, determine variable names and class (cell, struct, double,  etc)
 % to build summary table
-comp_sense_state_vars       =  {td_vars, fft_vars, pwr_vars, ld_vars, state_vars, stim_vars};
+comp_sense_state_vars       =  {td_vars, fft_vars, pwr_vars, ld_vars, ...
+                                state_vars, stim_vars, INS_lat_vars};
 
 sense_state_class      = cellfun(@(x) varfun(@class, x(:,2:end), 'OutputFormat','cell'), ...
                                  setting_tbls, 'UniformOutput', false);
@@ -341,7 +411,7 @@ sense_state_class      = [sense_state_class{:}];
 exp_sense_state_vars         = [comp_sense_state_vars{:}];
 
 % initalize and then fill
-td_fft_pm_ld_state_stim_tbl = [tmp_tbl, ...
+par_db_RCSXXX = [tmp_tbl, ...
                       table('Size', [height(tmp_tbl), length(exp_sense_state_vars)],...
                             'VariableTypes', sense_state_class,...
                             'VariableNames',exp_sense_state_vars)];
@@ -352,134 +422,108 @@ for i =1:length(setting_tbls)
     sett_tbl = setting_tbls{i};
     i_entry  = find(ismember(tmp_tbl.sess_name, sett_tbl.sess_name));
 
-    td_fft_pm_ld_state_stim_tbl(i_entry, comp_sense_state_vars{i}) = sett_tbl(:, comp_sense_state_vars{i});
+    par_db_RCSXXX(i_entry, comp_sense_state_vars{i}) = sett_tbl(:, comp_sense_state_vars{i});
 
 end
 
 %% organize/clean-up summary table
-% fill in empty entries explicitly for easier parsing going forward
+% fill in empty entries from previous non-empty for easier parsing going forward
 for i=1:length(exp_sense_state_vars)
 
-    if iscell(td_fft_pm_ld_state_stim_tbl{:,exp_sense_state_vars(i)})
+    var_oi = par_db_RCSXXX{:,exp_sense_state_vars(i)};
+    if iscell(var_oi)
 
-        i_empty = find(cellfun(@isempty,...
-                          td_fft_pm_ld_state_stim_tbl{:,exp_sense_state_vars(i)}...
-                         ));
+        tf_empty =  cellfun(@isempty, var_oi);
 
-       td_fft_pm_ld_state_stim_tbl{i_empty,exp_sense_state_vars(i)} = {'Empty Entry'};
+        i_empty  = find(tf_empty);
+        i_fill   = find(~tf_empty);
+
+        for j=1:length(i_empty)
+
+            diffs = i_empty(j) - i_fill;
+
+            [~, i_prev] = min(diffs(diffs>0));
+
+            if ~isempty(i_prev)
+
+                par_db_RCSXXX{i_empty(j),exp_sense_state_vars(i)} ...
+                     = ...
+                var_oi(i_fill(i_prev));
+
+            end
+        end
+
+    elseif isduration(var_oi)
+
+         % for durations of '0:00:00' just put in NaN
+         var_oi(eq(var_oi, duration('0:00:00')))   = NaN;
+
+         par_db_RCSXXX{:,exp_sense_state_vars(i)}  = var_oi;
 
     end
 end
 
-% bring in session path, timeStart, timeStop, and duration
-i_raw_tbl = ismember(db_RCSXXX.sess_name, td_fft_pm_ld_state_stim_tbl.sess_name);
+%% bring in session path, timeStart, timeStop, and duration
+i_raw_tbl = ismember(db_RCSXXX.sess_name, par_db_RCSXXX.sess_name);
 
-td_fft_pm_ld_state_stim_tbl = [td_fft_pm_ld_state_stim_tbl(:, 'sess_name'),...
+par_db_RCSXXX = [par_db_RCSXXX(:, 'sess_name'),...
                             db_RCSXXX(i_raw_tbl, {'path', 'timeStart', 'timeStop','duration'}),...
-                            td_fft_pm_ld_state_stim_tbl(:, 2:end)];
+                            par_db_RCSXXX(:, 2:end)];
 
 
 i_emp = cellfun(@isempty,...
-                td_fft_pm_ld_state_stim_tbl.timeStart);
+                par_db_RCSXXX.timeStart);
 
-td_fft_pm_ld_state_stim_tbl(i_emp,:) = [];
+par_db_RCSXXX(i_emp,:) = [];
 
 % earliest timeStart minus latest timeStop
 % --> respecify TimeZone due to low-level assumption of SAME UTC offset which
 %     neglects daylight savings
-td_fft_pm_ld_state_stim_tbl.timeStart          = cellfun(@(x) x(1),   td_fft_pm_ld_state_stim_tbl.timeStart);
-td_fft_pm_ld_state_stim_tbl.timeStart.TimeZone = 'America/Los_Angeles';
+par_db_RCSXXX.timeStart          = cellfun(@(x) x(1),   par_db_RCSXXX.timeStart);
+par_db_RCSXXX.timeStart.TimeZone = 'America/Los_Angeles';
 
-td_fft_pm_ld_state_stim_tbl.timeStop           = cellfun(@(x) x(end), td_fft_pm_ld_state_stim_tbl.timeStop);
-td_fft_pm_ld_state_stim_tbl.timeStop.TimeZone  = 'America/Los_Angeles';
+par_db_RCSXXX.timeStop           = cellfun(@(x) x(end), par_db_RCSXXX.timeStop);
+par_db_RCSXXX.timeStop.TimeZone  = 'America/Los_Angeles';
 
-td_fft_pm_ld_state_stim_tbl.duration           = td_fft_pm_ld_state_stim_tbl.timeStop - td_fft_pm_ld_state_stim_tbl.timeStart;
+par_db_RCSXXX.duration           = par_db_RCSXXX.timeStop - par_db_RCSXXX.timeStart;
 
-td_fft_pm_ld_state_stim_tbl = sortrows(td_fft_pm_ld_state_stim_tbl, 'timeStart');
-%%%
+
+
+%% COMBINE WITH OLD DATABASE
+% IF the old database existed, recombine with new database and sort it
+% but first fix cell/ mat class issues
+
+ if exist('old', 'var')
+
+      if ~isempty(par_db_RCSXXX)
+
+            par_db_RCSXXX = [old.par_db_RCSXXX; par_db_RCSXXX];
+      else
+            par_db_RCSXXX = old.par_db_RCSXXX;
+
+            disp(['Database as of ', datestr(par_db_RCSXXX.timeStart(1)), '; ',...
+            datestr(par_db_RCSXXX.timeStart(end)),'---no new files since ALL were empty'])
+      end
+ end
+
+par_db_RCSXXX = sortrows(par_db_RCSXXX, 'timeStart');
+
+
+
 %%
-%%%%%%%%%%%
-%{
- with TD, FFT, power-bands, LD, and aDBS States, aligned and parsed from streamming sessions
+writetable(par_db_RCSXXX,fullfile(cfg.proc_dir,[cfg.pt_id_side...
+    '_parsed_database.xlsx']));
 
-   --> flesh-out aDBS offline session parameters, from previous streaming session
-%}
-%%%%%%%%%%%%
-%% from nearest previous streaming session to INS log entry
+save(fullfile(cfg.proc_dir,[cfg.pt_id_side '_parsed_database.mat']),...
+    'par_db_RCSXXX');
 
-% more explicit naming
-proc_app_log = renamevars(proc_app_log,  'time', 'time_INS');
+fprintf('%s | parsed database saved to %s%s_parsed_database.mat\n',...
+    cfg.pt_id_side, cfg.proc_dir, cfg.pt_id_side);
 
-tmp_ss_tbl   = td_fft_pm_ld_state_stim_tbl(...
-                   strcmp(td_fft_pm_ld_state_stim_tbl.activeGroup, 'D'), :);
-for i = 1 : height(proc_app_log)
+ 
 
-    t_diff   =  proc_app_log.time_INS(i) - tmp_ss_tbl.timeStop;
-
-    % find the smallest negative time difference to get nearest
-    % stimLog.json settings BEFORE AppLog.txt settings
-
-    near_t  = min(t_diff(t_diff > 0));
-
-    % need to have streaming session occuring BEFORE INS log time
-    if ~isempty(near_t)
-        j       = find(t_diff == near_t);
-        j       = j(1);
-
-        proc_app_log.prev_sess_name(i)    = tmp_ss_tbl.sess_name(j);
-    else
-         proc_app_log.prev_sess_name(i) = {'No Entry'};
-    end
-end
-
-%% explitcly save streaming sessions and offline aDBS sessions according to unique
-% sensing parameters
-
-var_oi  = {'chanFullStr', ...
-         'bandFormationConfig', 'interval', 'size','streamSizeBins','streamOffsetBins', 'windowLoad',...
-         'powerBandinHz', 'powerBinInHz','LD0', 'LD1'};
-
-
-u_aDBS_Settings = exp_sense_state_vars(...
-                      contains(exp_sense_state_vars, var_oi));
-
-
-sess_w_same_settings  = findgroups(td_fft_pm_ld_state_stim_tbl(:,u_aDBS_Settings));
-
-
-td_fft_pm_ld_state_stim_tbl = addvars(td_fft_pm_ld_state_stim_tbl, sess_w_same_settings,...
-                          'After', 'sess_name');
-
-proc_app_log.sess_w_same_settings =nan(height(proc_app_log),1);
-
-for i = 1:length(unique(td_fft_pm_ld_state_stim_tbl.sess_w_same_settings))
-
-    i_same_sett = find(contains(proc_app_log.prev_sess_name, ...
-                  td_fft_pm_ld_state_stim_tbl.sess_name(...
-                  td_fft_pm_ld_state_stim_tbl.sess_w_same_settings == i)...
-                         ));
-
-    proc_app_log.sess_w_same_settings(i_same_sett) = i;
+% uncomment to troubleshoot as script
+%TD_FFT_PB_LD_State_stim_tbl.RCS02R  = td_fft_pm_ld_state_stim_tbl;
 
 
 end
-
-proc_app_log = proc_app_log(~isnan(proc_app_log.sess_w_same_settings),:);
-% only save streaming sessions (and their expanded parameters) of aDBS
-% offline sessions
-i_entry      = cellfun(@(x) ~isempty(x), proc_app_log.prev_sess_name);
-
-i_sess_oi    = find(contains(td_fft_pm_ld_state_stim_tbl.sess_name, ...
-                          unique(proc_app_log.prev_sess_name(i_entry))));
-
-app_ss_tbl   = td_fft_pm_ld_state_stim_tbl(i_sess_oi, :);
-
-
-
-
-% app_SS_tbl.RCS02R                   = app_ss_tbl;
-% proc_App_log.RCS02R                 = proc_app_log;
-% TD_FFT_PB_LD_State_stim_tbl.RCS02R  = td_fft_pm_ld_state_stim_tbl;
-
-
-%end

@@ -95,7 +95,7 @@ fprintf('%s | compiling INS logs \n', pt_id_side)
 scbs_dir     = fullfile(cfg.raw_dir, pt_id,'/SummitData/SummitContinuousBilateralStreaming/', pt_id_side);
 adbs_dir     = fullfile(cfg.raw_dir, pt_id,'/SummitData/StarrLab/', pt_id_side);
 
-filelist     = dir(fullfile(scbs_dir,'**/*.txt')); % all txt files contains within session files
+filelist     = [dir(fullfile(scbs_dir,'**/*.txt')); dir(fullfile(adbs_dir, '**/*.txt'))]; % all txt files contains within session files
 % remove the files that start with ._  (some icloud issue of duplicate files to ignore)
 badfiles     = arrayfun(@(x) contains(x.name,'._'),filelist);
 filelist(badfiles)=[];
@@ -123,9 +123,13 @@ AppLog_tbl.aDBS_state   = cell(sum(i_app),1);
 AppLog_tbl.adapt_stat   = cell(sum(i_app),1);
 AppLog_tbl.ld_detect    = cell(sum(i_app),1);
 
-INS_log_dir  = fullfile(cfg.raw_dir(1:end-4), ...
-                        'processed', 'INS_logs', ...
-                        [pt_id_side '_INS_logs']);
+
+% if needed, make folder to save processed INS logs
+if ~isfolder(cfg.proc_dir)
+    mkdir(cfg.proc_dir)
+end
+
+INS_log_dir  = sprintf('%s%s_INS_logs.mat', cfg.proc_dir, pt_id_side);
 
 %%
 % save paths in final output as reference so logs are not redundantly ran
@@ -134,7 +138,7 @@ INS_log_dir  = fullfile(cfg.raw_dir(1:end-4), ...
 % INS_logs.EventLog_tbl_path            = EventLog_tbl.path(1 : 10);
 
 
-if cfg.ignoreold == false
+if cfg.ignoreold == false && isfile(INS_log_dir) % handles edge case of no file existing
 
     fprintf('%s | loading existing logs \n', pt_id_side)
     
@@ -157,22 +161,8 @@ end
 % EventLog_tbl   = EventLog_tbl(1:10,:);
 % AppLog_tbl     = AppLog_tbl(1:10,:);
 
-%% parse through EventLog.txt files
-if ~isempty(EventLog_tbl)
-    for i = 1 : height(EventLog_tbl)
-    
-        fn  = EventLog_tbl.path{i};
-    
-        [EventLog_tbl.group_changes{i}, EventLog_tbl.rech_sess{i}]...
-            = ...
-        read_INS_logs_fast(fn);
-    end
-else
 
-    fprintf('%s | reportedly no new EventLog.txt files to parse\n', pt_id_side)
-end
-
-% parse through AppLog.txt files
+%% parse through AppLog.txt files
 if ~isempty(AppLog_tbl)
     for i = 1 : height(AppLog_tbl)
     
@@ -186,6 +176,20 @@ if ~isempty(AppLog_tbl)
 else
     fprintf('%s | reportedly no new AppLog.txt files to parse\n', pt_id_side)
 
+end
+%% parse through EventLog.txt files
+if ~isempty(EventLog_tbl)
+    for i = 1 : height(EventLog_tbl)
+    
+        fn  = EventLog_tbl.path{i};
+    
+        [EventLog_tbl.group_changes{i}, EventLog_tbl.rech_sess{i}]...
+            = ...
+        read_INS_logs_fast(fn);
+    end
+else
+
+    fprintf('%s | reportedly no new EventLog.txt files to parse\n', pt_id_side)
 end
 
 % EventLog_tbl    = EventLog_tbl(cellfun(@(x) ~isempty(x), EventLog_tbl.group_changes),:);
@@ -227,7 +231,7 @@ if ~isempty(AppLog_tbl)
     end
 end
 %%
-if cfg.ignoreold == false
+if cfg.ignoreold == false && isfile(INS_log_dir) % handles edge case of no file existing
     % from already processed INS logs, include only new entries (subsequent
     % INS logs often contain overlapping entries)
 
@@ -281,7 +285,7 @@ end
 if ~isempty(AppLog_tbl) && ~isempty(EventLog_tbl)
 
     save(INS_log_dir,'INS_logs')
-    fprintf('.mat of INS Logs (as structure) saved to \n %s \n',INS_log_dir);
+    fprintf('%s |.mat of INS Logs (as struct) saved to \n %s \n',pt_id_side,INS_log_dir);
     
 end
  %end

@@ -1,6 +1,6 @@
 %% user-inputs
 % where RCS files are saved from PIA server
-pia_raw_dir     = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/raw/';
+pia_dir     = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/';
 
 % where 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
 github_dir      = '/Users/Leriche/Github/';
@@ -23,10 +23,10 @@ addpath(genpath([github_dir, 'Analysis-rcs-data/']));
 addpath(genpath([github_dir, 'rcs-simulation/']));
 
 
-REDcap                = RCS_redcap_painscores(rcs_API_token);
+REDcap                  = RCS_redcap_painscores(rcs_API_token);
 
 % stage dates and, home/clinic visits for RCS pts 1-7 w/ brief descriptions
-[visits, stage_dates] = make_visit_dates;
+[visits, stage_dates]   = make_visit_dates;
 
 
 % need to further distill by pts initals
@@ -51,82 +51,119 @@ the same values)."
 cfg                    = [];
 cfg.load_EventLog      = true;
 cfg.ignoreold          = false;
-cfg.raw_dir            = pia_raw_dir;
+cfg.raw_dir            = [pia_dir, 'raw/'];
 
-%pt_sides               = {'RCS02R'};
-
-pt_sides               = {'RCS02R','RCS05L','RCS07L'};
-
-
-%pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R','RCS06L','RCS06R','RCS07L','RCS07R'};
+% specify which patient's INS
+pt_sides               = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
 
 
-for i = 2 : length(pt_sides)
+for i =  1:length(pt_sides)
 
+    % process RCS .jsons into searchable database
     cfg.pt_id_side                     = pt_sides{i};
+    cfg.proc_dir           = [pia_dir, 'processed/databases/'];
 
     [db.(pt_sides{i}), bs.(pt_sides{i})]...
         ...
         =  makeDatabaseRCS_Ryan(cfg);
 
+    % now INS logs--inital run can take 15-30 minutes
+    cfg.proc_dir           = [pia_dir, 'processed/INS_logs/'];
 
     INS_logs.(pt_sides{i})...
         ...
         = RCS_logs(cfg);
 
 end
-%%
-tt = datetime(1674492396175/1000,...
-                    'ConvertFrom','posixTime','TimeZone','America/Los_Angeles',...
-                    'Format','dd-MMM-yyyy HH:mm:ss.SSS')
 
 
-%datetime(1970,1,1,-8,0,0,1674492396175) -datetime(2000,3,1,-8,0,722516198)
-
-
-
-%temp_time = 
-
-temp_time.TimeZone = 'America/Los_Angeles';
-%%
-
-%%
+%% per streaming session, visualize INS to API latnecy 
+% (i.e., how long is the INS ahead OR behind internet time)
+% commented out since only needs to be checked every month or so
 %{
+%pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R','RCS06L','RCS06R','RCS07L','RCS07R'};
+
+pt_sides               = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
+
+%pt_sides               = {'RCS02R','RCS05L'};
+%pt_sides               = {'RCS02R'};
+
+cfg             = [];
+cfg.dates       = 'AllTime';
+cfg.save_dir    = [github_dir, 'Analysis-rcs-data/working/plot_ephy/aDBS_offline_sessions/'];
+
+for i= 1:length(pt_sides)
+
+    cfg.pt_id_side = pt_sides{i};
+
+    plt_INS_lat_per_session(cfg, db.(pt_sides{i}));
+end
+%}
+
+%% unpack all sense, LD, and stimulation settings as own variable in table
+% --> allows for programmatic discernment of unique RC+S settings
+
+pt_sides        = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
 
 
+cfg                    = [];
+cfg.ignoreold          = true;
+cfg.raw_dir            = [pia_dir, 'raw/'];
+cfg.proc_dir           = [pia_dir, 'processed/parsed_databases/'];
+
+
+for i= 1:length(pt_sides)
+
+    cfg.pt_id_side = pt_sides{i};
+
+
+    [par_db.(pt_sides{i}), ss_var_oi.(pt_sides{i})]...
+    ...
+        = makeParsedDatabaseRCS(...
+    ...
+    cfg, db);
+
+
+end
+
+%% find nearest (yet, preceding) streaming session to INS log entry
+%%% --> accounts for INS to API time latnecy
+
+for i=  1: length(pt_sides)
+
+
+   [app_SS_tbl.(pt_sides{i}), INS_logs_proc.(pt_sides{i}), INS_ss_merge_g_changes.(pt_sides{i})] ...
+    ...
+        = align_stream_sess_to_INSLogs(...
+    ...
+    INS_logs.(pt_sides{i}), par_db.(pt_sides{i}), ss_var_oi.(pt_sides{i}));
+end
+
+%% plot aDBS performance in-real time
+cfg             = [];
+cfg.dates       = 'AllTime';
+cfg.save_dir    = [github_dir, 'Analysis-rcs-data/working/plot_ephy/aDBS_offline_sessions/'];
+
+cfg.dates          = 'DateRange';
+cfg.date_range     = {'31-Dec-2022'; '30-May-2023'};
+
+% to avoid figures popping up in MATLAB (see cfg.save_dir for the aDBS longitudinal plots)
+set(0,'DefaultFigureVisible','off')
+
+for i=  1 : length(pt_sides)
+        cfg.pt_id_side = pt_sides{i};
+
+    plot_longitudinal_aDBS(cfg, REDcap, INS_logs_proc, app_SS_tbl, INS_ss_merge_g_changes);
+
+end
+
+%%  
+%{
 
 
 
 %}
 
-
-%clear app_SS_tbl proc_app_log TD_FFT_PB_LD_State_tbl
-
-%pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R','RCS06L','RCS06R','RCS07L','RCS07R'};
-
-pt_sides               = {'RCS02R','RCS05L','RCS07L'};
-
-
-
-for i=1 %:length(pt_sides)
-
-    [app_SS_tbl.(pt_sides{i}), proc_app_log.(pt_sides{i}), TD_FFT_PB_LD_State_tbl.(pt_sides{i})]...
-    ...
-        = build_sense_summary_tbl(...
-    ...
-    db.(pt_sides{i}), INS_logs.(pt_sides{i}).app);
-
-end
-
-
-
-%%
-
-%%
-
-cfg                    = [];
-cfg.stage_dates        = stage_dates{2};
-cfg.pt_id              = 'RCS02';
 
 %%
 %
@@ -468,12 +505,11 @@ cfg                     = [];
 
 cfg.pt_id               = 'RCS04';
 cfg.dates               = 'PreviousDays';
-cfg.ndays               = 5;
+cfg.ndays               = 7;
 
 cfg.subplot             = true;
 cfg.sum_stat_txt        = true;
 cfg.stim_parameter      = '';
-
 
     plot_timeline(cfg, REDcap);
 
