@@ -117,9 +117,7 @@ for i=   1:length(u_settings)
         amp_def.prog2mA = [plt_app_oi{i_u_states, 'prog2mA'}; NaN];
         amp_def.prog3mA = [plt_app_oi{i_u_states, 'prog3mA'}; NaN];
   
-        
-        
-        
+
         % from linearly-spaced vector from start to end time, define based
         % off of times of INS entries
         
@@ -231,7 +229,8 @@ for i=   1:length(u_settings)
         colors = brewermap(5 ,'Set1');
     
         for h = 1:  n_sub_sess
-            figure('Units', 'Inches', 'Position', [0, 0, 18, 10]);
+            %%
+            figure('Units', 'Inches', 'Position', [0, 0, 20, 10]);
             
             fig_h = subplot(1,1,1);        fig_h.Position(4) = 0.6;
     
@@ -242,10 +241,20 @@ for i=   1:length(u_settings)
             plot(t_vec,   movmean(on_off_vec, [duration('01:00:00')/step_dur,0]), 'k', 'LineWidth',2);
             
             
-            for k = 1:height(wash_out)  
-                patch([wash_out.start(k), wash_out.start(k), wash_out.stop(k), wash_out.stop(k)],...
+            for k = 1:height(wash_out)
+                % only include handle of inital patch for ease of plotting
+                % legend (legend account for EVERY object handle)
+                if k == 1
+                    patch([wash_out.start(k), wash_out.start(k), wash_out.stop(k), wash_out.stop(k)],...
                            [0,100,100,0],[0.7, 0.7,0.7], ...
-                    'FaceAlpha',0.5,'EdgeColor', 'none');  hold on
+                            'FaceAlpha',0.5,'EdgeColor', 'none');  hold on
+
+                else
+                    patch([wash_out.start(k), wash_out.start(k), wash_out.stop(k), wash_out.stop(k)],...
+                           [0,100,100,0],[0.7, 0.7,0.7], ...
+                        'FaceAlpha',0.5,'EdgeColor', 'none',...
+                        'HandleVisibility','off'); 
+                end
             end
 
             if ge(plt_app_oi.time_INS(end) -plt_app_oi.time_INS(1), duration('03:00:00'))      
@@ -294,19 +303,45 @@ for i=   1:length(u_settings)
             
             ylim([0,100]);        
             
-            yyaxis right;          
+            yyaxis right;  
+
+            ylim([0,10])
         
             fig_h.YAxis(2).Color = colors(1,:);
 
-            scatter(redcap.time, redcap.mayoNRS,'filled',...
+            scatter(redcap.time, redcap.mayoNRS,120, 'filled',...
                 'MarkerFaceAlpha', 0.6, ...
                 'MarkerFaceColor', colors(1,:), 'MarkerEdgeColor', colors(1,:));  
         
             plot(redcap.time, movmean(redcap.mayoNRS, [3, 0], 'omitnan'), ...
-                'LineStyle', '-','LineWidth', 2, 'Color', colors(1,:));
+                'LineStyle', '-','LineWidth', 2, 'Color', colors(1,:),...
+                'HandleVisibility','off','Marker','none');
+        
+            %%%
+            scatter(redcap.time, redcap.painVAS/10, 90, 'filled',...
+                'MarkerFaceAlpha', 0.6, ...
+                'MarkerFaceColor', colors(3,:), 'MarkerEdgeColor', colors(3,:));  
+        
+            plot(redcap.time, movmean(redcap.painVAS/10, [3, 0], 'omitnan'), ...
+                'LineStyle', '-','LineWidth', 2, 'Color', colors(3,:),...
+                'HandleVisibility','off','Marker','none');
+        
+            %%%
+            scatter(redcap.time, redcap.MPQtotal/4.5, 60, 'filled',...
+                'MarkerFaceAlpha', 0.6, ...
+                'MarkerFaceColor', colors(4,:), 'MarkerEdgeColor', colors(4,:));  
+        
+            plot(redcap.time, movmean(redcap.MPQtotal/4.5, [3, 0], 'omitnan'), ...
+                'LineStyle', '-','LineWidth', 2, 'Color', colors(4,:),...
+                'HandleVisibility','off', 'Marker','none');
         
 
-            ylabel('NRS intensity', 'FontSize',18);     ylim([0,10]);
+            %ylabel({'NRS intensity', 'VAS intensity', 'MPQ total'}, 'FontSize',18);     ylim([0,10]);
+
+            
+            y_lbls_txt = cellfun(@(x) sprintf('%.0f   %.0f   %.1f',x), num2cell([0:10; 0:10:100; 0:4.5:45]', 2), 'UniformOutput', false);
+
+            yticklabels(y_lbls_txt)
 
             fig_h.Position([1,3]) = [0.075, 0.85];
 
@@ -319,20 +354,21 @@ for i=   1:length(u_settings)
             text(t_sub_sess(h) + dur_range/4.5, fig_h.YLim(2)*1.22, by_pb_meta, 'FontSize',12, 'Interpreter','none');
             
             
-            text(t_sub_sess(h+1) - dur_range/1.85, fig_h.YLim(2)*1.2, ld0_meta, 'FontSize',12, 'Interpreter','none');
-            text(t_sub_sess(h+1) - dur_range/4.25, fig_h.YLim(2)*1.2, ld1_meta, 'FontSize',12, 'Interpreter','none');
-            
+            text(t_sub_sess(h+1) - dur_range/2, fig_h.YLim(2)*1.2, ld0_meta, 'FontSize',11, 'Interpreter','none');
+            text(t_sub_sess(h+1) - dur_range/6, fig_h.YLim(2)*1.2, ld1_meta, 'FontSize',11, 'Interpreter','none');
             
 
-            
 
             fig_h.YAxis(1).FontSize = 14;   fig_h.YAxis(2).FontSize = 14;
             fig_h.XAxis.FontSize    = 14;
     
-            legend({'Lagging Mean of 5 min', 'Lagging Mean of 1 hour', 'DBS Off', '', ''}, 'FontSize',14);
+           legend({'Lagging Mean of 5 min', 'Lagging Mean of 1 hour', 'DBS Off', ...
+                'NRS intensity', 'VAS intensity', 'MPQ total'},...
+                'FontSize',14, 'Location', 'eastoutside');
 
             set(gca,'xlim', [t_sub_sess(h), t_sub_sess(h+1)],...
-            'GridAlpha',0.4,'MinorGridAlpha',0.7, 'GridColor', 'k', 'MinorGridColor', 'k'); 
+            'GridAlpha',0.4,'MinorGridAlpha',0.7, 'GridColor', 'k', 'MinorGridColor', 'k',...
+            'YColor', 'k'); 
         
 
             if ge(stop_time - start_time, longest_dur)
@@ -343,7 +379,7 @@ for i=   1:length(u_settings)
                 end
 
                 filename =  sprintf('%s/%s-->%s.png', ...
-                                offline_sess_name, string(t_sub_sess(h), 'yy-MM-dd (hh mm)'), datestr(t_sub_sess(h+1), 'yy-MM-dd (hh mm)'));
+                                offline_sess_name, string(t_sub_sess(h), 'yy-MM-dd (hh mm)'), string(t_sub_sess(h+1), 'yy-MM-dd (hh mm)'));
             else
                 filename = sprintf('%s.png', offline_sess_name);
 

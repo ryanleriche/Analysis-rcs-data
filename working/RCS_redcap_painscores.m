@@ -159,7 +159,7 @@ for p = 1:numel(pt_id_list)
 
         case 'FLUCT'
             PATIENT_ARM = 'dbs_and_nondbs_pat_arm_23';
-            reportid    = '84060';
+            reportid    = '128478';
 
         case 'RCS_Weekly'
             
@@ -179,7 +179,7 @@ for p = 1:numel(pt_id_list)
     
     
     disp('************************');
-    if strcmp(reportid , '84060') % FLUCT study requires different API token
+    if strcmp(reportid , '128478') % FLUCT study requires different API token
         data = webwrite(...
             SERVICE,...
             'token', pcs_TOKEN, ...
@@ -276,13 +276,13 @@ for p = 1:numel(pt_id_list)
         mood_vas_field    = varnames{contains(varnames, 'MoodBySliding')};
         
         % Populate the new flavors of painscores downloaded from redcap
-        redcap_painscores.mayoNRS = (clntable.(nrs_field));
+        redcap_painscores.mayoNRS       = (clntable.(nrs_field));
         redcap_painscores.unpleasantNRS = (clntable.(unp_nrs_field));
         
         
-        redcap_painscores.painVAS = (clntable.(vas_field));
+        redcap_painscores.painVAS       = (clntable.(vas_field));
         redcap_painscores.unpleasantVAS = (clntable.(unp_vas_field));
-        redcap_painscores.moodVAS = (clntable.(mood_vas_field));
+        redcap_painscores.moodVAS       = (clntable.(mood_vas_field));
 
 
         % label MPQ just like RCS pts

@@ -78,14 +78,37 @@ if plt_ss_tbl_oi.LD0_biasTerm0 == plt_ss_tbl_oi.LD0_biasTerm1
 
 end
 
-plt_ld_vars = ld0_vars(plt_ss_tbl_oi{:, ld0_vars} > 0);
+plt_ld_vars            = ld0_vars(plt_ss_tbl_oi{:, ld0_vars} > 0 |...
+                                  contains(ld0_vars, {'fractionalFixed', 'Duration'}))';
 
+tmp_meta_cell          = table2cell(plt_ss_tbl_oi(1,  plt_ld_vars));
 
-ld_meta_cell    = table2cell(plt_ss_tbl_oi(1,  plt_ld_vars));
+ld_meta_cell          = [tmp_meta_cell; tmp_meta_cell];
+by_ld_meta            = cell(length(tmp_meta_cell),1);
 
-by_ld_meta      = cellfun(@(x,y) [x(5:end), ' | ', num2str(y)], ...
-                          plt_ld_vars, ld_meta_cell,...
-                          'UniformOutput',false);
+% for LD updateRate, blanking, onset duration, and termination duration
+% include in seconds rather than N of FFT intervals or N updateRates
+% (pg. 88-89 of the 4NR010 Research Lab Programmer Guide M979053A001)
+
+for i=1:length(plt_ld_vars)
+    switch plt_ld_vars{i}
+
+        case {'LD0_updateRate', 'LD0_blankingDurationUponStateChange'}
+            ld_meta_cell{2,i}  = tmp_meta_cell{i} * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
+
+        case {'LD0_onsetDuration', 'LD0_terminationDuration'}
+             ld_meta_cell{2,i} = tmp_meta_cell{i} * plt_ss_tbl_oi.LD0_updateRate * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
+    end
+
+    if ld_meta_cell{1,i} ~= ld_meta_cell{2,i}
+
+        by_ld_meta{i} = sprintf('%s | %.0f (%.2f seconds)', plt_ld_vars{i}(5:end), ld_meta_cell{1,i}, ld_meta_cell{2,i});
+
+    else
+        by_ld_meta{i} = sprintf('%s | %.0f', plt_ld_vars{i}(5:end), ld_meta_cell{1,i});
+
+    end
+end
 
 str_form = repmat(['%s', newline], 1, length(by_ld_meta));
 
@@ -109,14 +132,37 @@ if plt_ss_tbl_oi.LD1_biasTerm0 == plt_ss_tbl_oi.LD1_biasTerm1
 end
     
 
-plt_ld_vars = ld1_vars(plt_ss_tbl_oi{:, ld1_vars} > 0);
+plt_ld_vars            = ld1_vars(plt_ss_tbl_oi{:, ld1_vars} > 0 |...
+                                  contains(ld1_vars, {'fractionalFixed', 'Duration'}))';
 
+tmp_meta_cell         = table2cell(plt_ss_tbl_oi(1,  plt_ld_vars));
 
-ld_meta_cell    = table2cell(plt_ss_tbl_oi(1,  plt_ld_vars));
+ld_meta_cell          = [tmp_meta_cell; tmp_meta_cell];
+by_ld_meta            = cell(length(tmp_meta_cell),1);
 
-by_ld_meta      = cellfun(@(x,y) [x(5:end), '    | ', num2str(y)], ...
-                          plt_ld_vars, ld_meta_cell,...
-                          'UniformOutput',false);
+% for LD updateRate, blanking, onset duration, and termination duration
+% include in seconds rather than N of FFT intervals or N updateRates
+% (pg. 88-89 of the 4NR010 Research Lab Programmer Guide M979053A001)
+
+for i=1:length(plt_ld_vars)
+    switch plt_ld_vars{i}
+
+        case {'LD1_updateRate', 'LD1_blankingDurationUponStateChange'}
+            ld_meta_cell{2,i}  = tmp_meta_cell{i} * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
+
+        case {'LD1_onsetDuration', 'LD1_terminationDuration'}
+             ld_meta_cell{2,i} = tmp_meta_cell{i} * plt_ss_tbl_oi.LD1_updateRate * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
+    end
+
+    if ld_meta_cell{1,i} ~= ld_meta_cell{2,i}
+
+        by_ld_meta{i} = sprintf('%s | %.0f (%.2f seconds)', plt_ld_vars{i}(5:end), ld_meta_cell{1,i}, ld_meta_cell{2,i});
+
+    else
+        by_ld_meta{i} = sprintf('%s | %.0f', plt_ld_vars{i}(5:end), ld_meta_cell{1,i});
+
+    end
+end
 
 str_form = repmat(['%s', newline], 1, length(by_ld_meta));
 
@@ -125,5 +171,6 @@ if isempty(by_ld_meta)
 else
     ld1_meta = sprintf(['LD1\n',str_form], by_ld_meta{:});
 end
+
 
 end

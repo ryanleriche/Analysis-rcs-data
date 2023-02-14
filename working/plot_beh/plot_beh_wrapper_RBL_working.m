@@ -28,9 +28,8 @@ REDcap                  = RCS_redcap_painscores(rcs_API_token);
 % stage dates and, home/clinic visits for RCS pts 1-7 w/ brief descriptions
 [visits, stage_dates]   = make_visit_dates;
 
-
 % need to further distill by pts initals
-% fluct                 = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
+fluct                   = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
 %% import RCS databases, and INS logs per pt side
 %{
 
@@ -54,7 +53,11 @@ cfg.ignoreold          = false;
 cfg.raw_dir            = [pia_dir, 'raw/'];
 
 % specify which patient's INS
+%pt_sides               = {'RCS02R'};
 pt_sides               = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
+
+%%% NOT yet ran w/ updated script: %%%
+%pt_sides        = {'RCS04R','RCS04L', 'RCS06R','RCS06L'};
 
 
 for i =  1:length(pt_sides)
@@ -70,9 +73,7 @@ for i =  1:length(pt_sides)
     % now INS logs--inital run can take 15-30 minutes
     cfg.proc_dir           = [pia_dir, 'processed/INS_logs/'];
 
-    INS_logs.(pt_sides{i})...
-        ...
-        = RCS_logs(cfg);
+    INS_logs.(pt_sides{i}  = RCS_logs(cfg);
 
 end
 
@@ -103,11 +104,13 @@ end
 %% unpack all sense, LD, and stimulation settings as own variable in table
 % --> allows for programmatic discernment of unique RC+S settings
 
-pt_sides        = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
+%pt_sides               = {'RCS02R'};
+%pt_sides        = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
+%pt_sides        = {'RCS04R','RCS04L'};
 
 
 cfg                    = [];
-cfg.ignoreold          = true;
+cfg.ignoreold          = false;
 cfg.raw_dir            = [pia_dir, 'raw/'];
 cfg.proc_dir           = [pia_dir, 'processed/parsed_databases/'];
 
@@ -150,19 +153,42 @@ cfg.date_range     = {'31-Dec-2022'; '30-May-2023'};
 % to avoid figures popping up in MATLAB (see cfg.save_dir for the aDBS longitudinal plots)
 set(0,'DefaultFigureVisible','off')
 
-for i=  1 : length(pt_sides)
+for i=  1 %: length(pt_sides)
         cfg.pt_id_side = pt_sides{i};
 
     plot_longitudinal_aDBS(cfg, REDcap, INS_logs_proc, app_SS_tbl, INS_ss_merge_g_changes);
 
 end
+close all   
+%% per RCS pt, organize pain fluctuation study (pain prior to stage 0)
+% 
+% tmp_pfs_tbl            = fluct;
+% tmp_pfs_tbl.tmp_pt_ids = findgroups(tmp_pfs_tbl.initals);
+% 
+% unique(tmp_pfs_tbl.initals)
+% 
+% edge_cases  = {{'AMW 11PM 09-20-20', 'AME', 'ANW', 'AS'}}; 
+% real_ini    = {'AMW'};
+% 
+% for i = 1:length(real_ini)
+% 
+% tmp_pfs_tbl = tmp_pfs_tbl;
+% 
+% 
+% end
+% 
+% u_pts            = unique(tmp_pfs_tbl.tmp_pt_ids);
+% 
+% for i = 1:length(u_pts)
+% 
+% 
+% 
+% end
+% 
 
-%%  
-%{
 
 
 
-%}
 
 
 %%
@@ -505,7 +531,7 @@ cfg                     = [];
 
 cfg.pt_id               = 'RCS04';
 cfg.dates               = 'PreviousDays';
-cfg.ndays               = 7;
+cfg.ndays               = 10;
 
 cfg.subplot             = true;
 cfg.sum_stat_txt        = true;

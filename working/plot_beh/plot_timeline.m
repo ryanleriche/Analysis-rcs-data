@@ -31,7 +31,7 @@ ds =        datestr(date_range,'dd-mmm-yyyy');
 sum_stats =   calc_sum_stats(cfg, redcap);
 
 
-% allows exploratory analysis w/ consistent nice formatting
+%% allows exploratory analysis w/ consistent nice formatting
 switch cfg.pt_id(7:end)
 
     case 'mismatch'
@@ -82,7 +82,7 @@ switch cfg.pt_id(7:end)
             [cd,'/plot_beh/figs/beh_only/RCS02/nrs_vas_timeline.png'],...
             'Resolution',300); 
 
-        %% plot difference of NRS and VAS/10
+        %%% plot difference of NRS and VAS/10
         figure('Units', 'Inches', 'Position', [0, 0, 25, 10])
 
 
@@ -105,7 +105,7 @@ switch cfg.pt_id(7:end)
         exportgraphics(gcf,...
             [cd,'/plot_beh/figs/beh_only/RCS02/nrs_vas_diff_timeline.png'],...
             'Resolution',300); 
-%%
+
     otherwise
 %% NRS
     if cfg.subplot == true
@@ -154,7 +154,7 @@ switch cfg.pt_id(7:end)
             scatter(redcap.time, redcap.npNRS, 50, 'filled', 'MarkerFaceAlpha', 0.6);
 
             legend({'','NRS Intensity','','NRS Nociceptive',...
-                    '','NRS Neuropathic'}, 'Location','northeastoutside');
+                    '','NRS Neuropathic'}, 'Location','northoutside', 'Orientation','horizontal');
 
         elseif strcmp(cfg.pt_id, 'RCS07')
 
@@ -166,7 +166,7 @@ switch cfg.pt_id(7:end)
 
             legend({'','NRS Intensity', '','NRS Unpleasantness',...
                     'NRS Left Arm', 'NRS Left Leg', 'NRS LeftFace'},...
-                    'Location','northeastoutside');
+                    'Location','northoutside', 'Orientation','horizontal');
      
         else
             scatter(redcap.time, redcap.worstNRS, 75, 'filled', 'MarkerFaceAlpha', 0.6);
@@ -184,7 +184,7 @@ switch cfg.pt_id(7:end)
         nrs_wrs_str =  ['NRS Worst Intensity'];
 
 
-        legend({'',nrs_str , nrs_wrs_str,''}, 'Location','northeastoutside'); 
+        legend({'',nrs_str , nrs_wrs_str,''}, 'Location','northoutside', 'Orientation','horizontal'); 
      
      end
      
@@ -271,12 +271,12 @@ switch cfg.pt_id(7:end)
 
         legend({'VAS Intensity','', 'VAS Nociceptive', '',...
             'VAS Neuropathic'}, ...
-            'Location','northeastoutside');
+            'Location','northoutside', 'Orientation','horizontal');
 
      elseif strcmp(cfg.pt_id, 'RCS07')
 
         legend({'VAS Intensity', '','VAS Unpleasantness', '','', 'VAS Mood'},...
-            'Location','northeastoutside');
+            'Location','northoutside', 'Orientation','horizontal');
      else
 
 
@@ -286,7 +286,7 @@ switch cfg.pt_id(7:end)
 
         vas_wrs_str =  ['VAS Worst'];
 
-        legend({vas_str, '', vas_unp_str, vas_wrs_str}, 'Location','northeastoutside'); 
+        legend({vas_str, '', vas_unp_str, vas_wrs_str}, 'Location','northoutside', 'Orientation','horizontal'); 
      
      end
 
@@ -345,7 +345,7 @@ switch cfg.pt_id(7:end)
 
 
 
-   legend({'',  mpq_str,  mpq_som_str, mpq_aff_str}, 'Location','northeastoutside'); 
+   legend({'',  mpq_str,  mpq_som_str, mpq_aff_str}, 'Location','northoutside', 'Orientation','horizontal'); 
 
     format_plot();
     
