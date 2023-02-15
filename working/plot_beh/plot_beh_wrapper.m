@@ -29,8 +29,6 @@ REDcap                  = RCS_redcap_painscores(rcs_API_token);
 [visits, stage_dates]   = make_visit_dates;
 
 
-% need to further distill by pts initals
-% fluct                 = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
 
 %%
 % last 7 days for: 
@@ -75,7 +73,7 @@ the same values)."
 
 cfg                    = [];
 cfg.load_EventLog      = true;
-cfg.ignoreold          = false;
+cfg.ignoreold          = true;
 cfg.raw_dir            = [pia_dir, 'raw/'];
 
 % specify which patient's INS

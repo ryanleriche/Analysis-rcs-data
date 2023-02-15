@@ -1,4 +1,4 @@
-function plot_timeline(cfg, REDcap, varargin)
+function plot_timeline(cfg, REDcap, fluct_sum_stats, varargin)
     
 
 % cfg                     = [];
@@ -28,8 +28,9 @@ figure('Units', 'Inches', 'Position', [0, 0, 13, 7])
 ds =        datestr(date_range,'dd-mmm-yyyy');
 
 
-sum_stats =   calc_sum_stats(cfg, redcap);
+%sum_stats =   calc_sum_stats(cfg, redcap);
 
+% c = brewermap(7 ,'Set1');
 
 %% allows exploratory analysis w/ consistent nice formatting
 switch cfg.pt_id(7:end)
@@ -109,7 +110,7 @@ switch cfg.pt_id(7:end)
     otherwise
 %% NRS
     if cfg.subplot == true
-        ax=subplot(311);
+        subplot(311);
         sgtitle([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
 
     else
@@ -118,90 +119,109 @@ switch cfg.pt_id(7:end)
     end
 
 
-    if strcmp(cfg.dates, 'AllTime') == 1
+    % for reference plot mean+-std of pain fluctuation study (prior to
+    % temporary trial period)
     
-        plot(redcap.time, movmean([redcap.mayoNRS,redcap.worstNRS], 5),...
-            'LineWidth', 2);
-
-        hold on; set(gca,'ColorOrderIndex',1);
-
-        plot(redcap.time, [redcap.mayoNRS,redcap.worstNRS], '.', 'MarkerSize',5);
+    tmp_fluct  = fluct_sum_stats.(cfg.pt_id)(:, 'mayoNRS');
     
+    fluct_t    = sort(repmat([date_range(1), date_range(2)],1,2));
+    fluct_plt  = [tmp_fluct{'mean',1}-tmp_fluct{'std',1},    tmp_fluct{'mean',1}+tmp_fluct{'std',1},...
+                    tmp_fluct{'mean',1}+tmp_fluct{'std',1},    tmp_fluct{'mean',1}-tmp_fluct{'std',1}];
+    
+    patch(fluct_t, fluct_plt,'k','FaceAlpha',0.2,'EdgeColor', 'none'); hold on
+    yline(tmp_fluct{'mean',1}, 'Color',[.3, .3, .3], 'LineWidth', 2, 'HandleVisibility','off');
 
-    else
-
-        n_back  = 21;
-
-        plot(redcap.time, movmean(redcap.mayoNRS, [n_back 0], 'omitnan'),...
-            'LineWidth', 2); hold on;
-
-        set(gca,'ColorOrderIndex',1)
-
-        scatter(redcap.time, redcap.mayoNRS, 125, 'filled','MarkerFaceAlpha', 0.6);    
+    switch cfg.dates
+        case 'AllTime'
+    
+            plot(redcap.time, movmean([redcap.mayoNRS,redcap.worstNRS], 5),...
+                'LineWidth', 2, 'HandleVisibility','off');
+    
+            hold on; set(gca,'ColorOrderIndex',1);
+    
+            plot(redcap.time, [redcap.mayoNRS,redcap.worstNRS], '.', 'MarkerSize',5);
         
-        if strcmp(cfg.pt_id, 'RCS06')
-            set(gca,'ColorOrderIndex',3)
 
-            plot(redcap.time, movmean(redcap.nocNRS, [n_back 0], 'omitnan'),...
-                'LineWidth', 2); hold on;
+        case {'DateRange', 'PreviousDays'}
+
+            n_back  = 21;
+    
+            plot(redcap.time, movmean(redcap.mayoNRS, [n_back 0], 'omitnan'),...
+                'LineWidth', 2,'HandleVisibility','off'); hold on;
+    
+            set(gca,'ColorOrderIndex',1)
+    
+            scatter(redcap.time, redcap.mayoNRS, 125, 'filled','MarkerFaceAlpha', 0.6);    
+            
+        switch cfg.pt_id
+            case 'RCS06'
                 set(gca,'ColorOrderIndex',3)
-            scatter(redcap.time, redcap.nocNRS, 75, 'filled','MarkerFaceAlpha', 0.6); 
+    
+                plot(redcap.time, movmean(redcap.nocNRS, [n_back 0], 'omitnan'),...
+                    'LineWidth', 2, 'HandleVisibility','off'); hold on;
+    
+                    set(gca,'ColorOrderIndex',3)
+                scatter(redcap.time, redcap.nocNRS, 75, 'filled','MarkerFaceAlpha', 0.6); 
+    
+    
+                plot(redcap.time, movmean(redcap.npNRS, [n_back 0], 'omitnan'),...
+                    'LineWidth', 2, 'HandleVisibility','off'); hold on;
+    
+                    set(gca,'ColorOrderIndex',4)
+                scatter(redcap.time, redcap.npNRS, 50, 'filled', 'MarkerFaceAlpha', 0.6);
+
+           
+            case 'RCS07'
+
+                scatter(redcap.time, redcap.unpNRS, 50, 'filled','MarkerFaceAlpha', 0.6); 
+                scatter(redcap.time, redcap.leftarmNRS, 65, 'filled', 'MarkerFaceAlpha', 0.6);
+    
+                scatter(redcap.time, redcap.leftlegNRS, 50 , 'filled', 'MarkerFaceAlpha', 0.6);  
+                scatter(redcap.time, redcap.leftfaceNRS, 35, 'filled', 'MarkerFaceAlpha', 0.6);
 
 
-            plot(redcap.time, movmean(redcap.npNRS, [n_back 0], 'omitnan'),...
-                'LineWidth', 2); hold on;
-                set(gca,'ColorOrderIndex',4)
-            scatter(redcap.time, redcap.npNRS, 50, 'filled', 'MarkerFaceAlpha', 0.6);
-
-            legend({'','NRS Intensity','','NRS Nociceptive',...
-                    '','NRS Neuropathic'}, 'Location','northoutside', 'Orientation','horizontal');
-
-        elseif strcmp(cfg.pt_id, 'RCS07')
-
-            scatter(redcap.time, redcap.unpNRS, 50, 'filled','MarkerFaceAlpha', 0.6); 
-            scatter(redcap.time, redcap.leftarmNRS, 65, 'filled', 'MarkerFaceAlpha', 0.6);
-
-            scatter(redcap.time, redcap.leftlegNRS, 50 , 'filled', 'MarkerFaceAlpha', 0.6);  
-            scatter(redcap.time, redcap.leftfaceNRS, 35, 'filled', 'MarkerFaceAlpha', 0.6);
-
-            legend({'','NRS Intensity', '','NRS Unpleasantness',...
-                    'NRS Left Arm', 'NRS Left Leg', 'NRS LeftFace'},...
-                    'Location','northoutside', 'Orientation','horizontal');
-     
-        else
-            scatter(redcap.time, redcap.worstNRS, 75, 'filled', 'MarkerFaceAlpha', 0.6);
+            case {'RCS02', 'RCS04', 'RCS05'}
+                scatter(redcap.time, redcap.worstNRS, 75, 'filled', 'MarkerFaceAlpha', 0.6);
 
         end
-
-
     end
   
      ylabel('Numeric Rating Scale');     ylim([0,10]); yticks(1:2:10);
+    
+
+     switch cfg.pt_id
+         case 'RCS06'
+
+            legend({'Pre-Stage 0 NRS intensity mean ± std'...
+                    'NRS Intensity','NRS Nociceptive','NRS Neuropathic',...
+                    }, ...
+                    'Location','northoutside', 'Orientation','horizontal');
+
+         case 'RCS07'
+
+            legend({'Pre-Stage 0 NRS intensity mean ± std',...
+                    'NRS Intensity','NRS Unpleasantness',...
+                    'NRS Left Arm', 'NRS Left Leg', 'NRS LeftFace',...
+                    },...
+                    'Location','northoutside', 'Orientation','horizontal');
          
-     if ~strcmp(cfg.pt_id, {'RCS06', 'RCS07'})
-        nrs_str    =  ['NRS Intensity'];
+         case {'RCS02', 'RCS04', 'RCS05'}
 
-        nrs_wrs_str =  ['NRS Worst Intensity'];
-
-
-        legend({'',nrs_str , nrs_wrs_str,''}, 'Location','northoutside', 'Orientation','horizontal'); 
-     
+            legend({'Pre-Stage 0 NRS intensity mean ± std',...
+                    'NRS Intensity' , 'NRS Worst Intensity',...
+                    'Pre-Stage 0 NRS intensity mean ± std'},...
+                    'Location','northoutside', 'Orientation','horizontal'); 
      end
      
-     hold on
-
      format_plot();
-     
    
      if ~strcmp(cfg.stim_parameter, '')
          overlay_stim(gca, cfg.stim_parameter, redcap);   
      end
-
-     
-     
+  
 %% VAS
     if cfg.subplot == true
-        ax=subplot(312);
+        subplot(312);
     else
         figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
         title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16); 
@@ -209,86 +229,99 @@ switch cfg.pt_id(7:end)
 
     end
 
-
-    if strcmp(cfg.dates, 'AllTime') == 1
+    % for reference plot mean+-std of pain fluctuation study (prior to
+    % temporary trial period)
     
-        plot(redcap.time, movmean([redcap.painVAS,redcap.unpleasantVAS,redcap.worstVAS], 5),...
-            'LineWidth', 2);
-
-             hold on; set(gca,'ColorOrderIndex',1);
-
-        plot(redcap.time, [redcap.painVAS,redcap.unpleasantVAS,redcap.worstVAS], '.', 'MarkerSize',5);
+    tmp_fluct  = fluct_sum_stats.(cfg.pt_id)(:, 'painVAS');
     
-    else
-
-        scatter(redcap.time, redcap.painVAS, 100, 'filled', 'MarkerFaceAlpha', 0.6);
-            hold on;
-
-        if strcmp(cfg.pt_id, 'RCS06')
-
-            set(gca,'ColorOrderIndex',3);
-            plot(redcap.time, movmean(redcap.nocVAS, [n_back 0], 'omitnan'),...
-            'LineWidth', 2.5); hold on;
-
-            set(gca,'ColorOrderIndex',3);
-            scatter(redcap.time, redcap.nocVAS, 75, 'filled', 'MarkerFaceAlpha', 0.6);
-
-            set(gca,'ColorOrderIndex',4);
-            plot(redcap.time, movmean(redcap.npVAS, [n_back 0], 'omitnan'),...
-            'LineWidth', 1.5); hold on;
-
-            set(gca,'ColorOrderIndex',4);
-            scatter(redcap.time, redcap.npVAS, 50, 'filled', 'MarkerFaceAlpha', 0.6);
+        fluct_t    = sort(repmat([date_range(1), date_range(2)],1,2));
+        fluct_plt  = [tmp_fluct{'mean',1}-tmp_fluct{'std',1},    tmp_fluct{'mean',1}+tmp_fluct{'std',1},...
+                    tmp_fluct{'mean',1}+tmp_fluct{'std',1},    tmp_fluct{'mean',1}-tmp_fluct{'std',1}];
+        
+        patch(fluct_t, fluct_plt,'k','FaceAlpha',0.2,'EdgeColor', 'none'); hold on
+    
+        yline(tmp_fluct{'mean',1}, 'Color',[.3, .3, .3], 'LineWidth', 2, 'HandleVisibility','off');
 
 
-        else
-            set(gca,'ColorOrderIndex',1);
+    switch cfg.dates
+        case 'AllTime'
+    
+            plot(redcap.time, movmean([redcap.painVAS,redcap.unpleasantVAS,redcap.worstVAS], 5),...
+                'LineWidth', 2, 'HandleVisibility','off');
+    
+                 set(gca,'ColorOrderIndex',1);
+    
+            plot(redcap.time, [redcap.painVAS,redcap.unpleasantVAS,redcap.worstVAS], '.', 'MarkerSize',5);
+        
+        case {'DateRange', 'PreviousDays'}
 
-             plot(redcap.time, movmean(redcap.painVAS, [n_back 0], 'omitnan'),...
-            'LineWidth', 2.5); hold on;
+            scatter(redcap.time, redcap.painVAS, 100, 'filled', 'MarkerFaceAlpha', 0.6);
 
-            scatter(redcap.time, redcap.unpleasantVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
-            scatter(redcap.time, redcap.worstVAS, 50, 'filled','MarkerFaceAlpha', 0.6);
 
+        switch cfg.pt_id
+            case 'RCS06'
+
+                set(gca,'ColorOrderIndex',3);
+                    plot(redcap.time, movmean(redcap.nocVAS, [n_back 0], 'omitnan'),...
+                'LineWidth', 2.5,'HandleVisibility','off');
+    
+                set(gca,'ColorOrderIndex',3);
+                    scatter(redcap.time, redcap.nocVAS, 75, 'filled', 'MarkerFaceAlpha', 0.6);
+    
+                set(gca,'ColorOrderIndex',4);
+                    plot(redcap.time, movmean(redcap.npVAS, [n_back 0], 'omitnan'),...
+                    'LineWidth', 1.5, 'HandleVisibility','off');
+    
+                set(gca,'ColorOrderIndex',4);
+                    scatter(redcap.time, redcap.npVAS, 50, 'filled', 'MarkerFaceAlpha', 0.6);
+
+
+            case {'RCS02', 'RCS04', 'RCS05', 'RCS07'}
+                set(gca,'ColorOrderIndex',1);
+                
+                    plot(redcap.time, movmean(redcap.painVAS, [n_back 0], 'omitnan'),...
+                    'LineWidth', 2.5, 'HandleVisibility','off');
+                    
+                    scatter(redcap.time, redcap.unpleasantVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
+                    scatter(redcap.time, redcap.worstVAS, 50, 'filled','MarkerFaceAlpha', 0.6);
+
+                switch cfg.pt_id
+                    case 'RCS07'
+                        plot(redcap.time, movmean(redcap.moodVAS, [n_back 0], 'omitnan'),...
+                        'LineWidth', 2); hold on;
+                        
+                        set(gca,'ColorOrderIndex',4);
+                        
+                        scatter(redcap.time, redcap.moodVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
+                end
         end
     end
 
-    if strcmp(cfg.pt_id, 'RCS07')
-
-        
-        plot(redcap.time, movmean(redcap.moodVAS, [n_back 0], 'omitnan'),...
-            'LineWidth', 2); hold on;
-
-        set(gca,'ColorOrderIndex',4);
-        
-        scatter(redcap.time, redcap.moodVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
-    end
-
-
      ylabel('Visual Analog Scale');         ylim([0,100]);  yticks(0:20:100);
 
-     if strcmp(cfg.pt_id, 'RCS06')
+    switch cfg.pt_id
+         case 'RCS06'
 
-        legend({'VAS Intensity','', 'VAS Nociceptive', '',...
-            'VAS Neuropathic'}, ...
-            'Location','northoutside', 'Orientation','horizontal');
+            legend({'Pre-Stage 0 VAS intensity mean ± std',...
+                     'VAS Intensity','VAS Nociceptive','VAS Neuropathic',...
+                    },...
+                    'Location','northoutside', 'Orientation','horizontal');
 
-     elseif strcmp(cfg.pt_id, 'RCS07')
+         case 'RCS07'
 
-        legend({'VAS Intensity', '','VAS Unpleasantness', '','', 'VAS Mood'},...
-            'Location','northoutside', 'Orientation','horizontal');
-     else
+            legend({'Pre-Stage 0 VAS intensity mean ± std',...
+                    'VAS Intensity','VAS Unpleasantness','VAS Mood',...
+                    },...
+                    'Location','northoutside', 'Orientation','horizontal');
+         
+         case {'RCS02', 'RCS04', 'RCS05'}
 
-
-        vas_str    =  ['VAS Intensity'];
-
-        vas_unp_str =  ['VAS Upleasantness'];
-
-        vas_wrs_str =  ['VAS Worst'];
-
-        legend({vas_str, '', vas_unp_str, vas_wrs_str}, 'Location','northoutside', 'Orientation','horizontal'); 
-     
+            legend({'Pre-Stage 0 VAS intensity mean ± std',...
+                     'VAS Intensity','VAS Unpleasantness','VAS Worst',...
+                    },...
+                    'Location','northoutside', 'Orientation','horizontal'); 
      end
+
 
      if ~strcmp(cfg.stim_parameter, '')
          overlay_stim(gca, cfg.stim_parameter, redcap);   

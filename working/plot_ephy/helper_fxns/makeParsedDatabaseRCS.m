@@ -35,6 +35,13 @@ subsequent plotting/analysis of aDBS settings
 db_RCSXXX             = db.(cfg.pt_id_side);
 
 %% option to add new streaming sessions rather than building from scratch
+
+if ~isfolder(cfg.proc_dir)
+
+    mkdir(cfg.proc_dir)
+
+end
+
 outputFileName    = fullfile(cfg.proc_dir,[cfg.pt_id_side '_parsed_database.mat']);
 
 

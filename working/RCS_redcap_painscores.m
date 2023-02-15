@@ -158,7 +158,7 @@ for p = 1:numel(pt_id_list)
 
 
         case 'FLUCT'
-            PATIENT_ARM = 'dbs_and_nondbs_pat_arm_23';
+            PATIENT_ARM = {'dbs_and_nondbs_pat_arm_23', 'pain_fluctuation_s_arm_11'};
             reportid    = '128478';
 
         case 'RCS_Weekly'
@@ -239,78 +239,152 @@ for p = 1:numel(pt_id_list)
 
         for i = 1 : length(varnames)
             if isnumeric(alltable.(varnames{i}))
-            
 
                 if all(isnan(alltable.(varnames{i})))
-    
                     alltable = removevars(alltable, varnames{i});
                 end
             end
         end
 
        alltable = removevars(...
-                        alltable(strcmp(alltable.EventName, PATIENT_ARM),:),...
+                        alltable(contains(alltable.EventName, PATIENT_ARM),:),...
                         'EventName');
+       %%
+       raw_initals = alltable.PleaseEnterYourInitials_;
 
+       tmp_initals = upper(replace(raw_initals, {' ','.'},{'',''}));
 
-       clntable = alltable(alltable.Complete_ == 2, :);
+       rcs_initals.MB  = {'MB'};
+       rcs_initals.AMW = {'AMW','AMW11PM 09-20-20', 'AME', 'ANW', 'AMP'};
+       rcs_initals.EM  = {'EM'};    
+       rcs_initals.SDZ = {'SDZ'};
+       rcs_initals.SW  = {'SW'};
 
-
-
-       redcap_painscores = table;
-
-       redcap_painscores.time = clntable.SurveyTimestamp;
-       redcap_painscores.time.TimeZone = 'America/Los_Angeles';
-
-       redcap_painscores.initals = upper(clntable.PleaseEnterYourInitials_);
-
-
+       initals = fieldnames(rcs_initals);
        
-        varnames  = clntable.Properties.VariableNames;
-        %field names per subject
-        nrs_field         = varnames{contains(varnames,'PainIntensity_')};
-        unp_nrs_field     = varnames{contains(varnames,'PainUnpleasantness_')};
+       for i=1: length(initals)
+
+            clntable = alltable(...
+                       contains(tmp_initals, rcs_initals.(initals{i})), :);
+            switch initals{i}
+            
+                case {'MB', 'EM'}
+                    clntable = clntable(clntable.Complete__3 == 2, :);
+            
+                case {'AMW','SDZ', 'SW'}
+                    clntable = clntable(clntable.Complete_ == 2, :);
+            end
+            varnames = clntable.Properties.VariableNames;
+
+            for j = 1 : length(varnames)
+                if isnumeric(clntable.(varnames{j}))
+    
+                    if all(isnan(clntable.(varnames{j})))  &&...
+                        ~contains(varnames{j},...
+                            {'Throbbing', 'Shooting', 'Stabbing',...
+                            'Sharp', 'Cramping', 'Gnawing','Hot_burning',...
+                            'Aching', 'Heavy', 'Tender', 'Splitting',...
+                            'Tiring_Exhausting', 'Sickening', 'Fearful',...
+                            'Cruel'})
         
-        vas_field         = varnames{contains(varnames,'PainIntensityBySliding')};
-        unp_vas_field     = varnames{contains(varnames,'PainUnpleasantnessBySliding')};
-        mood_vas_field    = varnames{contains(varnames, 'MoodBySliding')};
+                        clntable = removevars(clntable, varnames{j});
+                    end
+
+                elseif isdatetime(clntable.(varnames{j}))
+    
+                    if all(isnat(clntable.(varnames{j})))
         
-        % Populate the new flavors of painscores downloaded from redcap
-        redcap_painscores.mayoNRS       = (clntable.(nrs_field));
-        redcap_painscores.unpleasantNRS = (clntable.(unp_nrs_field));
-        
-        
-        redcap_painscores.painVAS       = (clntable.(vas_field));
-        redcap_painscores.unpleasantVAS = (clntable.(unp_vas_field));
-        redcap_painscores.moodVAS       = (clntable.(mood_vas_field));
+                        clntable = removevars(clntable, varnames{j});
+                    end
+
+                end
+            end
 
 
-        % label MPQ just like RCS pts
-        redcap_painscores.MPQtotal = sum(clntable{:, 5:19}, 2, 'omitnan');
+            redcap = table;
+            
+            redcap.time = clntable.SurveyTimestamp;
+            redcap.time.TimeZone = 'America/Los_Angeles';
 
-        redcap_painscores.MPQthrobbing      = (clntable.Throbbing);
-        redcap_painscores.MPQshooting       = (clntable.Shooting);
-        redcap_painscores.MPQstabbing       = (clntable.Stabbing);
-        redcap_painscores.MPQsharp          = (clntable.Sharp);
-        redcap_painscores.MPQcramping       = (clntable.Cramping);
-        redcap_painscores.MPQgnawing        = (clntable.Gnawing);
-        redcap_painscores.MPQhot_burning    = (clntable.Hot_burning);
-        redcap_painscores.MPQaching         = (clntable.Aching);
-        redcap_painscores.MPQheavy          = (clntable.Heavy);
-        redcap_painscores.MPQtender         = (clntable.Tender);
-        redcap_painscores.MPQsplitting      = (clntable.Splitting);
-        redcap_painscores.MPQtiring         = (clntable.Tiring_Exhausting);
-        redcap_painscores.MPQsickening      = (clntable.Sickening);
-        redcap_painscores.MPQfearful        = (clntable.Fearful);
-        redcap_painscores.MPQcruel          = (clntable.Cruel_Punishing);
+            raw_initals    = clntable.PleaseEnterYourInitials_;
+            redcap.initals = upper(replace(raw_initals, {' ','.'},{'',''}));
 
-        
-        
-        
-        painscores_out = redcap_painscores;
-        toc
-        return
+           switch initals{i}
+               
+               case {'MB', 'EM'}
+                    %field names per subject
+                    nrs_field         = 'PainIntensityRating_1';
+                    nrs_unp_field     = 'PainUnpleasantness';
+                    nrs_relief_field  = 'PainReliefRating_1';
 
+                    nrs_relat_field   = 'RelativePainIntensityRating_pleaseRateYourPainRelativeToLastS_1';
+                    
+                    vas_field         = 'PainIntensityRating';
+                    vas_relief_field  = 'PainReliefRating';
+                    vas_relat_field   = 'RelativePainIntensityRating_pleaseRateYourPainRelativeToLastSun';
+
+                    vas_unp_field     = 'PainUnpleasantnessRating';
+
+                    redcap.reliefNRS     = (clntable.(nrs_relief_field));
+                    redcap.relatNRS      = (clntable.(nrs_relat_field));
+                    redcap.reliefVAS     = (clntable.(vas_relief_field));
+                    redcap.relatVAS      = (clntable.(vas_relat_field));
+
+               case {'AMW','SDZ', 'SW'}
+                    %field names per subject
+                    nrs_field         = 'PleaseRateYourCurrentPainIntensity_';
+                    nrs_unp_field     = 'PleaseRateYourCurrentPainUnpleasantness_';
+
+                    vas_field         = 'PleaseRateYourCurrentPainIntensityBySlidingTheBoxAlongTheLine_';
+
+                    vas_unp_field     = 'PleaseRateYourCurrentPainUnpleasantnessBySlidingTheBoxAlongTheL';
+
+                    vas_mood_field    = 'PleaseRateYourCurrentMoodBySlidingTheBoxAlongTheLine_';
+                
+                    % No mood VAS was collected for some pts
+                    redcap.moodVAS       = (clntable.(vas_mood_field));
+
+               otherwise
+
+
+           end
+
+            %%%
+            redcap.mayoNRS       = (clntable.(nrs_field));
+            redcap.unpleasantNRS = (clntable.(nrs_unp_field));
+            
+            redcap.painVAS       = (clntable.(vas_field));
+            redcap.unpleasantVAS = (clntable.(vas_unp_field));
+
+
+            redcap.MPQthrobbing    = (clntable.Throbbing);
+            redcap.MPQshooting     = (clntable.Shooting);
+            redcap.MPQstabbing     = (clntable.Stabbing);
+            redcap.MPQsharp        = (clntable.Sharp);
+            redcap.MPQcramping     = (clntable.Cramping);
+            redcap.MPQgnawing      = (clntable.Gnawing);
+            redcap.MPQhot_burning  = (clntable.Hot_burning);
+            redcap.MPQaching       = (clntable.Aching);
+            redcap.MPQheavy        = (clntable.Heavy);
+            redcap.MPQtender       = (clntable.Tender);
+            redcap.MPQsplitting    = (clntable.Splitting);
+            redcap.MPQtiring       = (clntable.Tiring_Exhausting);
+            redcap.MPQsickening    = (clntable.Sickening);
+            redcap.MPQfearful      = (clntable.Fearful);
+            redcap.MPQcruel        = (clntable.Cruel_Punishing);
+
+            i_mpq_fields           = contains(redcap.Properties.VariableNames, 'MPQ');
+            MPQtotal               = sum(redcap{:, i_mpq_fields}, 2, 'omitnan');
+
+            redcap = addvars(redcap, MPQtotal, 'Before', 'MPQthrobbing');
+
+            % addresses cases when MPQtotal was likely unanswered
+            redcap = redcap(~(redcap.MPQtotal == 0 & redcap.painVAS > 30), :);
+
+            painscores_out.(initals{i}) = redcap;
+       end
+       toc
+       return
     end
 
     if ~contains(pt_id, {'STREAMING', 'Weekly', 'Monthly'}) 
@@ -361,47 +435,47 @@ for p = 1:numel(pt_id_list)
         redcap_timestamp.alltimes(time_transfer) = redcap_timestamp.mpq(time_transfer);
         
         %%%%%%%%% Define Time and Pain Scores %%%%%%%%%%%
-        redcap_painscores.time = redcap_timestamp.alltimes;
+        redcap.time = redcap_timestamp.alltimes;
         % specify timezone for explicit datetime variable
-        redcap_painscores.time.TimeZone = 'America/Los_Angeles'; % corresponds to 'America/Los_Angeles' timezone;
+        redcap.time.TimeZone = 'America/Los_Angeles'; % corresponds to 'America/Los_Angeles' timezone;
    
               
         varnames = clntable.Properties.VariableNames;
     
          if strcmp(pt_id, 'RCS06')
 
-            redcap_painscores.mayoNRS = (clntable.('intensity_nrs_v2_v2_51a1a3'));
+            redcap.mayoNRS = (clntable.('intensity_nrs_v2_v2_51a1a3'));
 
-            redcap_painscores.nocNRS = (clntable.('worst_please_rate_your_pain_inte_v2_37cdf10'));
+            redcap.nocNRS = (clntable.('worst_please_rate_your_pain_inte_v2_37cdf10'));
 
-            redcap_painscores.npNRS = (clntable.('worst_please_rate_your_pain_inte_v2_37cdf9'));
+            redcap.npNRS = (clntable.('worst_please_rate_your_pain_inte_v2_37cdf9'));
 
-            redcap_painscores.painVAS = (clntable.('intensity_vas_v2_v2_8a3273'));
+            redcap.painVAS = (clntable.('intensity_vas_v2_v2_8a3273'));
 
-            redcap_painscores.nocVAS = (clntable.('please_rate_your_pain_inte_v2_9d8b34'));
-            redcap_painscores.npVAS = (clntable.('please_rate_your_pain_inte_v2_9d8b33'));
+            redcap.nocVAS = (clntable.('please_rate_your_pain_inte_v2_9d8b34'));
+            redcap.npVAS = (clntable.('please_rate_your_pain_inte_v2_9d8b33'));
       
 
             unp_field = varnames{contains(varnames,'unpleasantness')};
             
-            redcap_painscores.unpleasantVAS = (clntable.(unp_field));
+            redcap.unpleasantVAS = (clntable.(unp_field));
     
          elseif strcmp(pt_id, 'RCS07')
             
             % Populate the new flavors of painscores downloaded from redcap
-            redcap_painscores.mayoNRS = (clntable.('overall_intensity_nrs'));
-            redcap_painscores.unpNRS  = (clntable.('unp_intensity_nrs'));
+            redcap.mayoNRS = (clntable.('overall_intensity_nrs'));
+            redcap.unpNRS  = (clntable.('unp_intensity_nrs'));
 
 
-            redcap_painscores.leftarmNRS  = (clntable.('left_arm_intensity_nrs'));
-            redcap_painscores.leftlegNRS  = (clntable.('left_leg_intensity_nrs'));
-            redcap_painscores.leftfaceNRS = (clntable.('left_face_intensity_nrs'));
+            redcap.leftarmNRS  = (clntable.('left_arm_intensity_nrs'));
+            redcap.leftlegNRS  = (clntable.('left_leg_intensity_nrs'));
+            redcap.leftfaceNRS = (clntable.('left_face_intensity_nrs'));
       
 
-            redcap_painscores.painVAS = (clntable.('pain_intensity_vas'));
-            redcap_painscores.unpleasantVAS = (clntable.('unp_intensity_vas'));
+            redcap.painVAS = (clntable.('pain_intensity_vas'));
+            redcap.unpleasantVAS = (clntable.('unp_intensity_vas'));
 
-            redcap_painscores.moodVAS = (clntable.('mood_intensity_vas'));
+            redcap.moodVAS = (clntable.('mood_intensity_vas'));
 
 
 
@@ -413,10 +487,10 @@ for p = 1:numel(pt_id_list)
             unp_field = varnames{contains(varnames,'unpleasantness')};
 
             % Populate the new flavors of painscores downloaded from redcap
-            redcap_painscores.mayoNRS = (clntable.(nrs_field));
-            redcap_painscores.painVAS = (clntable.(vas_field));
+            redcap.mayoNRS = (clntable.(nrs_field));
+            redcap.painVAS = (clntable.(vas_field));
 
-            redcap_painscores.unpleasantVAS = (clntable.(unp_field));
+            redcap.unpleasantVAS = (clntable.(unp_field));
 
          end
 
@@ -425,12 +499,12 @@ for p = 1:numel(pt_id_list)
             worstnrs_field = varnames{contains(varnames,'worst_please_rate')};
             worstvas_field = varnames{contains(varnames,'please_rate_your_pain_inte') & ~contains(varnames,'worst')};
                         
-            redcap_painscores.worstNRS = (clntable.(worstnrs_field));
-            redcap_painscores.worstVAS = (clntable.(worstvas_field));
+            redcap.worstNRS = (clntable.(worstnrs_field));
+            redcap.worstVAS = (clntable.(worstvas_field));
             
         else
-            redcap_painscores.worstNRS = nan(numel(redcap_painscores.mayoNRS),1);
-            redcap_painscores.worstVAS = nan(numel(redcap_painscores.mayoNRS),1);
+            redcap.worstNRS = nan(numel(redcap.mayoNRS),1);
+            redcap.worstVAS = nan(numel(redcap.mayoNRS),1);
         end
         
         
@@ -441,36 +515,36 @@ for p = 1:numel(pt_id_list)
         
         mpqhold = table2array(clntable(:,mpq_start:mpq_end));
         
-        redcap_painscores.MPQtotal       = tsnansum((mpqhold),2);
-        redcap_painscores.MPQthrobbing   = (clntable.throbbing);
-        redcap_painscores.MPQshooting    = (clntable.shooting);
-        redcap_painscores.MPQstabbing    = (clntable.stabbing);
-        redcap_painscores.MPQsharp       = (clntable.sharp);
-        redcap_painscores.MPQcramping    = (clntable.cramping);
-        redcap_painscores.MPQgnawing     = (clntable.gnawing);
-        redcap_painscores.MPQhot_burning = (clntable.hot_burning);
-        redcap_painscores.MPQaching      = (clntable.aching);
-        redcap_painscores.MPQheavy       = (clntable.heavy);
-        redcap_painscores.MPQtender      = (clntable.tender);
-        redcap_painscores.MPQsplitting   = (clntable.splitting);
-        redcap_painscores.MPQtiring      = (clntable.tiring_exhausting);
-        redcap_painscores.MPQsickening   = (clntable.sickening);
-        redcap_painscores.MPQfearful     = (clntable.fearful);
-        redcap_painscores.MPQcruel       = (clntable.cruel_punishing);
+        redcap.MPQtotal       = tsnansum((mpqhold),2);
+        redcap.MPQthrobbing   = (clntable.throbbing);
+        redcap.MPQshooting    = (clntable.shooting);
+        redcap.MPQstabbing    = (clntable.stabbing);
+        redcap.MPQsharp       = (clntable.sharp);
+        redcap.MPQcramping    = (clntable.cramping);
+        redcap.MPQgnawing     = (clntable.gnawing);
+        redcap.MPQhot_burning = (clntable.hot_burning);
+        redcap.MPQaching      = (clntable.aching);
+        redcap.MPQheavy       = (clntable.heavy);
+        redcap.MPQtender      = (clntable.tender);
+        redcap.MPQsplitting   = (clntable.splitting);
+        redcap.MPQtiring      = (clntable.tiring_exhausting);
+        redcap.MPQsickening   = (clntable.sickening);
+        redcap.MPQfearful     = (clntable.fearful);
+        redcap.MPQcruel       = (clntable.cruel_punishing);
 
         
         % make 0 values NaN for RCS01 because of unreliable reporting
         if strcmp(pt_id,'RCS01')
-            redcap_painscores.MPQtotal(redcap_painscores.MPQtotal == 0) = NaN;
+            redcap.MPQtotal(redcap.MPQtotal == 0) = NaN;
         else
-            redcap_painscores.MPQtotal = redcap_painscores.MPQtotal;
+            redcap.MPQtotal = redcap.MPQtotal;
         end
         
         % if NRS is Nan--rather than zero--likely means survey was quickly opened/closed
         % therefore changed MPQtotal to NaN rather than 0
-        redcap_painscores.MPQtotal(isnan(redcap_painscores.mayoNRS)) = NaN;
+        redcap.MPQtotal(isnan(redcap.mayoNRS)) = NaN;
 
-        painscores_out.(pt_id) = redcap_painscores;
+        painscores_out.(pt_id) = redcap;
         
 
         

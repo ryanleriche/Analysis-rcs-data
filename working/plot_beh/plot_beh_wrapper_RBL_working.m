@@ -27,9 +27,22 @@ REDcap                  = RCS_redcap_painscores(rcs_API_token);
 
 % stage dates and, home/clinic visits for RCS pts 1-7 w/ brief descriptions
 [visits, stage_dates]   = make_visit_dates;
+%% per RCS pt, organize pain fluctuation study (pain prior to stage 0)
 
-% need to further distill by pts initals
 fluct                   = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
+
+% renams as RCS pt code for clarity
+pts                     = {'RCS02','RCS04', 'RCS05', 'RCS06', 'RCS07'};
+fluct                   = cell2struct(struct2cell(fluct), pts);
+
+cfg               = [];
+cfg.dates         = 'AllTime';
+
+for i = 1:length(pts)
+    fluct_sum_stats.(pts{i})  = calc_sum_stats(cfg, fluct.(pts{i}));
+
+end
+
 %% import RCS databases, and INS logs per pt side
 %{
 
@@ -73,7 +86,7 @@ for i =  1:length(pt_sides)
     % now INS logs--inital run can take 15-30 minutes
     cfg.proc_dir           = [pia_dir, 'processed/INS_logs/'];
 
-    INS_logs.(pt_sides{i}  = RCS_logs(cfg);
+    INS_logs.(pt_sides{i})  = RCS_logs(cfg);
 
 end
 
@@ -160,35 +173,6 @@ for i=  1 %: length(pt_sides)
 
 end
 close all   
-%% per RCS pt, organize pain fluctuation study (pain prior to stage 0)
-% 
-% tmp_pfs_tbl            = fluct;
-% tmp_pfs_tbl.tmp_pt_ids = findgroups(tmp_pfs_tbl.initals);
-% 
-% unique(tmp_pfs_tbl.initals)
-% 
-% edge_cases  = {{'AMW 11PM 09-20-20', 'AME', 'ANW', 'AS'}}; 
-% real_ini    = {'AMW'};
-% 
-% for i = 1:length(real_ini)
-% 
-% tmp_pfs_tbl = tmp_pfs_tbl;
-% 
-% 
-% end
-% 
-% u_pts            = unique(tmp_pfs_tbl.tmp_pt_ids);
-% 
-% for i = 1:length(u_pts)
-% 
-% 
-% 
-% end
-% 
-
-
-
-
 
 
 %%
@@ -531,13 +515,13 @@ cfg                     = [];
 
 cfg.pt_id               = 'RCS04';
 cfg.dates               = 'PreviousDays';
-cfg.ndays               = 10;
+cfg.ndays               = 7;
 
 cfg.subplot             = true;
 cfg.sum_stat_txt        = true;
 cfg.stim_parameter      = '';
 
-    plot_timeline(cfg, REDcap);
+    plot_timeline(cfg, REDcap, fluct_sum_stats);
 
 
 %% organize Streaming Notes, clinic dates, etc
