@@ -43,25 +43,25 @@ end
 
 
 %% COMPILE text logs 
-cfg.pull_adpt_logs      = false;
-cfg.pull_event_logs     = true;
-cfg.ld_detection_events = false;
-cfg.pull_recharge_sess  = false;
-cfg.pull_mirror_logs    = false;
-cfg.savedir = processed_dir;
-
-try 
-[textlog.([cfg.pt_id 'L'])]         = RCS_logs(data_raw_dir,[cfg.pt_id 'L'],cfg);
-fprintf(' - OK Compiled textlogs  :  %s \n',[cfg.pt_id 'L'])
-catch TR_L
-    fprintf(' - NO textlogs for %s \n',[cfg.pt_id 'L'])
-end
-
-try 
-[textlog.([cfg.pt_id 'R'])]         = RCS_logs(data_raw_dir,[cfg.pt_id 'R'],cfg);
-fprintf(' - OK Compiled textlogs  :  %s \n',[cfg.pt_id 'R'])
-catch TR_R
-    fprintf(' - NO textlogs for %s \n',[cfg.pt_id 'R'])
-end
-
-
+% cfg.pull_adpt_logs      = false;
+% cfg.pull_event_logs     = true;
+% cfg.ld_detection_events = false;
+% cfg.pull_recharge_sess  = false;
+% cfg.pull_mirror_logs    = false;
+% cfg.savedir = processed_dir;
+% 
+% try 
+% [textlog.([cfg.pt_id 'L'])]         = RCS_logs(data_raw_dir,[cfg.pt_id 'L'],cfg);
+% fprintf(' - OK Compiled textlogs  :  %s \n',[cfg.pt_id 'L'])
+% catch TR_L
+%     fprintf(' - NO textlogs for %s \n',[cfg.pt_id 'L'])
+% end
+% 
+% try 
+% [textlog.([cfg.pt_id 'R'])]         = RCS_logs(data_raw_dir,[cfg.pt_id 'R'],cfg);
+% fprintf(' - OK Compiled textlogs  :  %s \n',[cfg.pt_id 'R'])
+% catch TR_R
+%     fprintf(' - NO textlogs for %s \n',[cfg.pt_id 'R'])
+% end
+% 
+% 

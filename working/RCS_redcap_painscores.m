@@ -48,26 +48,27 @@ if nargin == 0
 elseif nargin == 1
     rcs_TOKEN = varargin{1};
     pt_id_list = ...
-        {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06',...
+        {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06','RCS07'...
         ...
         'RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING',...
         'RCS04_STREAMING_v2','RCS05_STREAMING', 'RCS06_STREAMING',...
         ...
         'RCS_Weekly', 'RCS_Monthly',...
         'FlUCT'};
-    
+    %         'RCS07_STREAMING',...
 
 elseif nargin == 2
     rcs_TOKEN      = varargin{1};
     pcs_TOKEN      = varargin{2};
     pt_id_list = ...
-        {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06',...
+           {'RCS01','RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06','RCS07'...
         ...
         'RCS01_STREAMING','RCS02_STREAMING','RCS04_STREAMING',...
         'RCS04_STREAMING_v2','RCS05_STREAMING', 'RCS06_STREAMING',...
         ...
         'RCS_Weekly', 'RCS_Monthly',...
         'FlUCT'};
+    %         'RCS07_STREAMING',...
 
 elseif nargin == 3
 
@@ -106,10 +107,12 @@ for p = 1:numel(pt_id_list)
         case 'RCS05'
             PATIENT_ARM      = 'rcs05_daily_arm_13';
             reportid         = '109667';
-
         case 'RCS06'
             PATIENT_ARM      = 'rcs06_pain_report_arm_27';
-            reportid         = '135787';
+            reportid         = '135787';  
+        case 'RCS07'
+            PATIENT_ARM      = 'rcs07_pain_report_arm_33';
+            reportid         = '144629';
             
             % NEW arms
         case  'RCS02new'
@@ -119,7 +122,6 @@ for p = 1:numel(pt_id_list)
             PATIENT_ARM = 'rcs04_new_pain_rep_arm_18';
             reportid = '112132';
         case  'RCS05new'
-           
             PATIENT_ARM      = 'rcs05_new_pain_rep_arm_19';
             reportid         = '112133';
             
@@ -141,15 +143,18 @@ for p = 1:numel(pt_id_list)
             reportid = '109668';
 
         case 'RCS06_STREAMING'
-      
-        reportid         = '135788';
+            PATIENT_ARM = 'rcs06_streaming_arm_28'; 
+            reportid         = '135788';
+        case 'RCS07_STREAMING'
+            PATIENT_ARM = 'rcs07_streaming_no_arm_36';
+            reportid         = '146251';
             
         case 'FLUCT'
             PATIENT_ARM = 'dbs_and_nondbs_pat_arm_23';
             reportid    = '84060';
 
         case 'RCS_Weekly'
-            
+%             NEED TO PUT EACH  PATIENT's UNIQUE weekly and monthly report ids etc
             reportid = '135968';
 
         case 'RCS_Monthly'
@@ -165,7 +170,7 @@ for p = 1:numel(pt_id_list)
     end
     
     
-    disp('************************');
+
     if strcmp(reportid , '84060') % FLUCT study requires different API token
         data = webwrite(...
             SERVICE,...
@@ -200,7 +205,7 @@ for p = 1:numel(pt_id_list)
     end
    
     
-    if ~contains(pt_id, {'STREAMING', 'Weekly', 'Monthly'}) 
+    if ~contains(pt_id, {'STREAMING', 'Weekly', 'Monthly'})  % DAILY Scores 
         
         timestampvars = alltable.Properties.VariableNames( find(contains(alltable.Properties.VariableNames,'timestamp')) );
         
@@ -230,14 +235,14 @@ for p = 1:numel(pt_id_list)
               
         varnames = clntable.Properties.VariableNames;
     
-         if strcmp(pt_id, 'RCS06')
+         if strcmp(pt_id, 'RCS06')  %because RCS06 has unique metrics? 
 
+            
             nrs_field = varnames{contains(varnames,'intensity_nrs_v2_v2_51a1a3')};
             redcap_painscores.mayoNRS = (clntable.(nrs_field));
 
             nrs_noc  = varnames{contains(varnames,'worst_please_rate_your_pain_inte_v2_37cdf10')};
             redcap_painscores.NRS_noc = (clntable.(nrs_noc));
-
 
             nrs_np  = varnames{contains(varnames, 'worst_please_rate_your_pain_inte_v2_37cdf9')};
             redcap_painscores.NRS_np = (clntable.(nrs_np));
@@ -245,22 +250,18 @@ for p = 1:numel(pt_id_list)
             vas_field  = varnames{contains(varnames, 'intensity_vas_v2_v2_8a3273')};
             redcap_painscores.painVAS = (clntable.(vas_field));
 
-
             vas_noc  = varnames{contains(varnames, 'please_rate_your_pain_inte_v2_9d8b33')};
             redcap_painscores.painVAS_noc = (clntable.(vas_noc));
 
-
             vas_np  = varnames{contains(varnames, 'please_rate_your_pain_inte_v2_9d8b34')};
-            redcap_painscores.painVAS_np = (clntable.(vas_np));                  
-        
-    
+            redcap_painscores.painVAS_np = (clntable.(vas_np));            
+            
          else
             % dynamic field names for each subject
             
             nrs_field = varnames{contains(varnames,'intensity_nrs')};
             vas_field = varnames{contains(varnames,'intensity_vas')};
-            
-            
+                        
             % Populate the new flavors of painscores downloaded from redcap
             redcap_painscores.mayoNRS = (clntable.(nrs_field));
             redcap_painscores.painVAS = (clntable.(vas_field));
@@ -268,7 +269,7 @@ for p = 1:numel(pt_id_list)
         
          end
 
-            unp_field = varnames{contains(varnames,'unpleasantness_vas')};
+            unp_field = varnames{contains(varnames,'unpleasantness_vas')  | contains(varnames,'unp_intensity_vas')};
             redcap_painscores.unpleasantVAS = (clntable.(unp_field));
         
 
@@ -318,11 +319,12 @@ for p = 1:numel(pt_id_list)
             redcap_painscores.MPQtotal = redcap_painscores.MPQtotal;
         end
         
-        painscores_out.(pt_id) = redcap_painscores;
-        
 
+        painscores_out.(pt_id) = redcap_painscores;
+       fprintf('%d total reports \n',height(redcap_painscores.time));
+    disp('************************');
         
-    elseif ~contains(pt_id, {'Weekly', 'Monthly'}) 
+    elseif ~contains(pt_id, {'Weekly', 'Monthly'})  %STREAMING NOTES
         %FOR STREAMING NOTES ARMS
         
         timevarNAME = alltable.Properties.VariableNames(    find(contains(alltable.Properties.VariableNames,'timestamp'))     );
@@ -333,11 +335,11 @@ for p = 1:numel(pt_id_list)
         clntable = alltable(keeprows,:);
         
         varnames = clntable.Properties.VariableNames;
-        medchange_field = varnames{contains(varnames,'medication_changes')};
-        activity_field = varnames{contains(varnames,'activity')};
+        medchange_field = varnames{contains(varnames,'medication_changes') | contains(varnames,'changes_to_medication')};
+        activity_field = varnames{contains(varnames,'activity')}; % NOT WORKING FOR RCS07
         explain_field = varnames{contains(varnames,'explain')};
         stimon_field = varnames{contains(varnames,'is_stimulation_on')};
-        stimprog_field = varnames{contains(varnames,'which_stimulation_program')};
+        stimprog_field = varnames{contains(varnames,'which_stimulation_program')}; %NOT WORKING FOR RCS07
 
 %         **  IN future, will need to add all the individual med fields for
 %         each patient **
@@ -355,6 +357,9 @@ for p = 1:numel(pt_id_list)
     end
 end
 
+
+%  NEED TO INCLUDE THE WEEKLY AND MONTHLY OUTPUTS! 
+
 % make into structure of tables
 holdfieldnames =  fields(painscores_out);
 for n = 1:numel(holdfieldnames)
@@ -369,15 +374,16 @@ newscores.RCS01 =  oldscores.RCS01;
 newscores.RCS02 = [oldscores.RCS02; oldscores.RCS02new];
 newscores.RCS04 = [oldscores.RCS04; oldscores.RCS04new];
 newscores.RCS05 = [oldscores.RCS05; oldscores.RCS05new];
-
 newscores.RCS06 = oldscores.RCS06;
+newscores.RCS07 = oldscores.RCS07;
     
 newscores.RCS01_STREAMING = oldscores.RCS01_STREAMING;
 newscores.RCS02_STREAMING = oldscores.RCS02_STREAMING;
 newscores.RCS04_STREAMING = [oldscores.RCS04_STREAMING; oldscores.RCS04_STREAMING_v2];
 newscores.RCS05_STREAMING = oldscores.RCS05_STREAMING;
-
 newscores.RCS06_STREAMING = oldscores.RCS06_STREAMING;
+% newscores.RCS07_STREAMING = oldscores.RCS07_STREAMING;
+
 
 % OUTPUT
 painscores_out = newscores;
