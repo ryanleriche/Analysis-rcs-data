@@ -365,7 +365,7 @@ hold on
                     scatter(redcap.time, redcap.npVAS, 50, 'filled', 'MarkerFaceAlpha', 0.6);
 
 
-            case {'RCS02', 'RCS04', 'RCS05', 'RCS07'}
+            case {'RCS02', 'RCS04', 'RCS05'}
                 set(gca,'ColorOrderIndex',1);
                 
                     plot(redcap.time, movmean(redcap.painVAS, [n_back 0], 'omitnan'),...
@@ -374,15 +374,21 @@ hold on
                     scatter(redcap.time, redcap.unpleasantVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
                     scatter(redcap.time, redcap.worstVAS, 50, 'filled','MarkerFaceAlpha', 0.6);
 
-                switch cfg.pt_id
-                    case 'RCS07'
-                        plot(redcap.time, movmean(redcap.moodVAS, [n_back 0], 'omitnan'),...
-                        'LineWidth', 2); hold on;
-                        
-                        set(gca,'ColorOrderIndex',4);
-                        
-                        scatter(redcap.time, redcap.moodVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
-                end
+            case  'RCS07'
+                set(gca,'ColorOrderIndex',1);
+                    plot(redcap.time, movmean(redcap.painVAS, [n_back 0], 'omitnan'),...
+                        'LineWidth', 2.5, 'HandleVisibility','off');
+
+                    scatter(redcap.time, redcap.unpleasantVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
+                
+                    set(gca,'ColorOrderIndex',4);
+
+                plot(redcap.time, movmean(redcap.moodVAS, [n_back 0], 'omitnan'),...
+                'LineWidth', 2,'HandleVisibility','off'); hold on;
+                
+                set(gca,'ColorOrderIndex',4);
+                scatter(redcap.time, redcap.moodVAS, 75, 'filled','MarkerFaceAlpha', 0.6);
+
         end
     end
 
@@ -394,7 +400,7 @@ hold on
          case 'RCS06'
 
             legend({...
-                     'VAS Intensity','VAS Nociceptive','VAS Neuropathic',...
+                     'VAS Intensity', 'VAS Nociceptive','VAS Neuropathic',...
                      '50%⭣in Pre-trial VAS intensity'...
                     },...
                     'Location','northoutside', 'NumColumns',3);
@@ -402,7 +408,7 @@ hold on
          case 'RCS07'
 
             legend({...
-                    'VAS Intensity','VAS Unpleasantness','VAS Mood',...
+                    'VAS Intensity', 'VAS Unpleasantness','VAS Mood',...
                     '50%⭣in Pre-trial VAS intensity'...
                     },...
                     'Location','northoutside', 'NumColumns',3);
@@ -410,7 +416,7 @@ hold on
          case {'RCS02', 'RCS04', 'RCS05'}
 
             legend({...                  
-                     'VAS Intensity','VAS Unpleasantness','VAS Worst',...
+                     'VAS Intensity', 'VAS Unpleasantness','VAS Worst',...
                      '50%⭣in Pre-trial VAS intensity'...
                     },...
                     'Location','northoutside', 'NumColumns',3);
