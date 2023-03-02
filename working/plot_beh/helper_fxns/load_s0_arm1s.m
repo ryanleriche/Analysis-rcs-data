@@ -157,8 +157,6 @@ for i = 1 : length(s0_rcaps)
         end
 
 
-
-
         % test surveys are sprinkled throughout Stage 0 
         % (denoted as differnt number than pt id)
         if any(contains(varnames, 'pt'))
@@ -181,6 +179,12 @@ for i = 1 : length(s0_rcaps)
 %             otherwise
 %         end
 
+
+        var_oi = arm1_tbl.Properties.VariableNames;
+        var_oi = var_oi(contains(var_oi, {'NRS', 'VAS', 'MPQtotal'}));
+
+        arm1_tbl = arm1_tbl(~all(isnan(arm1_tbl{:,var_oi}),2), :);
+         %arm1_tbl =  arm1_tbl(all(isnan( =arm1_tbl)));
         s0_redcaps.(['stage0', pt_id]) = arm1_tbl;
     end
 end

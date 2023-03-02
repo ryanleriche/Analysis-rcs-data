@@ -383,6 +383,10 @@ for p = 1:numel(pt_id_list)
 
             painscores_out.(initals{i}) = redcap;
        end
+        % rename as RCS pt code for clarity
+        pts                     = {'RCS02','RCS04', 'RCS05', 'RCS06', 'RCS07'};
+        painscores_out          = cell2struct(struct2cell(painscores_out), pts);
+
        toc
        return
     end

@@ -13,11 +13,11 @@ lower = (0:numBins-1)*binWidth;
 fftBins = lower + binWidth/2;          % Bin center
 upper = lower + binWidth;
 
-fftParameters.numBins = numBins;
+fftParameters.numBins  = numBins;
 fftParameters.binWidth = binWidth;
-fftParameters.fftBins = fftBins;
-fftParameters.lower = lower;
-fftParameters.upper = upper;
-fftParameters.fftSize = fftSize;
+fftParameters.fftBins  = fftBins;
+fftParameters.lower    = lower;
+fftParameters.upper    = upper;
+fftParameters.fftSize   = fftSize;
 
 end

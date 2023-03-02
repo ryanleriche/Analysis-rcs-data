@@ -20,8 +20,14 @@ redcap                  = REDcap.(cfg.pt_id);
 
 cfg.stage_dates         = stage_dates{str2double(cfg.pt_id(end))}; % starts at Stage 1
 
+% bring in pain fluctuation study as reference of baseline pain
+if contains(cfg.pt_id, 'stage0')
+    PFS_sum                 = fluct_sum_stats.(cfg.pt_id(7:end));
+else
+    PFS_sum                 = fluct_sum_stats.(cfg.pt_id);
+end
 
-figure('Units', 'Inches', 'Position', [0, 0, 13, 7])
+figure('Units', 'Inches', 'Position', [0, 0, 13, 9])
 
 [~, date_range] = date_parser(cfg, redcap);
 
@@ -110,37 +116,119 @@ switch cfg.pt_id(7:end)
     otherwise
 %% NRS
     if cfg.subplot == true
+        
         subplot(311);
         sgtitle([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
+
+    elseif contains(cfg.pt_id, 'stage0')
+        title(cfg.pt_lbl); hold on
 
     else
         title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
         hold on
     end
-
+hold on
 
     % for reference plot mean+-std of pain fluctuation study (prior to
     % temporary trial period)
-    
-    tmp_fluct  = fluct_sum_stats.(cfg.pt_id)(:, 'mayoNRS');
-    
-    fluct_t    = sort(repmat([date_range(1), date_range(2)],1,2));
-    fluct_plt  = [tmp_fluct{'mean',1}-tmp_fluct{'std',1},    tmp_fluct{'mean',1}+tmp_fluct{'std',1},...
-                    tmp_fluct{'mean',1}+tmp_fluct{'std',1},    tmp_fluct{'mean',1}-tmp_fluct{'std',1}];
-    
-    patch(fluct_t, fluct_plt,'k','FaceAlpha',0.2,'EdgeColor', 'none'); hold on
-    yline(tmp_fluct{'mean',1}, 'Color',[.3, .3, .3], 'LineWidth', 2, 'HandleVisibility','off');
+    if ~contains(cfg.pt_id, 'stage0')  
+        tmp_fluct  = PFS_sum(:, 'mayoNRS');
+        
+        fluct_t    = sort(repmat([date_range(1), date_range(2)],1,2));
+        fluct_plt  = [tmp_fluct{'mean',1}-tmp_fluct{'std',1},    tmp_fluct{'mean',1}+tmp_fluct{'std',1},...
+                        tmp_fluct{'mean',1}+tmp_fluct{'std',1},    tmp_fluct{'mean',1}-tmp_fluct{'std',1}];
+        
+        %patch(fluct_t, fluct_plt,'k','FaceAlpha',0.2,'EdgeColor', 'none');
+        hold on
+
+    end
 
     switch cfg.dates
         case 'AllTime'
-    
-            plot(redcap.time, movmean([redcap.mayoNRS,redcap.worstNRS], 5),...
-                'LineWidth', 2, 'HandleVisibility','off');
-    
-            hold on; set(gca,'ColorOrderIndex',1);
-    
-            plot(redcap.time, [redcap.mayoNRS,redcap.worstNRS], '.', 'MarkerSize',5);
+
+            if contains(cfg.pt_id, 'stage0')
+                
+%                 VAS_to_MPQ_ratio = 100/45;
+
+                tmp_fluct  = PFS_sum(:, 'painVAS');
+                
+%                     fluct_t    = sort(repmat([date_range(1), date_range(2)],1,2));
+%                     fluct_plt  = [tmp_fluct{'mean',1}-tmp_fluct{'std',1},    tmp_fluct{'mean',1}+tmp_fluct{'std',1},...
+%                     tmp_fluct{'mean',1}+tmp_fluct{'std',1},    tmp_fluct{'mean',1}-tmp_fluct{'std',1}];
+                    
+                    %patch(fluct_t, fluct_plt,'k','FaceAlpha',0.2,'EdgeColor', 'none'); hold on
+
+           
+                stage0_metrics = [redcap.mayoNRS *10,...
+                    redcap.painVAS, redcap.reliefVAS, ...
+                    redcap.moodVAS];
+
+                c =brewermap(NaN, 'Set2');
+
+                for h =1:size(stage0_metrics,2)
+                    plot(redcap.time, movmean(stage0_metrics(:,h), 5),...
+                        'LineWidth', 2, 'Color', c(h,:));
+
+                    scatter(redcap.time, stage0_metrics(:,h), 15, ...
+                        'filled','MarkerFaceAlpha', 0.6, ...
+                        'MarkerEdgeColor', c(h,:), 'MarkerFaceColor', c(h,:),...
+                        'HandleVisibility','off');   
+                end
+
+                yline(tmp_fluct{'half_improve',1}, '--', 'LineWidth',2.5); hold on
+                ylim([0,100]); yticks(0:10:100);
+
+                ylabel('NRS (0-10),   VAS (0-100)', 'FontWeight','bold')
+                
+
+                y_lbls_txt = cellfun(@(x) sprintf('%.0f    %.0f',x), ...
+                    num2cell([0:1:10; 0:10:100]', 2), 'UniformOutput', false);
+            
+                yticklabels(y_lbls_txt)
+
+               
+                yyaxis right
+                 plot(redcap.time, movmean(redcap.MPQtotal, 5),...
+                        'LineWidth', 2, 'Color', c(h+1,:));
+
+                 ylabel('MPQ Total (0-45)', 'FontWeight', 'bold')
+
+                scatter(redcap.time, redcap.MPQtotal, 15, ...
+                    'filled','MarkerFaceAlpha', 0.6, ...
+                    'MarkerEdgeColor', c(h+1,:), 'MarkerFaceColor', c(h+1,:),...
+                    'HandleVisibility','off');
+
+                ylim([0,45]); yticks(0:4.5:45);
+
+                xticklabels(0:10); xlabel('Days since temporary implant')
+                
+
+
+                legend({...
+                    'NRS pain','VAS pain','VAS relief','VAS mood'...
+                    '50%⭣in Pre-trial mean VAS pain'...
+                    'MPQ Total'}, ...
+                    'Location','northoutside', 'NumColumns',3, 'FontSize', 14);
+
+
+                
+                grid on;    %grid MINOR;   
+                
+                legend boxoff;    box off;
+                
+                set(gca, 'FontSize', 14,'xlim', date_range , 'TickLength', [0 0],...
+                'GridAlpha',0.4,'MinorGridAlpha',0.7, 'GridColor', 'k', 'MinorGridColor', 'k', 'YColor','k'); 
+
+                return
+
+            else
+                plot(redcap.time, movmean([redcap.mayoNRS,redcap.worstNRS], 5),...
+                    'LineWidth', 2, 'HandleVisibility','off');
         
+                hold on; set(gca,'ColorOrderIndex',1);
+        
+                plot(redcap.time, [redcap.mayoNRS,redcap.worstNRS], '.', 'MarkerSize',5);
+            end
 
         case {'DateRange', 'PreviousDays'}
 
@@ -187,30 +275,34 @@ switch cfg.pt_id(7:end)
     end
   
      ylabel('Numeric Rating Scale');     ylim([0,10]); yticks(1:2:10);
-    
+
+     yline(tmp_fluct{'half_improve',1}, 'Color',[50,205,50]/252, 'LineWidth',2.5)
 
      switch cfg.pt_id
          case 'RCS06'
 
-            legend({'Pre-Stage 0 NRS intensity mean ± std'...
+            legend({...
                     'NRS Intensity','NRS Nociceptive','NRS Neuropathic',...
+                    '50%⭣in Pre-trial NRS intensity'...
                     }, ...
-                    'Location','northoutside', 'Orientation','horizontal');
+                    'Location','northoutside', 'NumColumns',3);
 
          case 'RCS07'
 
-            legend({'Pre-Stage 0 NRS intensity mean ± std',...
+            legend({...
                     'NRS Intensity','NRS Unpleasantness',...
                     'NRS Left Arm', 'NRS Left Leg', 'NRS LeftFace',...
+                    '50%⭣in Pre-trial NRS intensity'...
                     },...
-                    'Location','northoutside', 'Orientation','horizontal');
+                    'Location','northoutside', 'NumColumns',3);
          
          case {'RCS02', 'RCS04', 'RCS05'}
 
-            legend({'Pre-Stage 0 NRS intensity mean ± std',...
+            legend({...
                     'NRS Intensity' , 'NRS Worst Intensity',...
-                    'Pre-Stage 0 NRS intensity mean ± std'},...
-                    'Location','northoutside', 'Orientation','horizontal'); 
+                    '50%⭣in Pre-trial NRS intensity'...
+                    },...
+                    'Location','northoutside', 'NumColumns',3);
      end
      
      format_plot();
@@ -232,17 +324,14 @@ switch cfg.pt_id(7:end)
     % for reference plot mean+-std of pain fluctuation study (prior to
     % temporary trial period)
     
-    tmp_fluct  = fluct_sum_stats.(cfg.pt_id)(:, 'painVAS');
+    tmp_fluct  = PFS_sum(:, 'painVAS');
     
         fluct_t    = sort(repmat([date_range(1), date_range(2)],1,2));
         fluct_plt  = [tmp_fluct{'mean',1}-tmp_fluct{'std',1},    tmp_fluct{'mean',1}+tmp_fluct{'std',1},...
                     tmp_fluct{'mean',1}+tmp_fluct{'std',1},    tmp_fluct{'mean',1}-tmp_fluct{'std',1}];
         
-        patch(fluct_t, fluct_plt,'k','FaceAlpha',0.2,'EdgeColor', 'none'); hold on
-    
-        yline(tmp_fluct{'mean',1}, 'Color',[.3, .3, .3], 'LineWidth', 2, 'HandleVisibility','off');
-
-
+        %patch(fluct_t, fluct_plt,'k','FaceAlpha',0.2,'EdgeColor', 'none'); 
+        hold on
     switch cfg.dates
         case 'AllTime'
     
@@ -299,27 +388,32 @@ switch cfg.pt_id(7:end)
 
      ylabel('Visual Analog Scale');         ylim([0,100]);  yticks(0:20:100);
 
+     yline(tmp_fluct{'half_improve',1}, 'Color',[50,205,50]/252, 'LineWidth',2.5)
+
     switch cfg.pt_id
          case 'RCS06'
 
-            legend({'Pre-Stage 0 VAS intensity mean ± std',...
+            legend({...
                      'VAS Intensity','VAS Nociceptive','VAS Neuropathic',...
+                     '50%⭣in Pre-trial VAS intensity'...
                     },...
-                    'Location','northoutside', 'Orientation','horizontal');
+                    'Location','northoutside', 'NumColumns',3);
 
          case 'RCS07'
 
-            legend({'Pre-Stage 0 VAS intensity mean ± std',...
+            legend({...
                     'VAS Intensity','VAS Unpleasantness','VAS Mood',...
+                    '50%⭣in Pre-trial VAS intensity'...
                     },...
-                    'Location','northoutside', 'Orientation','horizontal');
+                    'Location','northoutside', 'NumColumns',3);
          
          case {'RCS02', 'RCS04', 'RCS05'}
 
-            legend({'Pre-Stage 0 VAS intensity mean ± std',...
+            legend({...                  
                      'VAS Intensity','VAS Unpleasantness','VAS Worst',...
+                     '50%⭣in Pre-trial VAS intensity'...
                     },...
-                    'Location','northoutside', 'Orientation','horizontal'); 
+                    'Location','northoutside', 'NumColumns',3);
      end
 
 
@@ -331,9 +425,14 @@ switch cfg.pt_id(7:end)
 
             
 %% MPQ
+
+% for reference plot mean+-std of pain fluctuation study (prior to
+% temporary trial period)
+
+
     if cfg.subplot == true
 
-        ax = subplot(313);
+        subplot(313);
     else
         figure('Units', 'Inches', 'Position', [0, 0, 15, 10])
         title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16); 
@@ -344,45 +443,52 @@ switch cfg.pt_id(7:end)
     MPQaff       = sum([redcap.MPQsickening, redcap.MPQfearful, redcap.MPQcruel, redcap.MPQtiring],2,'omitnan');
     MPQsom       = redcap.MPQtotal - MPQaff;
 
-    if strcmp(cfg.dates, 'AllTime') == 1
+    tmp_fluct  = PFS_sum(:, 'MPQtotal');
     
-        plot(redcap.time, movmean(redcap.MPQtotal , 5),'LineWidth', 4.5);
-        hold on
-        plot(redcap.time, movmean([MPQsom, MPQaff], 5),'LineWidth', 2);
+        fluct_t    = sort(repmat([date_range(1), date_range(2)],1,2));
+        fluct_plt  = [tmp_fluct{'mean',1}-tmp_fluct{'std',1},    tmp_fluct{'mean',1}+tmp_fluct{'std',1},...
+                    tmp_fluct{'mean',1}+tmp_fluct{'std',1},    tmp_fluct{'mean',1}-tmp_fluct{'std',1}];
+        
+       % patch(fluct_t, fluct_plt,'k','FaceAlpha',0.2,'EdgeColor', 'none'); 
+        
 
-         set(gca,'ColorOrderIndex',1);
+    switch cfg.dates
+        case 'AllTime'
+    
+            plot(redcap.time, movmean(redcap.MPQtotal , 5),'LineWidth', 4.5,'HandleVisibility','off');
+            hold on
+            plot(redcap.time, movmean([MPQsom, MPQaff], 5),'LineWidth', 2,'HandleVisibility','off');
+    
+             set(gca,'ColorOrderIndex',1);
+    
+            plot(redcap.time, redcap.MPQtotal , '.', 'MarkerSize',9);
+            plot(redcap.time, [MPQsom, MPQaff], '.', 'MarkerSize',5);
 
-        plot(redcap.time, redcap.MPQtotal , '.', 'MarkerSize',9);
-        plot(redcap.time, [MPQsom, MPQaff], '.', 'MarkerSize',5);
+        case {'DateRange', 'PreviousDays'}
 
-    else
-
-        plot(redcap.time, movmean(redcap.MPQtotal, [n_back 0], 'omitnan'),...
-            'LineWidth', 2); hold on;
-
-        set(gca,'ColorOrderIndex',1);
- 
-        scatter(redcap.time, redcap.MPQtotal , 75, 'filled','MarkerFaceAlpha', 0.6);   
-        hold on;
-        scatter(redcap.time, MPQsom, 50, 'filled', 'MarkerFaceAlpha', 0.6);
-        scatter(redcap.time, MPQaff, 50, 'filled', 'MarkerFaceAlpha', 0.6);
+            plot(redcap.time, movmean(redcap.MPQtotal, [n_back 0], 'omitnan'),...
+                'LineWidth', 2,'HandleVisibility','off');
+    
+            set(gca,'ColorOrderIndex',1);
+     
+            scatter(redcap.time, redcap.MPQtotal , 75, 'filled','MarkerFaceAlpha', 0.6);   
+            hold on;
+            scatter(redcap.time, MPQsom, 50, 'filled', 'MarkerFaceAlpha', 0.6);
+            scatter(redcap.time, MPQaff, 50, 'filled', 'MarkerFaceAlpha', 0.6);
 
     end
     
-    ylabel('McGill Pain Questionaire');     ylim([0,45]); yticks(0:15:45)
+    ylabel('McGill Pain Questionaire');     ylim([0,45]); %yticks(0:5:45)
+    hold on
+        yline(tmp_fluct{'half_improve',1}, 'Color',[50,205,50]/252, 'LineWidth',2.5)
+
+    legend({...
+            'MPQ Total',  'MPQ Somatic','MPQ Affective',...
+            '50%⭣in Pre-trial MPQ Total'}, 'Location','northoutside', 'NumColumns',3);
     
-    mpq_str    =  ['MPQ Total'];
-
-    mpq_som_str    =  ['MPQ Somatic'];
-    mpq_aff_str    =  ['MPQ Affective'];
-
-
-
-   legend({'',  mpq_str,  mpq_som_str, mpq_aff_str}, 'Location','northoutside', 'Orientation','horizontal'); 
-
     format_plot();
-    
-    
+
+
     if ~strcmp(cfg.stim_parameter, '')
         overlay_stim(gca, cfg.stim_parameter, redcap);   
     end
@@ -673,7 +779,9 @@ end
     
 function format_plot()  
 
-    grid on;    grid MINOR;   legend boxoff;    box off;
+    grid on;    grid MINOR;   
+    
+    legend boxoff;    box off;
 
     set(gca,'FontSize',12, 'xlim', date_range , 'TickLength', [0 0],...
         'GridAlpha',0.4,'MinorGridAlpha',0.7, 'GridColor', 'k', 'MinorGridColor', 'k'); 

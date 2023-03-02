@@ -22,25 +22,27 @@ cd([github_dir, 'Analysis-rcs-data/working']);
 addpath(genpath([github_dir, 'Analysis-rcs-data/']));
 addpath(genpath([github_dir, 'rcs-simulation/']));
 
-
 REDcap                  = RCS_redcap_painscores(rcs_API_token);
 
 % stage dates and, home/clinic visits for RCS pts 1-7 w/ brief descriptions
 [visits, stage_dates]   = make_visit_dates;
-%% per RCS pt, organize pain fluctuation study (pain prior to stage 0)
 
-fluct                   = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
+% per RCS pt, organize pain fluctuation study (pain prior to stage 0)
+%{
+If this fails b/c of a time out issue go into MATLAB's 'webwrite()'fxn
+and below line ~126   --> 'options = validateRequestMethod(options);' 
+add                   --> 'options.Timeout   = 20;'
+%}  
 
-% renams as RCS pt code for clarity
-pts                     = {'RCS02','RCS04', 'RCS05', 'RCS06', 'RCS07'};
-fluct                   = cell2struct(struct2cell(fluct), pts);
+fluct             = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
 
+% pain fluctuation study descriptive stats provides basis for clinical
+% outcomes of interest
 cfg               = [];
 cfg.dates         = 'AllTime';
-
+pts               = {'RCS02', 'RCS04', 'RCS05', 'RCS06', 'RCS07'};
 for i = 1:length(pts)
     fluct_sum_stats.(pts{i})  = calc_sum_stats(cfg, fluct.(pts{i}));
-
 end
 
 %% import RCS databases, and INS logs per pt side
@@ -58,6 +60,8 @@ program within the group can have different values). Pulse width limits, rate, r
 Cycling, and Active Recharge are programmed for each group (ie, each program within the group will have
 the same values)."
 
+Inital run can take hours if running multiple pts w/ 1000s of streaming
+sessions.
 %}
 
 cfg                    = [];
@@ -66,230 +70,130 @@ cfg.ignoreold          = false;
 cfg.raw_dir            = [pia_dir, 'raw/'];
 
 % specify which patient's INS
-%pt_sides               = {'RCS02R'};
-pt_sides               = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
+%cfg.pt_sides           = {'RCS02R', 'RCS05L', 'RCS05R'};
 
-%%% NOT yet ran w/ updated script: %%%
-%pt_sides        = {'RCS04R','RCS04L', 'RCS06R','RCS06L'};
+% all pts:
+cfg.pt_sides         = {'RCS02R', 'RCS04R','RCS04L', 'RCS05L','RCS05R',...
+                        'RCS06R','RCS06L', 'RCS07L', 'RCS07R'};
 
+% pts not yet on closed-loop:
+% cfg.pt_sides        = {'RCS04R','RCS04L', 'RCS06R','RCS06L'};
 
-for i =  1:length(pt_sides)
+cfg.proc_dir           = [pia_dir, 'processed/databases/'];
 
     % process RCS .jsons into searchable database
-    cfg.pt_id_side                     = pt_sides{i};
-    cfg.proc_dir           = [pia_dir, 'processed/databases/'];
+    [db, bs] =  makeDatabaseRCS_Ryan(cfg);
+%
+%
+% process INS logs .txts based on unique entries only
+%
+%
+% (INS logs have mostly repeating entries)
+% same cfg as 'makeDatabaseRCS()', but w/ different output folder
 
-    [db.(pt_sides{i}), bs.(pt_sides{i})]...
-        ...
-        =  makeDatabaseRCS_Ryan(cfg);
+cfg.proc_dir  = [pia_dir, 'processed/INS_logs/'];
 
-    % now INS logs--inital run can take 15-30 minutes
-    cfg.proc_dir           = [pia_dir, 'processed/INS_logs/'];
+    INS_logs  = RCS_logs(cfg);
 
-    INS_logs.(pt_sides{i})  = RCS_logs(cfg);
-
-end
-
-
-%% per streaming session, visualize INS to API latnecy 
+%% per streaming session, visualize INS to API latency and impedance
 % (i.e., how long is the INS ahead OR behind internet time)
-% commented out since only needs to be checked every month or so
-%{
-%pt_sides               = {'RCS02R','RCS04L','RCS04R','RCS05L','RCS05R','RCS06L','RCS06R','RCS07L','RCS07R'};
 
-pt_sides               = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
+% prevents figures from popping up (see in cfg.proc_dir folder)
+set(0,'DefaultFigureVisible','off')
 
-%pt_sides               = {'RCS02R','RCS05L'};
-%pt_sides               = {'RCS02R'};
-
-cfg             = [];
+%cfg             = [];
 cfg.dates       = 'AllTime';
-cfg.save_dir    = [github_dir, 'Analysis-rcs-data/working/plot_ephy/aDBS_offline_sessions/'];
+cfg.proc_dir    = [pia_dir, 'processed/aDBS_offline_sessions/'];
 
-for i= 1:length(pt_sides)
+    plt_INS_lat_per_session(cfg, db);
 
-    cfg.pt_id_side = pt_sides{i};
+%%% plot impedance over time (contacts to case during a "Lead Integrity Test")
+cfg.proc_dir    = [pia_dir, 'processed/impedance_per_session/'];
 
-    plt_INS_lat_per_session(cfg, db.(pt_sides{i}));
-end
-%}
+    plt_impedance_per_session(cfg, db);
 
+set(0,'DefaultFigureVisible','on')
 %% unpack all sense, LD, and stimulation settings as own variable in table
 % --> allows for programmatic discernment of unique RC+S settings
 
-%pt_sides               = {'RCS02R'};
-%pt_sides        = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
-%pt_sides        = {'RCS04R','RCS04L'};
+%cfg                        = [];
+cfg.ignoreold              = false;
+cfg.raw_dir                = [pia_dir, 'raw/'];
+cfg.proc_dir               = [pia_dir, 'processed/parsed_databases/'];
+
+    [par_db, ss_var_oi]    = makeParsedDatabaseRCS(cfg, db);
+
+%% plot aDBS performance over months
+
+cfg             = [];
+cfg.pt_sides    = {'RCS02R', 'RCS05L', 'RCS05R', 'RCS07L', 'RCS07R'};
+cfg.proc_dir    = [pia_dir, 'processed/aDBS_offline_sessions/'];
+
+%%% specify which dates to return:
+cfg.dates         = 'DateRange';
+cfg.date_range    = {'01-Jan-2023'; '30-May-2023'};
+
+%%% return every aDBS ever tried (takes much longer):
+%cfg.dates        = 'AllTime';
 
 
-cfg                    = [];
-cfg.ignoreold          = false;
-cfg.raw_dir            = [pia_dir, 'raw/'];
-cfg.proc_dir           = [pia_dir, 'processed/parsed_databases/'];
+%%% state-current relationship (12 am - 12 pm)
+cfg.plt_state_dur = 'sub_session_duration';
+
+%%% state-current relationship (from 1-2 am and 1-2 pm):
+%cfg.plt_state_dur = 'two_chunks'; 
 
 
-for i= 1:length(pt_sides)
-
-    cfg.pt_id_side = pt_sides{i};
-
-
-    [par_db.(pt_sides{i}), ss_var_oi.(pt_sides{i})]...
-    ...
-        = makeParsedDatabaseRCS(...
-    ...
-    cfg, db);
-
-
-end
-
-%% find nearest (yet, preceding) streaming session to INS log entry
-%%% --> accounts for INS to API time latnecy
-
-for i=  1: length(pt_sides)
-
-
-   [app_SS_tbl.(pt_sides{i}), INS_logs_proc.(pt_sides{i}), INS_ss_merge_g_changes.(pt_sides{i})] ...
+%%% find nearest (yet, preceding) streaming session to INS log entry
+% --> accounts for INS to API time latency
+   [app_SS_tbl, INS_logs_proc, INS_ss_merge_g_changes] ...
     ...
         = align_stream_sess_to_INSLogs(...
     ...
-    INS_logs.(pt_sides{i}), par_db.(pt_sides{i}), ss_var_oi.(pt_sides{i}));
-end
-
-%% plot aDBS performance in-real time
-cfg             = [];
-cfg.dates       = 'AllTime';
-cfg.save_dir    = [github_dir, 'Analysis-rcs-data/working/plot_ephy/aDBS_offline_sessions/'];
-
-cfg.dates          = 'DateRange';
-cfg.date_range     = {'31-Dec-2022'; '30-May-2023'};
-
-% to avoid figures popping up in MATLAB (see cfg.save_dir for the aDBS longitudinal plots)
-set(0,'DefaultFigureVisible','off')
-
-for i=  1 %: length(pt_sides)
-        cfg.pt_id_side = pt_sides{i};
-
-    plot_longitudinal_aDBS(cfg, REDcap, INS_logs_proc, app_SS_tbl, INS_ss_merge_g_changes);
-
-end
-close all   
-
+    cfg, INS_logs, par_db, ss_var_oi);
+             
+% w/ aligned INS logs, plot requested dates
+   plot_longitudinal_aDBS(cfg, REDcap, INS_logs_proc, app_SS_tbl, INS_ss_merge_g_changes);
 
 %%
 %
 %
+%%% from databases, parse through StimLog.json files and align to REDcap
 %
 %
-
-
-    [REDcap_INSLog.RCS02R, proc_group_changes.RCS02R]  ...
-        ...
-        = explicit_INS_stim_params(...
-        ...
-    cfg, INS_logs.RCS02R.group_changes, db.RCS02R, REDcap.RCS02, visits.RCS02);
-
-
-%%
-%
-%
-%
-%
-
-
-
-
-
-
-
-
-
-
-time_API   = datetime(db_RCSXXX.eventLogTable{1809,1}.HostUnixTime /1000,...
-                        'ConvertFrom','posixTime',...
-                        'TimeZone','America/Los_Angeles',...
-                         'Format','dd-MMM-yyyy HH:mm:ss.SSS')
-
-
-%%
-%{
-i                   = cellfun(@(x) length(x) == 1, db.RCS04R.duration);
-db_RCS04R           = db.RCS04R(i, :);
-
-[~, i_u] = unique(db_RCS04R.sess_name);
-
-db_RCS04R = db_RCS04R(i_u, :);
-
-db_RCS04R.timeStart = cellfun(@(x) x, db_RCS04R.timeStart);
-db_RCS04R.timeStop  = cellfun(@(x) x, db_RCS04R.timeStop);
-db_RCS04R.duration  = cellfun(@(x) x, db_RCS04R.duration);
-
-% take sessions of useful yet managable duration
-i_sess              = ge(db_RCS04R.duration , duration('00:05:00'));
-
-db_RCS04R = db_RCS04R(i_sess,:);
-
-i                   = cellfun(@(x) length(x) == 1, db.RCS04L.duration);
-db_RCS04L           = db.RCS04L(i, :);
-
-[~, i_u] = unique(db_RCS04L.sess_name);
-
-db_RCS04L = db_RCS04L(i_u, :);
-
-db_RCS04L.timeStart = cellfun(@(x) x, db_RCS04L.timeStart);
-db_RCS04L.timeStop  = cellfun(@(x) x, db_RCS04L.timeStop);
-db_RCS04L.duration  = cellfun(@(x) x, db_RCS04L.duration);
-
-% take sessions of useful yet managable duration
-i_sess              = ge(db_RCS04L.duration , duration('00:05:00'));
-
-db_RCS04L = db_RCS04L(i_sess,:);
-
-
-
-%db_RCSXX = sortrows([db_RCS04L; db_RCS04R], 'timeStart');
-%}
-    %%
-    eventLog_jsons = vertcat(db.RCS04R.eventLogTable{:});
-
-    u_event_names  = unique(eventLog_jsons.EventType);
-
-    i_lead_int     = strcmp(eventLog_jsons.EventType, 'Lead Integrity');
-
-    lead_int_tbl   = eventLog_jsons(i_lead_int, :);
-%%
-% lead integrity test is likely in kiloohms
-ohms = kiloohms / 1000;
-amps = milliamps * 1000;
-
-
-volts = ohms * amps;
 %%
 
-
-
-%% from databases, parse through StimLog.json files and align to REDcap
+pt_sides               = {'RCS02R', 'RCS05L', 'RCS05R'};
 
 for i = 1 : length(pt_sides)
-    cfg.pt_id                       = pt_sides{i}(1:end-1);
+    cfg.pt_id                       = pt_sides(i);
     cfg.stage_dates                 = stage_dates{str2double(pt_sides{i}(end-1))};
 
-    if ~strcmp(pt_sides{i}, 'RCS02R')
+    %if ~strcmp(pt_sides{i}, 'RCS02R')
 
-        [stimLog.(pt_sides{i}), REDcap.(pt_sides{i})] ...
-            ...
-            = align_REDcap_to_stimLog(...
-            ...
-        cfg, db.(pt_sides{i}), REDcap.(pt_sides{i}(1:end-1)));
+    [stimLog.(pt_sides{i}), REDcap.(pt_sides{i})] ...
+        ...
+        = align_REDcap_to_stimLog(...
+        ...
+    cfg, db.(pt_sides{i}), REDcap.(pt_sides{i}(1:end-1)));
 
-    end
+    %end
 end
+
+%% unilateral implant AND used INS logs to capture PTM intiated group changes
+%{
+[REDcap_INSLog.RCS02R, proc_group_changes.RCS02R]  ...
+    ...
+    = explicit_INS_stim_params(...
+    ...
+cfg, INS_logs.RCS02R.group_changes, db.RCS02R, REDcap.RCS02, visits.RCS02);
 
 
 
 %% add stim params to REDcap based off of EventLog.txt, and DeviceSettings.json files
-cfg                    = [];
-cfg.stage_dates        = stage_dates{2};
-cfg.pt_id              = 'RCS02';
+cfg                     = [];
+cfg.stage_dates         = stage_dates{2};
+cfg.pt_id               = 'RCS02';
 
 INSLog_w_redcap.RCS02R  = get_INSLog_stim_params(cfg,...
                                      INS_logs.RCS02R.group_changes,...
@@ -298,35 +202,6 @@ INSLog_w_redcap.RCS02R  = get_INSLog_stim_params(cfg,...
                                      visits.RCS02...
                                     );
 
-
-
-%{
-% 
-
-
-* plot of the State of the device overlayed with the mA delivered at that time
-
-    * all the meta data (closest Streaming sessions, date(s) in DD/MM/YYYY, 
-      stim contacts, stim freq, sensing contacts and power-bands, LD parameters, etc.,)
-
-* report duty cycle over specified timeframe 
-
-* report min, max, mean, and std of State durations
-
-* visualize distribution of State durations 
-
-* report TEED over specified timeframe
-
-    * use impedance checks calculate TEED per second
-
-%}
-%%
-
-
-
-
-
-%% unilateral implant AND used INS logs to capture PTM intiated group changes
 [wrt_stim_REDcap.RCS02, stimGroups.RCS02] ...
     ...
     = make_stim_groups(...
@@ -340,6 +215,7 @@ cfg.min_n_reports            = 5;
 
     plted_stim_groups.RCS02  = plot_stim_groups(cfg, stimGroups.RCS02);
 
+%}
 %% generate box plots of pain metrics wrt stim parameters
 %{
 
@@ -392,23 +268,50 @@ https://www.mathworks.com/help/stats/specify-the-response-and-design-matrices.ht
 %}
 
 % RCS04, RCS05, RCS06, and RCS07 can be handled together
-pts = {'RCS04', 'RCS05', 'RCS06', 'RCS07'};
+%pts = {'RCS04', 'RCS05', 'RCS06', 'RCS07'};
 
-% pts = {'RCS06', 'RCS07'};
+pts = {'RCS02', 'RCS05'};
 
-for i = length(pts)
+for i = 1:length(pts)
 
-    [wrt_stim_REDcap.(pts{i}), stimGroups.(pts{i})] ...
-    ...
-    = make_stim_groups(...
-    ...
-    pts{i}, REDcap.([pts{i}, 'L']), REDcap.([pts{i}, 'R']), visits.(pts{i}));
+    switch pts{i}
+
+        case 'RCS02'
+            [wrt_stim_REDcap.(pts{i}), stimGroups.(pts{i})] ...
+            ...
+            = make_stim_groups(...
+            ...
+            pts{i}, [], REDcap.([pts{i}, 'R']), visits.(pts{i}));
+
+        otherwise
+
+            [wrt_stim_REDcap.(pts{i}), stimGroups.(pts{i})] ...
+            ...
+            = make_stim_groups(...
+            ...
+            pts{i}, REDcap.([pts{i}, 'L']), REDcap.([pts{i}, 'R']), visits.(pts{i}));
+    end
+end
+%% add pain fluctuation study as "stim_group"
+
+for i =1:length(pts)
+
+    stimGroups.(pts{i}).('Pre-trial baseline') = {fluct.(pts{i})};
 
 
-    cfg                         = [];
-    cfg.min_n_reports           = 5;
+end
+
+
+
+
+%%
+cfg                         = [];
+cfg.min_n_reports           = 5;
+
+set(0,'DefaultFigureVisible','off')
+
+for i = 1:length(pts)
     cfg.pt_id                   = pts{i};
-
 
     plted_stim_groups.(pts{i})  ...
         ...
@@ -418,10 +321,10 @@ for i = length(pts)
 
 end
 
-
+%%
 % RCS04 --> stim groups after starting buprenorphine (after July 2022 home visit)
 
-i_epoch          = find(ge(REDcap.RCS04.time, visits.RCS04.dates(11) + duration('24:00:00')));
+i_epoch          = find(ge(REDcap.RCS04.time, visits.RCS04.dates(end) + duration('24:00:00')));
 
 [~, stimGroups.RCS04_postJul22] ...
     ...
@@ -429,6 +332,8 @@ i_epoch          = find(ge(REDcap.RCS04.time, visits.RCS04.dates(11) + duration(
     ...
  'RCS04', REDcap.RCS04L(i_epoch : end,:), REDcap.RCS04R(i_epoch: end, :), visits.RCS04);
 
+
+ stimGroups.RCS04_postJul22.('Pre-trial baseline') = {fluct.('RCS04')};
 
 cfg                          = [];
 cfg.pt_id                    ='RCS04 (Jul 13th to Now)';
@@ -511,6 +416,7 @@ set(0,'DefaultFigureVisible','on')
 %
 %%
 % last N days for: 
+close all
 cfg                     = [];
 
 cfg.pt_id               = 'RCS04';
@@ -522,8 +428,6 @@ cfg.sum_stat_txt        = true;
 cfg.stim_parameter      = '';
 
     plot_timeline(cfg, REDcap, fluct_sum_stats);
-
-
 %% organize Streaming Notes, clinic dates, etc
 
 %{

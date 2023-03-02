@@ -1,4 +1,4 @@
-function  [sense_meta, by_pb_meta, ld0_meta, ld1_meta]...
+function  [sense_meta, by_pb_meta, ld0_meta, ld1_meta, state_meta]...
         ...
         = parse_aDBS_params(...
         ...
@@ -15,9 +15,9 @@ static_across_sess = {'TDsampleRates', ...
 
 vars = table2cell(plt_ss_tbl_oi(1,  static_across_sess));
 
-sense_meta = sprintf(['TD samp rate    | %.0f Hz',newline,...
-                      'FFT interval    | %.0f ms', newline,...
-                      'FFT size        | %.0f samples', newline,...
+sense_meta = sprintf(['TD samp rate    | %g Hz',newline,...
+                      'FFT interval    | %g ms', newline,...
+                      'FFT size        | %g samples', newline,...
                       'Bit Shift       | %s', newline,...
                       'TD Ch0             | %s', newline,...
                       'TD Ch1             | %s', newline,...
@@ -97,15 +97,19 @@ for i=1:length(plt_ld_vars)
             ld_meta_cell{2,i}  = tmp_meta_cell{i} * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
 
         case {'LD0_onsetDuration', 'LD0_terminationDuration'}
-             ld_meta_cell{2,i} = tmp_meta_cell{i} * plt_ss_tbl_oi.LD0_updateRate * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
+            if tmp_meta_cell{i} > 0
+                ld_meta_cell{2,i} = tmp_meta_cell{i} * plt_ss_tbl_oi.LD0_updateRate * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
+            else
+                ld_meta_cell{2,i} = plt_ss_tbl_oi.LD0_updateRate * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
+            end
     end
 
     if ld_meta_cell{1,i} ~= ld_meta_cell{2,i}
 
-        by_ld_meta{i} = sprintf('%s | %.0f (%.2f seconds)', plt_ld_vars{i}(5:end), ld_meta_cell{1,i}, ld_meta_cell{2,i});
+        by_ld_meta{i} = sprintf('    %s | %g (%g seconds)', plt_ld_vars{i}(5:end), ld_meta_cell{1,i}, ld_meta_cell{2,i});
 
     else
-        by_ld_meta{i} = sprintf('%s | %.0f', plt_ld_vars{i}(5:end), ld_meta_cell{1,i});
+        by_ld_meta{i} = sprintf('    %s | %g', plt_ld_vars{i}(5:end), ld_meta_cell{1,i});
 
     end
 end
@@ -151,15 +155,20 @@ for i=1:length(plt_ld_vars)
             ld_meta_cell{2,i}  = tmp_meta_cell{i} * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
 
         case {'LD1_onsetDuration', 'LD1_terminationDuration'}
-             ld_meta_cell{2,i} = tmp_meta_cell{i} * plt_ss_tbl_oi.LD1_updateRate * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
+            
+            if tmp_meta_cell{i} > 0
+                ld_meta_cell{2,i} = tmp_meta_cell{i} * plt_ss_tbl_oi.LD1_updateRate * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
+            else
+                ld_meta_cell{2,i} = plt_ss_tbl_oi.LD1_updateRate * (plt_ss_tbl_oi.fft_intervalInMilliseconds / 1000);
+            end
     end
 
     if ld_meta_cell{1,i} ~= ld_meta_cell{2,i}
 
-        by_ld_meta{i} = sprintf('%s | %.0f (%.2f seconds)', plt_ld_vars{i}(5:end), ld_meta_cell{1,i}, ld_meta_cell{2,i});
+        by_ld_meta{i} = sprintf('    %s | %g (%g seconds)', plt_ld_vars{i}(5:end), ld_meta_cell{1,i}, ld_meta_cell{2,i});
 
     else
-        by_ld_meta{i} = sprintf('%s | %.0f', plt_ld_vars{i}(5:end), ld_meta_cell{1,i});
+        by_ld_meta{i} = sprintf('    %s | %g', plt_ld_vars{i}(5:end), ld_meta_cell{1,i});
 
     end
 end
@@ -171,6 +180,51 @@ if isempty(by_ld_meta)
 else
     ld1_meta = sprintf(['LD1\n',str_form], by_ld_meta{:});
 end
+
+%% return state meta data
+
+state_vars   = all_vars(contains(all_vars, {'state', 'rise', 'fall', 'GroupD'}) & ~contains(all_vars, {'contacts', 'GroupDProg0_ampInMilliamps'}));
+prog_enabled = num2cell(....
+                       find(...
+                       plt_ss_tbl_oi{:,...
+                           {'Prog0_Enabled', 'Prog1_Enabled', ...
+                           'Prog2_Enabled', 'Prog3_Enabled'}}) -1);
+
+
+state_txt     = [cellfun(@(x) ['Prog', num2str(x)], prog_enabled, 'UniformOutput', false),...
+                 ];
+
+state_vars   = state_vars(contains(state_vars, state_txt))';
+
+state_vars   = state_vars(...
+                    plt_ss_tbl_oi{:, state_vars} >=0);
+
+% remove all programs w/ pulseWidth of 850 --> not really enabled
+for i = 0:3
+
+    i_var_prog = contains(state_vars, sprintf('Prog%g', i));
+
+    if any(i_var_prog)
+
+        tmp_var = state_vars(i_var_prog);
+        if plt_ss_tbl_oi{:, tmp_var(contains(tmp_var, 'pulseWidth'))} ==850
+
+        state_vars(i_var_prog) = [];
+
+        end
+    end
+end
+
+by_state_meta = cell(length(state_vars), 1);
+
+for i = 1:length(state_vars)
+     by_state_meta{i} = sprintf('    %s | %g', state_vars{i}, plt_ss_tbl_oi{:, state_vars{i}});
+end
+
+
+str_form = repmat(['%s', newline], 1, length(state_vars));
+
+state_meta   = sprintf(['State to Stim\n',str_form],  by_state_meta{:});
 
 
 end

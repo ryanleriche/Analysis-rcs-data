@@ -21,8 +21,18 @@ function rcap_stats = calc_sum_stats(cfg, redcap, varargin)
 
     % add in number of non-NaN surveys per variable and N surveys total
     for i=1:length(i_vars)
-        rcap_stats{'N_variable', i} = sum(~isnan(redcap{:,i_vars(i)}));
+        rcap_stats{'N_variable', i}         = sum(~isnan(redcap{:,i_vars(i)}));
 
+        % improvement would be an increase in releif and mood metrics
+        if contains(redcap.Properties.VariableNames(i_vars(i)), {'relief', 'mood'})
+
+            rcap_stats{'half_improve', i}     = rcap_stats{'mean', i} + rcap_stats{'mean', i} *.5;   
+            rcap_stats{'third_improve', i}    = rcap_stats{'mean', i} + rcap_stats{'mean', i} *(1/3);  
+        else
+            rcap_stats{'half_improve', i}     = rcap_stats{'mean', i} - rcap_stats{'mean', i} *.5;   
+            rcap_stats{'third_improve', i}    = rcap_stats{'mean', i} - rcap_stats{'mean', i} *(1/3);  
+
+        end
     end
 
     varnames = rcap_stats.Properties.VariableNames;

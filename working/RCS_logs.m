@@ -1,4 +1,4 @@
-function INS_logs   = RCS_logs(cfg)
+function INS_logs_output   = RCS_logs(cfg)
 
 %% RCS INS Log Database
 %{
@@ -80,352 +80,358 @@ NOT Done:
 %warning("off", "all"); 
 tic
 
-pt_id_side = cfg.pt_id_side ;
-
-% exception for CPRCS01
-if ~ (contains(pt_id_side,'CPRCS01'))
-    pt_id = pt_id_side(1:end-1); %remove the L or R letter
-else 
-    pt_id = pt_id_side;
-end
-
-fprintf('%s | compiling INS logs \n', pt_id_side)
-    
-    
-scbs_dir     = fullfile(cfg.raw_dir, pt_id,'/SummitData/SummitContinuousBilateralStreaming/', pt_id_side);
-adbs_dir     = fullfile(cfg.raw_dir, pt_id,'/SummitData/StarrLab/', pt_id_side);
-
-filelist     = [dir(fullfile(scbs_dir,'**/*.txt')); dir(fullfile(adbs_dir, '**/*.txt'))]; % all txt files contains within session files
-% remove the files that start with ._  (some icloud issue of duplicate files to ignore)
-badfiles     = arrayfun(@(x) contains(x.name,'._'),filelist);
-filelist(badfiles)=[];
-filelist      = struct2table(filelist(~[filelist.isdir]));
-filelist.date = datetime(filelist.date);
-
-filelist      = sortrows(filelist,'date');
-
-path          = cellfun(@(x, y) [x,'/', y], filelist.folder, filelist.name,...
-                             'UniformOutput', false);
-
-i_event                     = endsWith(path, 'EventLog.txt'); 
-EventLog_tbl                = table();
-EventLog_tbl.path           = path(i_event);
-EventLog_tbl.group_changes  = cell(sum(i_event),1);
-EventLog_tbl.rech_sess      = cell(sum(i_event),1);
-
-% initiate cell array of every txt log
-AppLog_tbl              = table();
-i_app                   = endsWith(path, 'AppLog.txt'); 
-AppLog_tbl.path         = path(i_app);
-
-% initiate cell array of every app log
-AppLog_tbl.aDBS_state   = cell(sum(i_app),1);
-AppLog_tbl.adapt_stat   = cell(sum(i_app),1);
-AppLog_tbl.ld_detect    = cell(sum(i_app),1);
-
-
-% if needed, make folder to save processed INS logs
 if ~isfolder(cfg.proc_dir)
     mkdir(cfg.proc_dir)
 end
 
-INS_log_dir  = sprintf('%s%s_INS_logs.mat', cfg.proc_dir, pt_id_side);
+for i = 1:length(cfg.pt_sides)
 
-%%
-% save paths in final output as reference so logs are not redundantly ran
-% % when new text logs are generated
-% INS_logs.AppLog_tbl_path              = AppLog_tbl.path(1 : 10);
-% INS_logs.EventLog_tbl_path            = EventLog_tbl.path(1 : 10);
-
-
-if cfg.ignoreold == false && isfile(INS_log_dir) % handles edge case of no file existing
-
-    fprintf('%s | loading existing logs \n', pt_id_side)
+    % exception for CPRCS01
+    if ~ (contains(cfg.pt_sides{i},'CPRCS01'))
+        pt_id = cfg.pt_sides{i}(1:end-1); %remove the L or R letter
+    else 
+        pt_id = cfg.pt_sides{i};
+    end
+    
+    fprintf('%s | compiling INS logs \n', cfg.pt_sides{i})
+        
+        
+    scbs_dir     = fullfile(cfg.raw_dir, pt_id,'/SummitData/SummitContinuousBilateralStreaming/', cfg.pt_sides{i});
+    adbs_dir     = fullfile(cfg.raw_dir, pt_id,'/SummitData/StarrLab/', cfg.pt_sides{i});
+    
+    filelist     = [dir(fullfile(scbs_dir,'**/*.txt')); dir(fullfile(adbs_dir, '**/*.txt'))]; % all txt files contains within session files
+    % remove the files that start with ._  (some icloud issue of duplicate files to ignore)
+    badfiles     = arrayfun(@(x) contains(x.name,'._'),filelist);
+    filelist(badfiles)=[];
+    filelist      = struct2table(filelist(~[filelist.isdir]));
+    filelist.date = datetime(filelist.date);
+    
+    filelist      = sortrows(filelist,'date');
+    
+    path          = cellfun(@(x, y) [x,'/', y], filelist.folder, filelist.name,...
+                                 'UniformOutput', false);
+    
+    i_event                     = endsWith(path, 'EventLog.txt'); 
+    EventLog_tbl                = table();
+    EventLog_tbl.path           = path(i_event);
+    EventLog_tbl.group_changes  = cell(sum(i_event),1);
+    EventLog_tbl.rech_sess      = cell(sum(i_event),1);
+    
+    % initiate cell array of every txt log
+    AppLog_tbl              = table();
+    i_app                   = endsWith(path, 'AppLog.txt'); 
+    AppLog_tbl.path         = path(i_app);
+    
+    % initiate cell array of every app log
+    AppLog_tbl.aDBS_state   = cell(sum(i_app),1);
+    AppLog_tbl.adapt_stat   = cell(sum(i_app),1);
+    AppLog_tbl.ld_detect    = cell(sum(i_app),1);
     
     
-    % brings in 'INS_logs' struct
-    load(INS_log_dir, 'INS_logs');
-
-    raw_applogs  = AppLog_tbl.path;
-
-    i_raw_dirs   = ~contains(raw_applogs, INS_logs.AppLog_tbl_path);
-    AppLog_tbl   = AppLog_tbl(i_raw_dirs, :);
- 
-    % repreat w/ event logs
-    raw_eventlogs   = EventLog_tbl.path;
-    i_raw_dirs     = ~contains(raw_eventlogs, INS_logs.EventLog_tbl_path);
-
-    EventLog_tbl   = EventLog_tbl(i_raw_dirs, :);
-
-end
-% EventLog_tbl   = EventLog_tbl(1:10,:);
-% AppLog_tbl     = AppLog_tbl(1:10,:);
-
-
-%% parse through AppLog.txt files
-if ~isempty(AppLog_tbl)
-    for i = 1 : height(AppLog_tbl)
+    % if needed, make folder to save processed INS logs
+    if ~isfolder(cfg.proc_dir)
+        mkdir(cfg.proc_dir)
+    end
     
-        fn = AppLog_tbl.path{i} ;
+    INS_log_dir  = sprintf('%s%s_INS_logs.mat', cfg.proc_dir, cfg.pt_sides{i});
     
-        [AppLog_tbl.aDBS_state{i}, AppLog_tbl.ld_detect{i} ]...
-            = ...
-        read_INS_logs_fast(fn);
+    %%
+    % save paths in final output as reference so logs are not redundantly ran
+    % % when new text logs are generated
+    % INS_logs.AppLog_tbl_path              = AppLog_tbl.path(1 : 10);
+    % INS_logs.EventLog_tbl_path            = EventLog_tbl.path(1 : 10);
+    
+    
+    if cfg.ignoreold == false && isfile(INS_log_dir) % handles edge case of no file existing
+    
+        fprintf('%s | loading existing logs \n', cfg.pt_sides{i})
+        
+        
+        % brings in 'INS_logs' struct
+        load(INS_log_dir, 'INS_logs');
+    
+        raw_applogs  = AppLog_tbl.path;
+    
+        i_raw_dirs   = ~contains(raw_applogs, INS_logs.AppLog_tbl_path);
+        AppLog_tbl   = AppLog_tbl(i_raw_dirs, :);
+     
+        % repreat w/ event logs
+        raw_eventlogs   = EventLog_tbl.path;
+        i_raw_dirs     = ~contains(raw_eventlogs, INS_logs.EventLog_tbl_path);
+    
+        EventLog_tbl   = EventLog_tbl(i_raw_dirs, :);
+    
+    end
+    % EventLog_tbl   = EventLog_tbl(1:10,:);
+    % AppLog_tbl     = AppLog_tbl(1:10,:);
+    
+    
+    %% parse through AppLog.txt files
+    if ~isempty(AppLog_tbl)
+        for j = 1 : height(AppLog_tbl)
+        
+            fn = AppLog_tbl.path{j} ;
+        
+            [AppLog_tbl.aDBS_state{j}, AppLog_tbl.ld_detect{j} ]...
+                = ...
+            read_INS_logs_fast(fn);
+            
+        end
+    else
+        fprintf('%s | reportedly no new AppLog.txt files to parse\n', cfg.pt_sides{i})
+    
+    end
+    %% parse through EventLog.txt files
+    if ~isempty(EventLog_tbl)
+        for j = 1 : height(EventLog_tbl)
+        
+            fn  = EventLog_tbl.path{j};
+        
+            [EventLog_tbl.group_changes{j}, EventLog_tbl.rech_sess{j}]...
+                = ...
+            read_INS_logs_fast(fn);
+        end
+    else
+    
+        fprintf('%s | reportedly no new EventLog.txt files to parse\n', cfg.pt_sides{i})
+    end
+    
+    % EventLog_tbl    = EventLog_tbl(cellfun(@(x) ~isempty(x), EventLog_tbl.group_changes),:);
+    % AppLog_tbl      = AppLog_tbl(cellfun(@(x) ~isempty(x), AppLog_tbl.aDBS_state),:);
+    %% organize EventLogs
+    if ~isempty(EventLog_tbl)
+        % group changes
+        i_tbl                       = cellfun(@(x) istable(x), EventLog_tbl.group_changes);
+        group_changes               = unique(...
+                                             vertcat(EventLog_tbl.group_changes{i_tbl}), 'rows');
+        
+        % timezone to match rest of RCS data
+        group_changes.time.TimeZone = 'America/Los_Angeles';
+        
+        % recharge sessions
+        i_tbl                       = cellfun(@(x) istable(x), EventLog_tbl.rech_sess);
+        rech_sess                   = unique(...
+                                             vertcat(EventLog_tbl.rech_sess{i_tbl}), 'rows');
+        
+        % timezone to match rest of RCS data
+        rech_sess.time.TimeZone = 'America/Los_Angeles';
+    end
+    
+    if ~isempty(AppLog_tbl)
+        %%% organize AppLogs
+        i_tbl                    = cellfun(@(x) istable(x), AppLog_tbl.aDBS_state);
+        aDBS_state               = unique(...
+                                         vertcat(AppLog_tbl.aDBS_state{i_tbl}), 'rows');
+        if istable(aDBS_state)
+            aDBS_state.time.TimeZone = 'America/Los_Angeles';
+        end
+        % LD Detections
+        i_tbl                    = cellfun(@(x) istable(x), AppLog_tbl.ld_detect);
+        ld_detect                = unique(...
+                                         vertcat(AppLog_tbl.ld_detect{i_tbl}), 'rows');
+        
+        if istable(ld_detect)
+            ld_detect.time.TimeZone = 'America/Los_Angeles';
+        end
+    end
+    %%
+    if cfg.ignoreold == false && isfile(INS_log_dir) % handles edge case of no file existing
+        % from already processed INS logs, include only new entries (subsequent
+        % INS logs often contain overlapping entries)
+    
+        if ~isempty(EventLog_tbl)
+            tmp_EventLog_tbl_path  = unique([INS_logs.EventLog_tbl_path; EventLog_tbl.path]);
+            tmp_group_changes      = unique([INS_logs.group_changes; group_changes], 'rows');
+            tmp_rech_sess          = unique([INS_logs.recharge; rech_sess], 'rows');
+    
+    
+        end
+    
+        if ~isempty(AppLog_tbl)
+    
+            tmp_AppLog_tbl_path    = unique([INS_logs.AppLog_tbl_path; AppLog_tbl.path]);
+            if istable(aDBS_state)
+                tmp_aDBS_state         = unique([INS_logs.app; aDBS_state], 'rows');
+            else
+                tmp_aDBS_state         = INS_logs.app;
+            end
+            tmp_ld_detect          = unique([INS_logs.adaptive; ld_detect], 'rows');
+    
+        end
+    
+    else
+    
+        tmp_AppLog_tbl_path    = AppLog_tbl.path;
+        tmp_EventLog_tbl_path  = EventLog_tbl.path;
+    
+        tmp_group_changes      = group_changes;
+        tmp_aDBS_state         = aDBS_state;
+        
+        tmp_ld_detect          = ld_detect;
+        tmp_rech_sess          = rech_sess; 
+    
+    end
+    
+    if ~isempty(EventLog_tbl)
+        INS_logs.EventLog_tbl_path  = tmp_EventLog_tbl_path;
+        INS_logs.recharge           = tmp_rech_sess; 
+    
+        INS_logs.group_changes      = tmp_group_changes;
+    
+    end
+    
+    if ~isempty(AppLog_tbl)
+        INS_logs.AppLog_tbl_path    = tmp_AppLog_tbl_path;
+        INS_logs.app                = tmp_aDBS_state;
+        INS_logs.adaptive           = tmp_ld_detect;
+    end
+    %% SAVE The Text Log structure
+    if ~isempty(AppLog_tbl) && ~isempty(EventLog_tbl)
+    
+        save(INS_log_dir,'INS_logs')
+        fprintf('%s |.mat of INS Logs (as struct) saved to \n %s \n', cfg.pt_sides{i},INS_log_dir);
         
     end
-else
-    fprintf('%s | reportedly no new AppLog.txt files to parse\n', pt_id_side)
 
-end
-%% parse through EventLog.txt files
-if ~isempty(EventLog_tbl)
-    for i = 1 : height(EventLog_tbl)
+     INS_logs_output.(cfg.pt_sides{i}) = INS_logs;
+     %end
+     %% scratch code from slow parsing
+    %{
+    proc_dirname      = [cfg.raw_dir(1:end-4), 'processed/INS_logs/'];
     
-        fn  = EventLog_tbl.path{i};
+    outputFileName    = fullfile(proc_dirname,[cfg.pt_id, '_INS_logs.mat']);
     
-        [EventLog_tbl.group_changes{i}, EventLog_tbl.rech_sess{i}]...
-            = ...
-        read_INS_logs_fast(fn);
+    if isfile(outputFileName) && ~cfg.ignoreold
+    
+        disp('Loading previous INS Logs');
+        old = load(outputFileName);
+    
+        i_proc_logs   = find(cellfun(@(x) ~isempty(x), old.INSLog_tbl.events));
+        proc_INS_logs = old.INSLog_tbl(i_proc_logs,:); 
+    
+        filelist(i_proc_logs, :) = [];
+    
+    
     end
-else
-
-    fprintf('%s | reportedly no new EventLog.txt files to parse\n', pt_id_side)
-end
-
-% EventLog_tbl    = EventLog_tbl(cellfun(@(x) ~isempty(x), EventLog_tbl.group_changes),:);
-% AppLog_tbl      = AppLog_tbl(cellfun(@(x) ~isempty(x), AppLog_tbl.aDBS_state),:);
-%% organize EventLogs
-if ~isempty(EventLog_tbl)
-    % group changes
-    i_tbl                       = cellfun(@(x) istable(x), EventLog_tbl.group_changes);
-    group_changes               = unique(...
-                                         vertcat(EventLog_tbl.group_changes{i_tbl}), 'rows');
     
-    % timezone to match rest of RCS data
-    group_changes.time.TimeZone = 'America/Los_Angeles';
     
-    % recharge sessions
-    i_tbl                       = cellfun(@(x) istable(x), EventLog_tbl.rech_sess);
-    rech_sess                   = unique(...
-                                         vertcat(EventLog_tbl.rech_sess{i_tbl}), 'rows');
+    INSLog_tbl  = table;
     
-    % timezone to match rest of RCS data
-    rech_sess.time.TimeZone = 'America/Los_Angeles';
-end
-
-if ~isempty(AppLog_tbl)
-    %%% organize AppLogs
-    i_tbl                    = cellfun(@(x) istable(x), AppLog_tbl.aDBS_state);
-    aDBS_state               = unique(...
-                                     vertcat(AppLog_tbl.aDBS_state{i_tbl}), 'rows');
-    if istable(aDBS_state)
-        aDBS_state.time.TimeZone = 'America/Los_Angeles';
-    end
-    % LD Detections
-    i_tbl                    = cellfun(@(x) istable(x), AppLog_tbl.ld_detect);
-    ld_detect                = unique(...
-                                     vertcat(AppLog_tbl.ld_detect{i_tbl}), 'rows');
+    INSLog_tbl.folder = filelist.folder;
+    INSLog_tbl.name   = filelist.name;
+    INSLog_tbl.date   = filelist.date;
+    INSLog_tbl.events = cell(height(INSLog_tbl),1);
     
-    if istable(ld_detect)
-        ld_detect.time.TimeZone = 'America/Los_Angeles';
-    end
-end
-%%
-if cfg.ignoreold == false && isfile(INS_log_dir) % handles edge case of no file existing
-    % from already processed INS logs, include only new entries (subsequent
-    % INS logs often contain overlapping entries)
-
-    if ~isempty(EventLog_tbl)
-        tmp_EventLog_tbl_path  = unique([INS_logs.EventLog_tbl_path; EventLog_tbl.path]);
-        tmp_group_changes      = unique([INS_logs.group_changes; group_changes], 'rows');
-        tmp_rech_sess          = unique([INS_logs.recharge; rech_sess], 'rows');
-
-
-    end
-
-    if ~isempty(AppLog_tbl)
-
-        tmp_AppLog_tbl_path    = unique([INS_logs.AppLog_tbl_path; AppLog_tbl.path]);
-        if istable(aDBS_state)
-            tmp_aDBS_state         = unique([INS_logs.app; aDBS_state], 'rows');
-        else
-            tmp_aDBS_state         = INS_logs.app;
-        end
-        tmp_ld_detect          = unique([INS_logs.adaptive; ld_detect], 'rows');
-
-    end
-
-else
-
-    tmp_AppLog_tbl_path    = AppLog_tbl.path;
-    tmp_EventLog_tbl_path  = EventLog_tbl.path;
-
-    tmp_group_changes      = group_changes;
-    tmp_aDBS_state         = aDBS_state;
+    % loop through all EventLog.txts, and AppLog.txts
+    for i = 251 : height(filelist)
     
-    tmp_ld_detect          = ld_detect;
-    tmp_rech_sess          = rech_sess; 
-
-end
-
-if ~isempty(EventLog_tbl)
-    INS_logs.EventLog_tbl_path  = tmp_EventLog_tbl_path;
-    INS_logs.recharge           = tmp_rech_sess; 
-
-    INS_logs.group_changes      = tmp_group_changes;
-
-end
-
-if ~isempty(AppLog_tbl)
-    INS_logs.AppLog_tbl_path    = tmp_AppLog_tbl_path;
-    INS_logs.app                = tmp_aDBS_state;
-    INS_logs.adaptive           = tmp_ld_detect;
-end
-%% SAVE The Text Log structure
-if ~isempty(AppLog_tbl) && ~isempty(EventLog_tbl)
-
-    save(INS_log_dir,'INS_logs')
-    fprintf('%s |.mat of INS Logs (as struct) saved to \n %s \n',pt_id_side,INS_log_dir);
+        fn           = [filelist.folder{i}, '/', filelist.name{i}];
     
-end
- %end
- %% scratch code from slow parsing
-%{
-proc_dirname      = [cfg.raw_dir(1:end-4), 'processed/INS_logs/'];
-
-outputFileName    = fullfile(proc_dirname,[cfg.pt_id, '_INS_logs.mat']);
-
-if isfile(outputFileName) && ~cfg.ignoreold
-
-    disp('Loading previous INS Logs');
-    old = load(outputFileName);
-
-    i_proc_logs   = find(cellfun(@(x) ~isempty(x), old.INSLog_tbl.events));
-    proc_INS_logs = old.INSLog_tbl(i_proc_logs,:); 
-
-    filelist(i_proc_logs, :) = [];
-
-
-end
-
-
-INSLog_tbl  = table;
-
-INSLog_tbl.folder = filelist.folder;
-INSLog_tbl.name   = filelist.name;
-INSLog_tbl.date   = filelist.date;
-INSLog_tbl.events = cell(height(INSLog_tbl),1);
-
-% loop through all EventLog.txts, and AppLog.txts
-for i = 251 : height(filelist)
-
-    fn           = [filelist.folder{i}, '/', filelist.name{i}];
-
-    if endsWith(fn, 'EventLog.txt') 
-
-        temp_events  = read_INS_logs_slow(fn);
-
+        if endsWith(fn, 'EventLog.txt') 
     
-        if ~iscell(temp_events) && ~isempty(temp_events)
-
-            INSLog_tbl.events{i}  = temp_events;
-        else
-            INSLog_tbl.events{i}  = 'empty';
+            temp_events  = read_INS_logs_slow(fn);
+    
+        
+            if ~iscell(temp_events) && ~isempty(temp_events)
+    
+                INSLog_tbl.events{i}  = temp_events;
+            else
+                INSLog_tbl.events{i}  = 'empty';
+            end
         end
     end
-end
-
-
-if isfile(outputFileName) && ~cfg.ignoreold
-
-    i_new_logs      = find(cellfun(@(x) ~isempty(x), INSLog_tbl.events));
-
-    new_INS_logs    = INSLog_tbl(i_new_logs, :);
-
-    temp_INS_logs   = [proc_INS_logs; new_INS_logs];
-
-    temp_INS_logs.folder = cellfun(@(x, y) [x, y],...
-                          temp_INS_logs.folder, temp_INS_logs.name,...
-                          'UniformOutput', false);
-
-    [~, i_u]        =  unique(temp_INS_logs.folder);
-
-    if length(i_u) ~= height(temp_INS_logs)
-
-        disp('INS logs redundantly loaded in--may be erroneous')
+    
+    
+    if isfile(outputFileName) && ~cfg.ignoreold
+    
+        i_new_logs      = find(cellfun(@(x) ~isempty(x), INSLog_tbl.events));
+    
+        new_INS_logs    = INSLog_tbl(i_new_logs, :);
+    
+        temp_INS_logs   = [proc_INS_logs; new_INS_logs];
+    
+        temp_INS_logs.folder = cellfun(@(x, y) [x, y],...
+                              temp_INS_logs.folder, temp_INS_logs.name,...
+                              'UniformOutput', false);
+    
+        [~, i_u]        =  unique(temp_INS_logs.folder);
+    
+        if length(i_u) ~= height(temp_INS_logs)
+    
+            disp('INS logs redundantly loaded in--may be erroneous')
+        end
+    
+        proc_folders     = temp_INS_logs.folders;
+    
+    
     end
-
-    proc_folders     = temp_INS_logs.folders;
-
-
-end
-%%
-
-save([proc_dirname, cfg.pt_id, '_proc_INS_logs.mat'],...
-     'proc_folders', '-v7.3');
-%}
-% organize EventLogs
-%{
-EventLogs            = INSLogs(endsWith(INSLogs.name,"EventLog.txt"),:);
-
-i_tbl                = cellfun(@(x) istable(x), EventLogs.events);
-
-events               = vertcat(EventLogs.events{i_tbl});
-
-
-% TherapyStatus tbl
-TherStat      = EventLogs(strcmp(EventLogs.event_id,'TherapyStatus'), : );
-
-exp_entries   = struct2table(cellfun(@(x) x, TherStat.entries));
-
-TherStat      = removevars(TherStat, {'event_id', 'entry_names', 'entries'});
-TherStat      = [TherStat, exp_entries];
-
-% ActiveDeviceChanged tbl
-ActDev        = EventLogs(strcmp(EventLogs.event_id, 'ActiveDeviceChanged'), : );
-
-exp_entries   = struct2table(cellfun(@(x) x, ActDev.entries));
-
-ActDev        = removevars(ActDev , {'event_id', 'entry_names', 'entries'});
-ActDev        = [ActDev, exp_entries];
-
-% rename Groups names to letters
-ActDev.NewGroup = replace(ActDev.NewGroup,...
-                    {'Group0','Group1','Group2','Group3'}, ...
-                    {'GroupA','GroupB','GroupC','GroupD'});
-
-
-% combine TherapyStatus (On and Off) and ActiveDeviceChanged (Groups) events
-temp_tbl = removevars(ActDev, 'Unused');
-temp_tbl = renamevars(temp_tbl, 'NewGroup', 'TherapyStatus');
-
-GroupChange_tbl = sortrows( ...
-                           [temp_tbl; ...
-                           removevars(TherStat, {'TherapyStatusType','Unused'})],...
-                    'time');
-
-% timezone to match rest of RCS data
-GroupChange_tbl.time.TimeZone = 'America/Los_Angeles';
-
-% remove duplicate rows (time can be the same if there's subsequent events
-% w/n a second)
-GroupChange_tbl  = unique(GroupChange_tbl, 'rows');
-
-
-
-% organize RechargeSess[i]ons --
-
-RechSess       = EventLogs(strcmp(EventLogs.event_id,'RechargeSesson'), : );
-
-exp_entries    = struct2table(cellfun(@(x) x, RechSess.entries));
-
-RechSess       = removevars(RechSess, {'event_id', 'entry_names', 'entries'});
-RechSess       = [RechSess, exp_entries];
-
-RechSess       = removevars(unique(RechSess, 'rows'), 'Unused');
-%}
-% organize AppLogs
-%{
+    %%
+    
+    save([proc_dirname, cfg.pt_id, '_proc_INS_logs.mat'],...
+         'proc_folders', '-v7.3');
+    %}
+    % organize EventLogs
+    %{
+    EventLogs            = INSLogs(endsWith(INSLogs.name,"EventLog.txt"),:);
+    
+    i_tbl                = cellfun(@(x) istable(x), EventLogs.events);
+    
+    events               = vertcat(EventLogs.events{i_tbl});
+    
+    
+    % TherapyStatus tbl
+    TherStat      = EventLogs(strcmp(EventLogs.event_id,'TherapyStatus'), : );
+    
+    exp_entries   = struct2table(cellfun(@(x) x, TherStat.entries));
+    
+    TherStat      = removevars(TherStat, {'event_id', 'entry_names', 'entries'});
+    TherStat      = [TherStat, exp_entries];
+    
+    % ActiveDeviceChanged tbl
+    ActDev        = EventLogs(strcmp(EventLogs.event_id, 'ActiveDeviceChanged'), : );
+    
+    exp_entries   = struct2table(cellfun(@(x) x, ActDev.entries));
+    
+    ActDev        = removevars(ActDev , {'event_id', 'entry_names', 'entries'});
+    ActDev        = [ActDev, exp_entries];
+    
+    % rename Groups names to letters
+    ActDev.NewGroup = replace(ActDev.NewGroup,...
+                        {'Group0','Group1','Group2','Group3'}, ...
+                        {'GroupA','GroupB','GroupC','GroupD'});
+    
+    
+    % combine TherapyStatus (On and Off) and ActiveDeviceChanged (Groups) events
+    temp_tbl = removevars(ActDev, 'Unused');
+    temp_tbl = renamevars(temp_tbl, 'NewGroup', 'TherapyStatus');
+    
+    GroupChange_tbl = sortrows( ...
+                               [temp_tbl; ...
+                               removevars(TherStat, {'TherapyStatusType','Unused'})],...
+                        'time');
+    
+    % timezone to match rest of RCS data
+    GroupChange_tbl.time.TimeZone = 'America/Los_Angeles';
+    
+    % remove duplicate rows (time can be the same if there's subsequent events
+    % w/n a second)
+    GroupChange_tbl  = unique(GroupChange_tbl, 'rows');
+    
+    
+    
+    % organize RechargeSess[i]ons --
+    
+    RechSess       = EventLogs(strcmp(EventLogs.event_id,'RechargeSesson'), : );
+    
+    exp_entries    = struct2table(cellfun(@(x) x, RechSess.entries));
+    
+    RechSess       = removevars(RechSess, {'event_id', 'entry_names', 'entries'});
+    RechSess       = [RechSess, exp_entries];
+    
+    RechSess       = removevars(unique(RechSess, 'rows'), 'Unused');
+    %}
+    % organize AppLogs
+    %{
 AppLogs            = INSLogs(endsWith(INSLogs.name,"AppLog.txt"), 'events');
 
 AppLogs            = vertcat(AppLogs.events{:});
@@ -531,5 +537,5 @@ org_INS_logs.ld_det          = LdDetEvent;
 
 org_INS_logs.rech            = RechSess;
 %}
-
+end
 end

@@ -15,8 +15,6 @@ function [stimLog, redcap] ...
 % redcap    = REDcap.(pt_sides{i}(1:end-1));
 % 
 
-
-
 i_stimlog    = find(cellfun(@(x) ~isempty(x), db_RCSXXX.stimLogSettings));
 i_devset     = find(cellfun(@(x) ~isempty(x), db_RCSXXX.stimSettingsOut));
 
@@ -93,16 +91,17 @@ stimLog   = stimLog(i_u, :);
 % As of Nov. 2022, we have not intentionally used multiple programs w/n a
 % group, display all the unique stim settings of Programs 2, 3, and 4
 disp(strjoin(...
-        [cfg.pt_id,'| Unique Program 2 Settings ->', unique(stimLog.stimParams_prog2)]...
+        [cfg.pt_id;{'| Unique Program 2 Settings ->'}; unique(stimLog.stimParams_prog2)]...
             ));
 
 disp(strjoin(...
-        [cfg.pt_id, '| Unique Program 3 Settings ->', unique(stimLog.stimParams_prog3)']...
+        [cfg.pt_id;{'| Unique Program 3 Settings ->'}; unique(stimLog.stimParams_prog3)]...
             ));
 
 disp(strjoin(...
-        [cfg.pt_id, '| Unique Program 4 Settings ->', unique(stimLog.stimParams_prog4)]...
+        [cfg.pt_id;{'| Unique Program 4 Settings ->'}; unique(stimLog.stimParams_prog4)]...
             ));
+
 
 % remove redundant fields
 stimLog = removevars(stimLog, ...
@@ -113,6 +112,10 @@ stimLog = removevars(stimLog, ...
 
 stimSettingsOut  = vertcat(db_RCSXXX.stimSettingsOut{i_devset});
 
+
+i_empty          = cellfun(@isempty, [stimSettingsOut.GroupA]);
+
+stimSettingsOut  = stimSettingsOut(~i_empty, :);
 % use of Program 1 is fine assumption given lack of meaningful stim params
 % in Programs 2, 3, and 4
 
@@ -120,7 +123,6 @@ for i = 1 : height(stimLog)
 
     stim_para = strsplit(char(stimLog.stimParams_prog1(i)),',');
     
-
     if ~strcmp(stim_para, 'Disabled')
 
         if isempty(stim_para{1})
@@ -138,10 +140,10 @@ for i = 1 : height(stimLog)
         t_diff        = stimLog.time_stimLog(i) - stimSettingsOut.time_devset;
         near_t        = min(t_diff(t_diff >= 0));
     
-        j             = t_diff == near_t;
+        j             = find(t_diff == near_t);
         abcd          = stimLog.activeGroup{i};
     
-        ss_group      = stimSettingsOut.(['Group' abcd])(j);
+        ss_group      = stimSettingsOut.(['Group' abcd]){j};
     
     
         stimLog.cycleEnabled(i)    = ss_group.cyclingEnabled;
@@ -217,7 +219,7 @@ all_i_redcap      = vertcat(stimLog.i_redcap{:});
 
 if length(all_i_redcap(~isnan(all_i_redcap))) == length(unique(all_i_redcap(~isnan(all_i_redcap)))) 
     
-    disp([cfg.pt_id, ' | ','All REDcap report(s) assigned to unique stim settings.'])
+    disp(strjoin([cfg.pt_id, ' | ','All REDcap report(s) assigned to unique stim settings.']))
 else
     error('REDcap report(s) are assigned to multiple stim settings (RBL message).')
 end
@@ -225,6 +227,6 @@ end
 per_assigned = length(unique(all_i_redcap(~isnan(all_i_redcap)))) ./ height(redcap) * 100;
 
 
-disp([cfg.pt_id, ' | ', num2str(per_assigned), '% of REDcap report(s) assigned to stim settings.']);
+disp(strjoin([cfg.pt_id, ' | ', num2str(per_assigned), '% of REDcap report(s) assigned to stim settings.']));
 
 end

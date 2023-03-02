@@ -44,8 +44,8 @@ for iChan = 1:4
         TDsampleRates(iChan) = TDsettings(iChan).sampleRate;
     end
 end
-TDsampleRates = unique(TDsampleRates);
-currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+TDsampleRates          = unique(TDsampleRates);
+currentTDsampleRate    = TDsampleRates(~isnan(TDsampleRates));
 newEntry.TDsampleRates = currentTDsampleRate;
 
 end

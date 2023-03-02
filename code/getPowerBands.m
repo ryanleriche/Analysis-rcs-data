@@ -47,23 +47,24 @@ for iBand = 1:size(unwrapped_powerBandsToConvert,1)
     % Lower and upper bounds of the power band (a BAND being defined by 3 frequencies: lower, center, and upper frequencies)
     lowerBounds(iBand) = fftParameters.lower(unwrapped_powerBandsToConvert(iBand,1));
     upperBounds(iBand) = fftParameters.upper(unwrapped_powerBandsToConvert(iBand,2));
-    powerBandsInHz{iBand,1} = sprintf('%.2fHz-%.2fHz', lowerBounds(iBand),upperBounds(iBand));
+    
+    powerBandsInHz{iBand,1} = sprintf('%.3fHz-%.3fHz', lowerBounds(iBand),upperBounds(iBand));
     
     % Bins used for FFT computed power in band (number of bins in a power
     % band are >=1)
     lowerBin(iBand) = fftParameters.fftBins(unwrapped_powerBandsToConvert(iBand,1));
     upperBin(iBand) = fftParameters.fftBins(unwrapped_powerBandsToConvert(iBand,2));
-    powerBinsInHz{iBand,1} = sprintf('%.2fHz-%.2fHz', lowerBin(iBand),upperBin(iBand));
+    powerBinsInHz{iBand,1} = sprintf('%.3fHz-%.3fHz', lowerBin(iBand),upperBin(iBand));
 end
 
-powerBands.powerBandsInHz = powerBandsInHz;
-powerBands.powerBinsInHz = powerBinsInHz;
-powerBands.lowerBound = lowerBounds';
-powerBands.upperBound = upperBounds';
-powerBands.fftSize = fftParameters.fftSize;
-powerBands.fftBins = fftParameters.fftBins;
+powerBands.powerBandsInHz   = powerBandsInHz;
+powerBands.powerBinsInHz    = powerBinsInHz;
+powerBands.lowerBound       = lowerBounds';
+powerBands.upperBound       = upperBounds';
+powerBands.fftSize          = fftParameters.fftSize;
+powerBands.fftBins          = fftParameters.fftBins;
 powerBands.indices_BandStart_BandStop = unwrapped_powerBandsToConvert;
-powerBands.binWidth = fftParameters.binWidth;
+powerBands.binWidth     = fftParameters.binWidth;
 powerBands.TDsampleRate = currentTDsampleRate;
 
 end
