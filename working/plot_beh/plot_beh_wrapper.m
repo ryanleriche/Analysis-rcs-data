@@ -76,6 +76,22 @@ cfg.stim_parameter      = '';
 
     plot_timeline(cfg, REDcap, fluct_sum_stats);
 
+
+
+cfg                     = [];
+
+cfg.pt_id               = 'RCS07';
+cfg.dates               = 'PreviousDays';
+cfg.ndays               = 10;
+
+%%% return every pain score:
+%cfg.dates        = 'AllTime';
+
+cfg.subplot             = true;
+cfg.stim_parameter      = '';
+
+    plot_timeline(cfg, REDcap, fluct_sum_stats);
+
 %% import RCS databases, and INS logs per pt side
 %{
 
