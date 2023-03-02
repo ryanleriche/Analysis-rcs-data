@@ -46,12 +46,15 @@ for i = 1:length(pts)
 end
 
 %%
-% last 7 days for: 
+% last N days for: 
 cfg                     = [];
 
 cfg.pt_id               = 'RCS05';
 cfg.dates               = 'PreviousDays';
 cfg.ndays               = 10;
+
+%%% return every pain score:
+%cfg.dates        = 'AllTime';
 
 cfg.subplot             = true;
 cfg.stim_parameter      = '';
@@ -64,6 +67,9 @@ cfg                     = [];
 cfg.pt_id               = 'RCS06';
 cfg.dates               = 'PreviousDays';
 cfg.ndays               = 10;
+
+%%% return every pain score:
+%cfg.dates        = 'AllTime';
 
 cfg.subplot             = true;
 cfg.stim_parameter      = '';
@@ -91,13 +97,12 @@ sessions.
 
 cfg                    = [];
 cfg.load_EventLog      = true;
+
+% option to load previous database for efficient processing
 cfg.ignoreold          = false;
 cfg.raw_dir            = [pia_dir, 'raw/'];
 
-% specify which patient's INS
-%cfg.pt_sides           = {'RCS02R', 'RCS05L', 'RCS05R'};
-
-% all pts:
+% specify patient hemispheres
 cfg.pt_sides         = {'RCS02R', 'RCS04R','RCS04L', 'RCS05L','RCS05R',...
                         'RCS06R','RCS06L', 'RCS07L', 'RCS07R'};
 
@@ -118,7 +123,7 @@ cfg.proc_dir  = [pia_dir, 'processed/INS_logs/'];
     INS_logs  = RCS_logs(cfg);
 
 %% per streaming session, visualize INS to API latency and impedance
-% (i.e., how long is the INS ahead OR behind internet time)
+% (i.e., how long is the INS ahead OR behind internet time [generally behind])
 
 % commented out as no need to frequently run:
 
@@ -142,10 +147,13 @@ set(0,'DefaultFigureVisible','on')
 %% unpack all sense, LD, and stimulation settings as own variable in table
 % --> allows for programmatic discernment of unique RC+S settings
 
-%cfg                        = [];
-cfg.ignoreold              = false;
-cfg.raw_dir                = [pia_dir, 'raw/'];
-cfg.proc_dir               = [pia_dir, 'processed/parsed_databases/'];
+cfg                  = [];
+cfg.ignoreold        = false;
+cfg.raw_dir          = [pia_dir, 'raw/'];
+cfg.proc_dir         = [pia_dir, 'processed/parsed_databases/'];
+
+cfg.pt_sides         = {'RCS02R', 'RCS04R','RCS04L', 'RCS05L','RCS05R',...
+                        'RCS06R','RCS06L', 'RCS07L', 'RCS07R'};
 
     [par_db, ss_var_oi]    = makeParsedDatabaseRCS(cfg, db);
 
