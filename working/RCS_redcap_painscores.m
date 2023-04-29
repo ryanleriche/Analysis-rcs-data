@@ -177,9 +177,10 @@ for p = 1:numel(pt_id_list)
             %
     end
     
-    
+    options = weboptions('TimeOut', 20);
     disp('************************');
     if strcmp(reportid , '128478') % FLUCT study requires different API token
+        
         data = webwrite(...
             SERVICE,...
             'token', pcs_TOKEN, ...
@@ -191,12 +192,13 @@ for p = 1:numel(pt_id_list)
             'exportCheckboxLabel','false',...
             'exportSurveyFields','true',...
             'returnformat','csv', ...
-            'Timeout', 10);
+            options);
         
         
         alltable = data;
 
     else
+        
         data = webwrite(...
         SERVICE,...
         'token', rcs_TOKEN, ...
@@ -208,7 +210,7 @@ for p = 1:numel(pt_id_list)
         'exportCheckboxLabel','false',...
         'exportSurveyFields','true',...
         'returnformat','csv',...
-        'Timeout', 10);
+        options);
     
     
         alltable = data;
@@ -261,7 +263,8 @@ for p = 1:numel(pt_id_list)
        rcs_initals.SW  = {'SW'};
 
        initals = fieldnames(rcs_initals);
-       
+       pts                     = {'RCS02','RCS04', 'RCS05', 'RCS06', 'RCS07'};
+
        for i=1: length(initals)
 
             clntable = alltable(...
@@ -381,10 +384,17 @@ for p = 1:numel(pt_id_list)
             % addresses cases when MPQtotal was likely unanswered
             redcap = redcap(~(redcap.MPQtotal == 0 & redcap.painVAS > 30), :);
 
+%             save_dir = ...
+%            ['/Users/Leriche/Dropbox (UCSF Department of Neurological Surgery)/',...
+%                 'SUBNETS Dropbox/Chronic Pain - Activa and Summit 2.0/DATA ANALYSIS/',...
+%                 'Ryan_Stage0_group_level_behavioral_analysis/processed_data/pain_fluctuation_study_RCS_pts/'];
+% 
+%             writetable(redcap, [save_dir,pts{i},'_pre_trial.xls'])
+
             painscores_out.(initals{i}) = redcap;
        end
         % rename as RCS pt code for clarity
-        pts                     = {'RCS02','RCS04', 'RCS05', 'RCS06', 'RCS07'};
+       
         painscores_out          = cell2struct(struct2cell(painscores_out), pts);
 
        toc
@@ -633,6 +643,7 @@ oldscores = painscores_out;
 clear painscores_out
  
 %newscores.RCS01 =  oldscores.RCS01;
+
 newscores.RCS02 = [oldscores.RCS02; oldscores.RCS02new];
 newscores.RCS04 = [oldscores.RCS04; oldscores.RCS04new];
 newscores.RCS05 = [oldscores.RCS05; oldscores.RCS05new];

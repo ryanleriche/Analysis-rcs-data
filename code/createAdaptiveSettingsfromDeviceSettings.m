@@ -39,63 +39,12 @@ for iRecord = 1:length(DeviceSettings)
         updatedParameters = {};
         % Create variable with Ld0 and Ld1 settings
         if isfield(currentSettings.DetectionConfig,'Ld0')
-            Ld0 = currentSettings.DetectionConfig.Ld0;
-                
-            Ld0.powerband_detectionInputs = cell(length(Ld0.detectionInputs),1);
-
-            for i=1:length(Ld0.detectionInputs)
-            
-                switch Ld0.detectionInputs(i)
-                    case 0;   pb  = 'None';
-            
-                    case 1;   pb  = 'Ch0Band0';
-                    case 2;   pb  = 'Ch0Band1';
-            
-                    case 4;   pb  = 'Ch1Band0';
-                    case 8;   pb  = 'Ch1Band1';
-            
-                    case 16;  pb  = 'Ch2Band0';
-                    case 32;  pb  = 'Ch2Band1';
-            
-                    case 64;  pb  = 'Ch3Band0';
-                    case 128; pb  = 'Ch3Band1';   
-                end
-            
-                Ld0.powerband_detectionInputs{i} = pb;
-            
-            end
+            Ld0 = currentSettings.DetectionConfig.Ld0;    
         end
 
         if isfield(currentSettings.DetectionConfig,'Ld1')
             Ld1 = currentSettings.DetectionConfig.Ld1;
-
-            Ld1.powerband_detectionInputs = cell(length(Ld1.detectionInputs),1);
-            for i=1:length(Ld1.detectionInputs)
-            
-                switch Ld1.detectionInputs(i)
-                    case 0;   pb  = 'None';
-            
-                    case 1;   pb  = 'Ch0Band0';
-                    case 2;   pb  = 'Ch0Band1';
-            
-                    case 4;   pb  = 'Ch1Band0';
-                    case 8;   pb  = 'Ch1Band1';
-            
-                    case 16;  pb  = 'Ch2Band0';
-                    case 32;  pb  = 'Ch2Band1';
-            
-                    case 64;  pb  = 'Ch3Band0';
-                    case 128; pb  = 'Ch3Band1';   
-                end
-            
-                Ld1.powerband_detectionInputs{i} = pb;
-            
-            end
         end
-
-
-
-
         
         % If first record, need to initalize and flag to add entry to table
         if iRecord == 1
@@ -104,6 +53,7 @@ for iRecord = 1:length(DeviceSettings)
             addEntry = 1;
             updatedParameters = [updatedParameters; 'Ld0'; 'Ld1'];
         end
+
         % If Ld0 has changed, update and flag to add entry to table
         if ~isequal(updatedLd0,Ld0)
             updatedLd0 = Ld0;
@@ -131,13 +81,15 @@ for iRecord = 1:length(DeviceSettings)
         % Write convert values (human-readable) of information in updatedLd0 and
         % updatedLd1 to table; maintain Medtronic values in updatedLd0 and
         % updatedLd1 variables for checking against subsequent records
-        newEntry.HostUnixTime = HostUnixTime;
-        convertedLd0 = convertDetectorCodes(updatedLd0,FFTinterval);
-        convertedLd1 = convertDetectorCodes(updatedLd1,FFTinterval);
-        newEntry.Ld0 = convertedLd0;
-        newEntry.Ld1 = convertedLd1;
+        newEntry.HostUnixTime      = HostUnixTime;
+        convertedLd0               = convertDetectorCodes(updatedLd0,FFTinterval);
+        convertedLd1               = convertDetectorCodes(updatedLd1,FFTinterval);
+        
+        newEntry.Ld0               = convertedLd0;
+        newEntry.Ld1               = convertedLd1;
         newEntry.updatedParameters = updatedParameters;
-        [DetectorSettings] = addRowToTable(newEntry,DetectorSettings);
+
+        [DetectorSettings]         = addRowToTable(newEntry,DetectorSettings);
         addEntry = 0;
         clear newEntry
     end

@@ -107,7 +107,7 @@ for i=1:ND
   gamma(i) = rho(i)*delta(i);
 end
 
-dec_fig = figure('Units', 'Inches', 'Position', [0, 0, 15, 10]);
+dec_fig = figure('Units', 'Inches', 'Position', [0, 0, 7, 7]);
 
 subplot(211);
 
@@ -116,7 +116,7 @@ plot(rho(:),delta(:),'o','MarkerSize',5,'MarkerFaceColor','k','MarkerEdgeColor',
 title ('Decision Graph','FontSize',15.0)
 xlabel ('Local Density, \rho'); 
 ylabel ('min(Dist to higher \rho point), \delta'); ylim([0, max(delta(:))*1.2]);
-set(gca, 'FontSize', 16)
+set(gca, 'FontSize', 10)
 
 %% Draw rectangle of interest on density versus distance plot
 if strcmp(cfg.CBDP_method, 'manual')
@@ -241,7 +241,7 @@ end
 title ('Cluster Center Density Distribution','FontSize',15.0)
 xlabel ('Descending')
 ylabel ('\rho * \delta / max(\rho * \delta)')
-set(gca, 'FontSize', 16, 'TickLength', [0, 0])
+set(gca, 'FontSize', 10, 'TickLength', [0, 0])
 
 % perform nonclassical multidimensional scaling before visualization
 %{

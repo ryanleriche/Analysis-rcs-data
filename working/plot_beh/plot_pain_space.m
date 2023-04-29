@@ -67,11 +67,11 @@ per_all_VAS_remain  = 100 * (1 - (height(redcap_trim_VAS_all) / height(redcap)))
 
 
 pain_lbl         = {'unpleasantVAS','painVAS','MPQtotal'};
-ds               =    datestr(date_range,'dd-mmm-yyyy');
+ds               =  datestr(date_range,'dd-mmm-yyyy');
 
 if cfg.plt_VAS
 
-    filt_fig = figure('Units', 'Inches', 'Position', [0, 0, 15, 10]);
+    filt_fig = figure('Units', 'Inches', 'Position', [0, 0, 7, 5]);
     title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:)], 'Fontsize',16);
     hold on
     
@@ -97,7 +97,7 @@ if cfg.plt_VAS
            ['Percent(ALL VASs = 50 or ANY VASs = 50, but NRS ~= 5): ', num2str(round(per_all_VAS_remain,1)),'%'],...
            ['Percent(ANY VASs = 50, but NRS ~= 5): ', num2str(round(per_any_VAS_remain,1)),'%'],...
            '','',...
-           'FontSize',13, 'Location', 'northwest')
+           'FontSize',9, 'Location', 'northwest')
     
     format_plot()
 end
@@ -168,10 +168,11 @@ for i = 1 : length(pain_metrics)
 
 end
 
-z_space_fig = figure('Units', 'Inches', 'Position', [0, 0, 15, 10]);
+z_space_fig = figure('Units', 'Inches', 'Position', [0, 0, 7, 5]);
 
+pain_lbl         = {'MPQtotal','painVAS'};
 
-scatter3(redcap_z, pain_lbl{:},'filled', 'ColorVariable', 'mayoNRS');
+scatter(redcap_z, pain_lbl{:},'filled', 'ColorVariable', 'mayoNRS');
 
 title([cfg.pt_id, newline, ds(1,:) ' to ' ds(2,:),...
     newline, ' z-scored pain reports'], 'Fontsize',12);
@@ -180,11 +181,12 @@ hold on
 c = colorbar;
 c.Label.String = 'mayoNRS';    c.Limits = [-3,3];      format_plot();
 
+legend off
 
 %% PCA for dimension reductionality
 if cfg.pca == true
-
-    pain_oi = redcap_z(:,pain_metrics); % <-- not redundant code
+    
+    pain_oi  = redcap_z(:, pain_metrics);         % <-- not redundant code
 
     beh_pc = [];
 
@@ -207,7 +209,7 @@ if cfg.pca == true
 
     % have lines of axes of above scatter3
     varnames = pain_oi.Properties.VariableNames;
-    
+    pain_lbl = {'MPQtotal','painVAS', 'mayoNRS'};
     i_var    = cellfun(@(x) find(strcmp(varnames, x)), pain_lbl);
 
 
@@ -230,18 +232,13 @@ if cfg.pca == true
                ['PC 3', ' Variance: ', num2str(beh_pc.explained(3)), ' %']});
     
     
-    xlim([-4 4]); ylim([-4 4]); zlim([-4 4]);
+    xlim([-3 3]); ylim([-3 3]); zlim([-3 3]);
     
     c = colorbar;
-    c.Label.String = 'mayoNRS';                 c.Limits = [-4,4];
+    c.Label.String = 'mayoNRS';                 c.Limits = [-3,3];
     
     format_plot();
 end
-
-%%
-
-
-
 
 %% cluster based on density peaks (Rodriguez and Laio, 2014 Science)
 %set(0,'DefaultFigureVisible','on')
@@ -280,13 +277,13 @@ end
 sgtitle(cfg.pt_id, 'Fontsize', 16, 'Interpreter', 'none')
 
 
-redcap_z.i_clusters     = beh_cl.i_cl';
-redcap_z.i_halo         = beh_cl.i_halo';
+redcap_kept.i_clusters     = beh_cl.i_cl';
+redcap_kept.i_halo         = beh_cl.i_halo';
 
 if length(unique(beh_cl.i_cl')) == 2
 
-    if mean(redcap_z.painVAS(beh_cl.i_cl == 1), 'omitnan') > ...
-       mean(redcap_z.painVAS(beh_cl.i_cl == 2), 'omitnan')
+    if mean(redcap_kept.painVAS(beh_cl.i_cl == 1), 'omitnan') > ...
+       mean(redcap_kept.painVAS(beh_cl.i_cl == 2), 'omitnan')
 
         i_2 = beh_cl.i_cl == 2;
         i_1 = beh_cl.i_cl == 1;
@@ -306,7 +303,7 @@ else
     end
 end
 
-cl_fig = figure('Units', 'Inches', 'Position', [0, 0, 15, 10]);
+cl_fig = figure('Units', 'Inches', 'Position', [0, 0, 7, 5]);
 
 
 cmap = colormap(brewermap([],"Dark2"));
@@ -315,7 +312,7 @@ switch cfg.pt_id
     case 'stage0RCS05_VAS_only'
         for i = 1 : length(unique(beh_cl.i_cl))
 
-            scatter(redcap_z(beh_cl.i_cl == i ,:),'painVAS','unpleasantVAS','filled',...
+            scatter(redcap_kept(beh_cl.i_cl == i ,:),'painVAS','unpleasantVAS','filled',...
                  'MarkerFaceColor', cmap(i,:),'MarkerEdgeColor', cmap(i,:));
             hold on
 
@@ -329,25 +326,26 @@ switch cfg.pt_id
     case 'RCS06'
         for i = 1 : length(unique(beh_cl.i_cl))
 
-        scatter3(redcap_z(beh_cl.i_cl == i ,:),'mayoNRS','nocVAS','MPQtotal','filled',...
+        scatter3(redcap_kept(beh_cl.i_cl == i ,:),'nocVAS','MPQtotal', 'mayoNRS', 'filled',...
              'MarkerFaceColor', cmap(i,:),'MarkerEdgeColor', cmap(i,:));
         hold on
         end
 
-        zlim([-3 3]);
-
+           xlim([0 100]);       ylim([0 45]);        zlim([0 10]);
     otherwise
         for i = 1 : length(unique(beh_cl.i_cl))
 
-        scatter3(redcap_z(beh_cl.i_cl == i ,:),'painVAS','unpleasantVAS','mayoNRS','filled',...
+        scatter3(redcap_kept(beh_cl.i_cl == i ,:),'painVAS','MPQtotal','mayoNRS','filled',...
              'MarkerFaceColor', cmap(i,:),'MarkerEdgeColor', cmap(i,:));
         hold on
         end
+            xlim([0 100]);       ylim([0 45]);        zlim([0 10]);
 
-        zlim([-3 3]);
+       
 end
 
-legend(leg_txt, 'Fontsize', 12);
+
+legend(leg_txt, 'Fontsize', 12, 'Location','best');      legend boxoff
 format_plot();
 
 %    scatter3(redcap_z(beh_cl.i_halo == 0 ,:),'painVAS','unpleasantVAS','MPQtotal','filled',...
@@ -361,9 +359,7 @@ hold on
 
 % legend({'High Pain', 'Low Pain'});
 
-xlim([-3 3]); ylim([-3 3]); 
-
-format_plot();
+%xlim([-3 3]); ylim([-3 3]); 
 
 redcap_kept.i_clusters     = beh_cl.i_cl';
 redcap_kept.i_halo         = beh_cl.i_halo';
@@ -371,7 +367,45 @@ redcap_kept.i_halo         = beh_cl.i_halo';
 
 i_kept          = find(~i_trim_VAS_any);
 beh_pc.i_raw    = i_kept;
+redcap_kept.i_clusters     = beh_cl.i_cl';
+redcap_kept.i_halo         = beh_cl.i_halo';
 
+
+%%
+
+if cfg.clus_fp_plots    % so-called "fingerprints" showing mean +- std of given plotting
+    fp_tbl = table;
+    
+    max_val = nan(length(pain_metrics), 1);
+    
+    for i = 1 : length(pain_metrics)
+    
+        if contains(pain_metrics{i}, 'NRS')
+            max_val(i) = 10;
+    
+        elseif contains(pain_metrics{i}, 'VAS')
+            max_val(i) = 100;
+    
+        elseif contains(pain_metrics{i}, 'MPQ')
+            max_val(i) = 45;
+    
+        end
+    end
+    
+    for i = 1 : length(unique(beh_cl.i_cl))
+    
+        fp_tbl.mean{i} = mean(redcap_kept{beh_cl.i_cl == i, pain_metrics}, 1, 'omitnan');
+        fp_tbl.std{i}  = std(redcap_kept{beh_cl.i_cl == i, pain_metrics}, 1, 'omitnan');
+    
+        fp_tbl.mean_norm{i} = fp_tbl.mean{i} ./ max_val(i);
+        fp_tbl.std_norm{i} = fp_tbl.std{i} ./ max_val(i);
+    
+    end
+
+    pt_pain_space.fp_fig        = fp_fig;
+end
+
+%%
 
 pt_pain_space.filt_fig      = filt_fig;
 pt_pain_space.z_space_fig   = z_space_fig;
@@ -379,6 +413,8 @@ pt_pain_space.dec_fig       = dec_fig;
 pt_pain_space.cl_fig        = cl_fig;
 pt_pain_space.redcap_z      = redcap_z;
 pt_pain_space.redcap_kept   = redcap_kept;
+
+
 
 
 
@@ -390,18 +426,21 @@ else
     pt_id = cfg.pt_id(end-4:end);
 end
 
-% save as source data as .csv
-if ~exist(cfg.source_dir, 'dir');        mkdir(cfg.source_dir);   end
+if cfg.save_xlsx 
+    % save as source data as .csv
+    if ~exist(cfg.source_dir, 'dir');        mkdir(cfg.source_dir);   end
+    
+    % if csv exists, delete it first to prevent unexpected merging w/ previous
+    % version (RBL saw this 1/10/23)
+    source_xlsx = [cfg.source_dir, pt_id, '_kept.xlsx'];
+    
+    if exist(source_xlsx, 'file') == 2;        delete(source_xlsx);   end
+    
+    writetable(redcap_kept, source_xlsx);
+end
 
-% if csv exists, delete it first to prevent unexpected merging w/ previous
-% version (RBL saw this 1/10/23)
-source_csv = [cfg.source_dir, pt_id, '_kept.csv'];
+    cfg.fig_dir    = [cfg.fig_dir, '/', pt_id,'/'];
 
-if exist(source_csv, 'file') == 2;        delete(source_csv);   end
-
-writetable(redcap_kept, source_csv);
-
-cfg.fig_dir    = [cfg.fig_dir, '/', pt_id,'/'];
 % save figures as .pngs
 if ~exist(cfg.fig_dir, 'dir');      mkdir(cfg.fig_dir);      end
 
@@ -415,9 +454,8 @@ saveas(cl_fig,      [cfg.fig_dir, 'clus_labels.png']);
 function format_plot()  
 
     set(gca,'fontSize',14, 'TickLength', [0 0]); 
-    grid on;    grid MINOR;      box off;
+    grid on;    box off;
 
-    legend boxoff
     
 end
 end

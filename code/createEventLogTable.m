@@ -10,7 +10,7 @@ eventLog = deserializeJSON([folderPath filesep 'EventLog.json']);
 if ~isempty(eventLog)
     
     eventLogTable = table();
-    numRecords = size(eventLog,2);
+    numRecords    = length(eventLog);
     
     for iRecord = 1:numRecords
         clear newEntry
@@ -35,7 +35,7 @@ if ~isempty(eventLog)
     beeps          = find(i_beep);
     
     if ~isempty(beeps)
-        eventLogTable  = [eventLogTable(~i_beep & ~i_same_as_next,:); eventLogTable([beeps(1), beeps(end)],:)];
+        eventLogTable  = [eventLogTable(~i_beep | ~i_same_as_next,:); eventLogTable([beeps(1), beeps(end)],:)];
     end
 
     eventLogTable  = sortrows(eventLogTable, 'UnixOnsetTime');

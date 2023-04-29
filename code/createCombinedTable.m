@@ -1,4 +1,4 @@
-function [combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData)
+function [combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes)
 %%
 % Using the shifted derivedTimes (newDerivedTimes), determine where rows of
 % data fit in combinedDataTable.
@@ -27,11 +27,12 @@ unifiedDerivedTimes = unifiedDerivedTimes(unifiedDerivedTimes <= max(lastTime));
 combinedDataTable = table();
 combinedDataTable.DerivedTime = unifiedDerivedTimes;
 numRows = length(unifiedDerivedTimes);
-
+%%
 for iStream = 1:length(dataStreams)
     if ~isempty(dataStreams{iStream})
         currentData = dataStreams{iStream};
         currentColumnNames = currentData.Properties.VariableNames;
+
         % Determine stream type
         if ismember('key0',currentColumnNames)
             streamType = 1; % Time Domain
@@ -47,23 +48,25 @@ for iStream = 1:length(dataStreams)
         
         clear select_Indices
         if streamType == 1 % Time Domain
-            [~, select_Indices] = ismember(currentData.DerivedTime,combinedDataTable.DerivedTime);
+            [~,select_Indices] = ismember(currentData.DerivedTime, combinedDataTable.DerivedTime);
+
+            %select_Indices = select_Indices(select_Indices ~= 0);
         else % all others
-            [~, select_Indices] = ismember(currentData.newDerivedTime,combinedDataTable.DerivedTime);
+            [~, select_Indices] = ismember(currentData.newDerivedTime, combinedDataTable.DerivedTime);
         end
         
         switch streamType
             case 1 % Time Domain
-                combinedDataTable.TD_key0 = NaN(numRows,1);
-                combinedDataTable.TD_key1 = NaN(numRows,1);
-                combinedDataTable.TD_key2 = NaN(numRows,1);
-                combinedDataTable.TD_key3 = NaN(numRows,1);
+                combinedDataTable.Ch_TD0 = NaN(numRows,1);
+                combinedDataTable.Ch_TD1 = NaN(numRows,1);
+                combinedDataTable.Ch_TD2 = NaN(numRows,1);
+                combinedDataTable.Ch_TD3 = NaN(numRows,1);
                 combinedDataTable.TD_samplerate = NaN(numRows,1);
                 
-                combinedDataTable.TD_key0(select_Indices) = currentData.key0;
-                combinedDataTable.TD_key1(select_Indices) = currentData.key1;
-                combinedDataTable.TD_key2(select_Indices) = currentData.key2;
-                combinedDataTable.TD_key3(select_Indices) = currentData.key3;
+                combinedDataTable.Ch_TD0(select_Indices) = currentData.key0;
+                combinedDataTable.Ch_TD1(select_Indices) = currentData.key1;
+                combinedDataTable.Ch_TD2(select_Indices) = currentData.key2;
+                combinedDataTable.Ch_TD3(select_Indices) = currentData.key3;
                 combinedDataTable.TD_samplerate(select_Indices) = currentData.samplerate;
                 
             case 2 % Accelerometer
@@ -82,27 +85,27 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.Power_FftSize = NaN(numRows,1);
                 combinedDataTable.Power_IsPowerChannelOverrange = NaN(numRows,1);
                 combinedDataTable.Power_ValidDataMask(:) = {NaN};
-                combinedDataTable.Power_Band1 = NaN(numRows,1);
-                combinedDataTable.Power_Band2 = NaN(numRows,1);
-                combinedDataTable.Power_Band3 = NaN(numRows,1);
-                combinedDataTable.Power_Band4 = NaN(numRows,1);
-                combinedDataTable.Power_Band5 = NaN(numRows,1);
-                combinedDataTable.Power_Band6 = NaN(numRows,1);
-                combinedDataTable.Power_Band7 = NaN(numRows,1);
-                combinedDataTable.Power_Band8 = NaN(numRows,1);
+                combinedDataTable.powerBand0 = NaN(numRows,1);
+                combinedDataTable.powerBand1 = NaN(numRows,1);
+                combinedDataTable.powerBand2 = NaN(numRows,1);
+                combinedDataTable.powerBand3 = NaN(numRows,1);
+                combinedDataTable.powerBand4 = NaN(numRows,1);
+                combinedDataTable.powerBand5 = NaN(numRows,1);
+                combinedDataTable.powerBand6 = NaN(numRows,1);
+                combinedDataTable.powerBand7 = NaN(numRows,1);
                 
                 combinedDataTable.Power_ExternalValuesMask(select_Indices) = currentData.ExternalValuesMask;
                 combinedDataTable.Power_FftSize(select_Indices) = currentData.FftSize;
                 combinedDataTable.Power_IsPowerChannelOverrange(select_Indices) = currentData.IsPowerChannelOverrange;
                 combinedDataTable.Power_ValidDataMask(select_Indices) = currentData.ValidDataMask;
-                combinedDataTable.Power_Band1(select_Indices) = currentData.Band1;
-                combinedDataTable.Power_Band2(select_Indices) = currentData.Band2;
-                combinedDataTable.Power_Band3(select_Indices) = currentData.Band3;
-                combinedDataTable.Power_Band4(select_Indices) = currentData.Band4;
-                combinedDataTable.Power_Band5(select_Indices) = currentData.Band5;
-                combinedDataTable.Power_Band6(select_Indices) = currentData.Band6;
-                combinedDataTable.Power_Band7(select_Indices) = currentData.Band7;
-                combinedDataTable.Power_Band8(select_Indices) = currentData.Band8;
+                combinedDataTable.powerBand0(select_Indices) = currentData.Band1;
+                combinedDataTable.powerBand1(select_Indices) = currentData.Band2;
+                combinedDataTable.powerBand2(select_Indices) = currentData.Band3;
+                combinedDataTable.powerBand3(select_Indices) = currentData.Band4;
+                combinedDataTable.powerBand4(select_Indices) = currentData.Band5;
+                combinedDataTable.powerBand5(select_Indices) = currentData.Band6;
+                combinedDataTable.powerBand6(select_Indices) = currentData.Band7;
+                combinedDataTable.powerBand7(select_Indices) = currentData.Band8;
                 
             case 4 % FFT
                 combinedDataTable.FFT_Channel = NaN(numRows,1);
@@ -171,7 +174,7 @@ for iStream = 1:length(dataStreams)
 end
 
 % Add column with human readable time to combinedDataTable
-timeFormat = sprintf('%+03.0f:00',metaData.UTCoffset);
+timeFormat = 'America/Los_Angeles';
 localTime = datetime(combinedDataTable.DerivedTime/1000,...
     'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
 combinedDataTable = addvars(combinedDataTable,localTime,'Before',1);

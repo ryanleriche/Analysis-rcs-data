@@ -15,7 +15,7 @@ end
 %%
 stimLogSettings = table;
 
-numRecords = size(stimLog,2);
+numRecords = size(stimLog,1);
 recordCounter = 1;
 addEntry = 0;
 GroupA = struct;

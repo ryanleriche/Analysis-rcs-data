@@ -30,7 +30,7 @@ for iChan = 1:length(TDsettings)
     % HPF
     switch TDdata(iChan).hpf
         case 0
-            TDsettings(iChan).hpf = 8.5;
+            TDsettings(iChan).hpf = 0.85;
         case 16
             TDsettings(iChan).hpf = 1.2;
         case 32
@@ -140,25 +140,32 @@ for iChan = 1:length(TDsettings)
         TDsettings(iChan).plusInput,TDsettings(iChan).minusInput);
     % channel full string may hay have mix of double/str so need to account
     % for this: 
-    if isstr(TDsettings(iChan).lpf1)
+    if ischar(TDsettings(iChan).lpf1)
         charUseLPF1 = '%s';
     else
         charUseLPF1 = '%d';
     end
     
-    if isstr(TDsettings(iChan).lpf2)
+    if ischar(TDsettings(iChan).lpf2)
         charUseLPF2 = '%s';
     else
         charUseLPF2 = '%d';
     end
     
-    if isstr(TDsettings(iChan).sampleRate)
+    if ischar(TDsettings(iChan).sampleRate)
         charUseSR = '%s';
     else
         charUseSR = '%d';
     end
+
+    if ischar(TDsettings(iChan).hpf)
+        charUseHPF = '%s';
+    else
+        charUseHPF = '%g';
+    end
     
-    TDsettings(iChan).chanFullStr = sprintf(['%s' ' LPF1-' charUseLPF1 ' LPF2-' charUseLPF2 ' SR-' charUseSR],...
+    TDsettings(iChan).chanFullStr = sprintf(['%s' ' HPF-' charUseHPF ' LPF1-' charUseLPF1 ' LPF2-' charUseLPF2 ' SR-' charUseSR],...
         TDsettings(iChan).chanOut,...
+        TDsettings(iChan).hpf,...
         TDsettings(iChan).lpf1,TDsettings(iChan).lpf2,TDsettings(iChan).sampleRate);
 end

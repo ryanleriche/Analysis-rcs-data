@@ -13,36 +13,40 @@ convertedLd.blankingDurationUponStateChange = inputLd.blankingDurationUponStateC
 
 convertedLd.onsetDuration                   = inputLd.onsetDuration;
 convertedLd.holdoffTime                     = inputLd.holdoffTime;
-convertedLd.terminationDuration             =  inputLd.terminationDuration;
+convertedLd.terminationDuration             = inputLd.terminationDuration;
 
 %% Fields which encode information per bit
+
+input_binary_str =  dec2bin(inputLd.detectionInputs,8);
+
+
 % Detection inputs
-convertedLd.detectionInputs_BinaryCode = dec2bin(inputLd.detectionInputs,8);
+convertedLd.Inputs_BinaryCode = input_binary_str;
 
 % Detection Enable
-convertedLd.detectionEnable_BinaryCode = dec2bin(inputLd.detectionEnable,8);
+convertedLd.Enable_BinaryCode = dec2bin(inputLd.detectionEnable,8);
 
-convertedLd.powerband_detectionInputs = cell(length(inputLd.detectionInputs),1);
+% from binary string return Ch_powerband as cell
+i_ch_pb_in_LD    = regexp(reverse(input_binary_str), '1');
 
-for i=1:length(inputLd.detectionInputs)
+convertedLd.powerband_Inputs = cell(length(i_ch_pb_in_LD),1);
 
-    switch inputLd.detectionInputs(i)
-        case 0;   pb  = 'None';
+for i=1:length(i_ch_pb_in_LD)
+    
+    switch i_ch_pb_in_LD(i)
 
-        case 1;   pb  = 'Ch0Band0';
-        case 2;   pb  = 'Ch0Band1';
+        case 1;     pb  = 'Ch0Band0';
+        case 2;     pb  = 'Ch0Band1';
 
-        case 4;   pb  = 'Ch1Band0';
-        case 8;   pb  = 'Ch1Band1';
+        case 3;     pb  = 'Ch1Band0';
+        case 4;     pb  = 'Ch1Band1';
 
-        case 16;  pb  = 'Ch2Band0';
-        case 32;  pb  = 'Ch2Band1';
+        case 5;     pb  = 'Ch2Band0';
+        case 6;     pb  = 'Ch2Band1';
 
-        case 64;  pb  = 'Ch3Band0';
-        case 128; pb = 'C32Band1';   
+        case 7;     pb  = 'Ch3Band0';
+        case 8;     pb  = 'C32Band1';   
     end
-
-    convertedLd.powerband_detectionInputs{i} = pb;
-
+    convertedLd.powerband_Inputs{i} = pb;
 end
 end

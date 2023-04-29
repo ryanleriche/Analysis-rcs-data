@@ -1,13 +1,20 @@
     function [unifiedDerivedTimes,...
     timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames,...
+    ...
     AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,...
+    ...
     PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames,...
+    ...
     FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames,...
+    ...
     AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames,...
+    ...
     timeDomainSettings, powerSettings, fftSettings, eventLogTable,...
+    ...
     metaData, stimSettingsOut, stimMetaData, stimLogSettings,...
+    ...
     DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings,...
-    versionInfo] = ProcessRCS(varargin)
+    versionInfo] = ProcessRCS(cfg, varargin)
 %%
 % Demo wrapper script for importing raw .JSON files from RC+S, parsing
 % into Matlab table format, and handling missing packets / harmonizing
@@ -48,7 +55,7 @@
 % TimeSync.json
 %%
 % Parse input variables, indicating folderPath and/or processFlag
-switch nargin
+switch nargin -1
     case 0
         folderPath = uigetdir();
         processFlag = 1;
@@ -99,7 +106,7 @@ end
 %%
 if processFlag == 1 || processFlag == 2
     % DeviceSettings data
-    disp('Collecting Device Settings data')
+    if cfg.textoutputs;   disp('Collecting Device Settings data');   end
     DeviceSettings_fileToLoad = [folderPath filesep 'DeviceSettings.json'];
     if isfile(DeviceSettings_fileToLoad)
         [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(folderPath);
@@ -108,14 +115,14 @@ if processFlag == 1 || processFlag == 2
     end
     %%
     % Stimulation settings
-    disp('Collecting Stimulation Settings from Device Settings file')
+    if cfg.textoutputs;    disp('Collecting Stimulation Settings from Device Settings file');     end
     if isfile(DeviceSettings_fileToLoad)
         [stimSettingsOut, stimMetaData] = createStimSettingsFromDeviceSettings(folderPath);
     else
         warning('No DeviceSettings.json file - could not extract stimulation settings')
     end
     
-    disp('Collecting Stimulation Settings from Stim Log file')
+    if cfg.textoutputs;        disp('Collecting Stimulation Settings from Stim Log file');        end
     StimLog_fileToLoad = [folderPath filesep 'StimLog.json'];
     if isfile(StimLog_fileToLoad)
         [stimLogSettings] = createStimSettingsTable(folderPath,stimMetaData);
@@ -124,7 +131,7 @@ if processFlag == 1 || processFlag == 2
     end
     %%
     % Adaptive Settings
-    disp('Collecting Adaptive Settings from Device Settings file')
+    if cfg.textoutputs;      disp('Collecting Adaptive Settings from Device Settings file');     end
     if isfile(DeviceSettings_fileToLoad)
         [DetectorSettings,AdaptiveStimSettings,AdaptiveEmbeddedRuns_StimSettings] = createAdaptiveSettingsfromDeviceSettings(folderPath);
     else
@@ -132,24 +139,35 @@ if processFlag == 1 || processFlag == 2
     end
     %%
     % Event Log
-    disp('Collecting Event Information from Event Log file')
+    if cfg.textoutputs;     disp('Collecting Event Information from Event Log file');       end
     EventLog_fileToLoad = [folderPath filesep 'EventLog.json'];
+    
     if isfile(EventLog_fileToLoad)
+        try
         [eventLogTable] = createEventLogTable(folderPath);
+        catch
+             eventLogTable = [];
+              warning('No EventLog.json failed to load');
+
+        end
+
     else
-        warning('No EventLog.json file')
+        warning('No EventLog.json file');
+         eventLogTable = [];
     end
     
     %%
     % TimeDomain data
-    disp('Checking for Time Domain Data')
+    if cfg.textoutputs;      disp('Checking for Time Domain Data');      end
     TD_fileToLoad = [folderPath filesep 'RawDataTD.json'];
     if isfile(TD_fileToLoad)
         jsonobj_TD = deserializeJSON(TD_fileToLoad);
         if isfield(jsonobj_TD,'TimeDomainData') && ~isempty(jsonobj_TD.TimeDomainData)
-            disp('Loading Time Domain Data')
+             if cfg.textoutputs;     disp('Loading Time Domain Data');       end
+
             [outtable_TD, srates_TD] = createTimeDomainTable(jsonobj_TD);
-            disp('Creating derivedTimes for time domain:')
+            
+             if cfg.textoutputs;     disp('Creating derivedTimes for time domain:');     end
             timeDomainData = assignTime(outtable_TD, shortGaps_systemTick);
         else
             timeDomainData = [];
@@ -160,13 +178,13 @@ if processFlag == 1 || processFlag == 2
     
     %%
     % Accelerometer data
-    disp('Checking for Accelerometer Data')
+    if cfg.textoutputs;    disp('Checking for Accelerometer Data');    end
     Accel_fileToLoad = [folderPath filesep 'RawDataAccel.json'];
     if isfile(Accel_fileToLoad)
         jsonobj_Accel = deserializeJSON(Accel_fileToLoad);
         if isfield(jsonobj_Accel,'AccelData') && ~isempty(jsonobj_Accel.AccelData)
             try
-                disp('Loading Accelerometer Data')
+                if cfg.textoutputs;     disp('Loading Accelerometer Data');    end
                 [outtable_Accel, srates_Accel] = createAccelTable(jsonobj_Accel);
                 disp('Creating derivedTimes for accelerometer:')
                 AccelData = assignTime(outtable_Accel, shortGaps_systemTick);
@@ -183,13 +201,13 @@ if processFlag == 1 || processFlag == 2
     
     %%
     % Power data
-    disp('Checking for Power Data')
+    if cfg.textoutputs;      disp('Checking for Power Data');        end
     Power_fileToLoad = [folderPath filesep 'RawDataPower.json'];
     if isfile(Power_fileToLoad)
-        disp('Loading Power Data')
+        if cfg.textoutputs;      disp('Loading Power Data');     end
         % Checking if power data is empty happens within createPowerTable
         % function
-        [outtable_Power] = createPowerTable(folderPath);
+        [outtable_Power] = createPowerTable(cfg, folderPath);
         
         % Calculate power band cutoffs (in Hz) and add column to powerSettings
         if ~isempty(outtable_Power)
@@ -225,13 +243,13 @@ if processFlag == 1 || processFlag == 2
     
     %%
     % FFT data
-    disp('Checking for FFT Data')
+    if cfg.textoutputs;      disp('Checking for FFT Data');      end
     FFT_fileToLoad = [folderPath filesep 'RawDataFFT.json'];
     if isfile(FFT_fileToLoad)
         jsonobj_FFT = deserializeJSON(FFT_fileToLoad);
         if isfield(jsonobj_FFT,'FftData') && ~isempty(jsonobj_FFT.FftData)
             try
-                disp('Loading FFT Data')
+                if cfg.textoutputs;     disp('Loading FFT Data');    end
                 outtable_FFT = createFFTtable(jsonobj_FFT);
                 
                 % Add FFT parameter info to fftSettings
@@ -258,7 +276,7 @@ if processFlag == 1 || processFlag == 2
                     FFT_sampleRate = unique(all_fftFs);
                     outtable_FFT.samplerate(:) = FFT_sampleRate;
                     outtable_FFT.packetsizes(:) = 1;
-                    disp('Creating derivedTimes for FFT:')
+                    if cfg.textoutputs;      disp('Creating derivedTimes for FFT:');     end
                     FFTData = assignTime(outtable_FFT, shortGaps_systemTick);
                 end
             catch
@@ -273,13 +291,13 @@ if processFlag == 1 || processFlag == 2
     end
     %%
     % Adaptive data
-    disp('Checking for Adaptive Data')
+    if cfg.textoutputs;       disp('Checking for Adaptive Data');     end
     Adaptive_fileToLoad = [folderPath filesep 'AdaptiveLog.json'];
     if isfile(Adaptive_fileToLoad)
         jsonobj_Adaptive = deserializeJSON(Adaptive_fileToLoad);
         if isfield(jsonobj_Adaptive,'AdaptiveUpdate') && ~isempty(jsonobj_Adaptive(1).AdaptiveUpdate)
             try
-                disp('Loading Adaptive Data')
+                if cfg.textoutputs;       disp('Loading Adaptive Data');      end
                 outtable_Adaptive = createAdaptiveTable(jsonobj_Adaptive);
                 % Note: StateTime must still be converted to sec in
                 % outtable_Adaptive
@@ -291,7 +309,7 @@ if processFlag == 1 || processFlag == 2
                     outtable_Adaptive.packetsizes(:) = 1;
                     outtable_Adaptive.StateTime = outtable_Adaptive.StateTime * (fftSettings.fftConfig(1).interval/1000);
                     
-                    disp('Creating derivedTimes for Adaptive:')
+                    if cfg.textoutputs;      disp('Creating derivedTimes for Adaptive:');        end
                     AdaptiveData = assignTime(outtable_Adaptive, shortGaps_systemTick);
                 else
                     for iSetting = 1:size(fftSettings,1)
@@ -304,7 +322,7 @@ if processFlag == 1 || processFlag == 2
                         outtable_Adaptive.samplerate(:) = adaptive_sampleRate;
                         outtable_Adaptive.packetsizes(:) = 1;
                         
-                        disp('Creating derivedTimes for Adaptive:')
+                        if cfg.textoutputs;      disp('Creating derivedTimes for Adaptive:');        end
                         AdaptiveData = assignTime(outtable_Adaptive, shortGaps_systemTick);
                     end
                 end
@@ -327,11 +345,11 @@ if processFlag == 1 || processFlag == 2
         unifiedDerivedTimes = unifiedDerivedTimes';
 
         % Time format for human-readable time
-        timeFormat = sprintf('%+03.0f:00',metaData.UTCoffset);
+        timeFormat = 'America/Los_Angeles';
 
         % Harmonize Accel with unifiedDerivedTimes
         if ~isempty(AccelData)
-            disp('Harmonizing time of Accelerometer data with unifiedDerivedTimes')
+            if cfg.textoutputs;      disp('Harmonizing time of Accelerometer data with unifiedDerivedTimes');        end
             derivedTime_Accel = AccelData.DerivedTime;
             [newDerivedTime,newDerivedTimes_Accel] = harmonizeTimeAcrossDataStreams(unifiedDerivedTimes, derivedTime_Accel, srates_TD(1));
 
@@ -365,7 +383,7 @@ if processFlag == 1 || processFlag == 2
 
         % Harmonize Power with unifiedDerivedTimes
         if ~isempty(PowerData)
-            disp('Harmonizing time of Power data with unifiedDerivedTimes')
+            if cfg.textoutputs;      disp('Harmonizing time of Power data with unifiedDerivedTimes');        end
             derivedTime_Power = PowerData.DerivedTime;
             [newDerivedTime,newDerivedTimes_Power] = harmonizeTimeAcrossDataStreams(unifiedDerivedTimes, derivedTime_Power, srates_TD(1));
 
@@ -399,7 +417,7 @@ if processFlag == 1 || processFlag == 2
 
         % Harmonize FFT with unifiedDerivedTimes
         if ~isempty(FFTData)
-            disp('Harmonizing time of FFT data with unifiedDerivedTimes')
+           if cfg.textoutputs;        disp('Harmonizing time of FFT data with unifiedDerivedTimes');     end
             derivedTime_FFT = FFTData.DerivedTime;
             [newDerivedTime,newDerivedTimes_FFT] = harmonizeTimeAcrossDataStreams(unifiedDerivedTimes, derivedTime_FFT, srates_TD(1));
 
@@ -432,7 +450,7 @@ if processFlag == 1 || processFlag == 2
 
         % Harmonize Adaptive with unifiedDerivedTimes
         if ~isempty(AdaptiveData)
-            disp('Harmonizing time of Adaptive data with unifiedDerivedTimes')
+            if cfg.textoutputs;      disp('Harmonizing time of Adaptive data with unifiedDerivedTimes');     end
             derivedTime_Adaptive = AdaptiveData.DerivedTime;
             [newDerivedTime,newDerivedTimes_Adaptive] = harmonizeTimeAcrossDataStreams(unifiedDerivedTimes, derivedTime_Adaptive, srates_TD(1));
 

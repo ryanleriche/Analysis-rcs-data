@@ -1,4 +1,4 @@
-function [powerTable]  = createPowerTable(folderPath)
+function [powerTable]  = createPowerTable(cfg, folderPath)
 %%
 % Function to unravel Power data
 % Input:
@@ -17,7 +17,7 @@ try
     
     % If no power data, return empty tables, otherwise start parsing
     if isempty(rawPowerData) || isempty(rawPowerData.PowerDomainData)
-        fprintf('Power data  is empty\n');
+         if cfg.textoutputs;   fprintf('Power data  is empty\n');   end
         fprintf('Creating dummy event table\n');
         powerTable  = [];
     else

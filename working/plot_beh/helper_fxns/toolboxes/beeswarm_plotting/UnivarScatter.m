@@ -87,9 +87,9 @@ function [xPositions, yPositions, Label, RangeCut, FigHandles] = UnivarScatter(d
 %
 %                       +'MarkerEdgeColor' color(s) of the edges of the points; def. 'k'
 %                       +'MarkerFaceColor' color(s) of the points; def. 'flat'
-%                       +'MeanColor' color(s) of the mean line; def. black
-%                       +'SEMColor'  color(s) of the SEM box; def. dark gray
-%                       +'StdColor'  color(s) of the Std box; def. light gray
+%                       +'PlotStatColor' color(s) of the mean line; def. black
+%                       +'DistributionColor_Inner'  color(s) of the SEM box; def. dark gray
+%                       +'DistributionColor_Outer'  color(s) of the Std box; def. light gray
 %                       
 %                       +'IndexArray', normally, when the input is a table,
 %                       the output figure positions and the columns in the
@@ -230,6 +230,19 @@ else
     PointStyle='o';
 end
 
+
+Ind=strcmp(stringVars,'PlotStat');
+if any(Ind)
+    %Check that PlotStat is a string with a valid value
+    if ischar(valueVars{Ind})
+        PlotStat=valueVars{Ind};
+    else
+        error(sprintf('"PlotStat", should be "mean" or "median" (the STD and IQR are implied'))
+    end
+else
+    PlotStat='mean with STD';
+end
+
 %% Numeric Variables
 Ind=strmatch('Width',stringVars);
 if ~isempty(Ind)
@@ -367,56 +380,56 @@ else
     MarkerFaceColor='flat';
 end
 
-Ind=strmatch('MeanColor',stringVars);
+Ind=strmatch('PlotStatColor',stringVars);
 MeanColorIsArray=false;
 if ~isempty(Ind)
-    %Check that MeanColor takes valid arguments
+    %Check that PlotStatColor takes valid arguments
     if isnumeric(valueVars{Ind}) && all(size(valueVars{Ind}) >= [size(data,2),3])
-        MeanColor=valueVars{Ind};
+        PlotStatColor=valueVars{Ind};
         MeanColorIsArray=true;
     elseif (isnumeric(valueVars{Ind}) && all(size(valueVars{Ind}) == [1,3])) || ischar(valueVars{Ind})
-        MeanColor=valueVars{Ind};
+        PlotStatColor=valueVars{Ind};
     else
-        error(sprintf('wrong MeanColor input'))
+        error(sprintf('wrong PlotStatColor input'))
     end
 else
-    MeanColor='k';
+    PlotStatColor='k';
 end
 
-Ind=strmatch('SEMColor',stringVars);
+Ind=strmatch('DistributionColor_Inner',stringVars);
 SEMColorIsArray=false;
 if ~isempty(Ind)
-    %Check that SEMColor takes valid arguments
+    %Check that DistributionColor_Inner takes valid arguments
     if isnumeric(valueVars{Ind}) && all(size(valueVars{Ind}) >= [size(data,2),3])
-        SEMColor=valueVars{Ind};
+        DistributionColor_Inner=valueVars{Ind};
         SEMColorIsArray=true;
     elseif (isnumeric(valueVars{Ind}) && all(size(valueVars{Ind}) == [1,3])) || ischar(valueVars{Ind})
-        SEMColor=valueVars{Ind};
+        DistributionColor_Inner=valueVars{Ind};
     else
-        error(sprintf('wrong SEMColor input'))
+        error(sprintf('wrong DistributionColor_Inner input'))
     end
 elseif strcmp(Whiskers,'box')
-    SEMColor=[1 1 1]*0.95;
+    DistributionColor_Inner=[1 1 1]*0.95;
 else
-    SEMColor='k';
+    DistributionColor_Inner='k';
 end
 
-Ind=strmatch('StdColor',stringVars);
+Ind=strmatch('DistributionColor_Outer',stringVars);
 StdColorIsArray=false;
 if ~isempty(Ind)
-    %Check that StdColor takes valid arguments
+    %Check that DistributionColor_Outer takes valid arguments
     if isnumeric(valueVars{Ind}) && all(size(valueVars{Ind}) >= [size(data,2),3])
-        StdColor=valueVars{Ind};
+        DistributionColor_Outer=valueVars{Ind};
         StdColorIsArray=true;
     elseif (isnumeric(valueVars{Ind}) && all(size(valueVars{Ind}) == [1,3])) || ischar(valueVars{Ind})
-        StdColor=valueVars{Ind};
+        DistributionColor_Outer=valueVars{Ind};
     else
-        error(sprintf('wrong StdColor input'))
+        error(sprintf('wrong DistributionColor_Outer input'))
     end
 elseif strcmp(Whiskers,'box')
-    StdColor=[1 1 1]*0.85;
+    DistributionColor_Outer=[1 1 1]*0.85;
 else
-    StdColor='k';
+    DistributionColor_Outer='k';
 end
 
 
@@ -486,20 +499,35 @@ end
 
 %If we want boxes for the mean and std
 if strcmp(Whiskers,'box') && numel(yValues)~=1
-    
-    yMean=mean(yValues);
-    yStd=std(yValues);
-    ySem=yStd/sqrt(size(yValues,1));
-    yCI=ySem*1.96;
+
+    switch PlotStat
+
+        case 'median with IQR'
+             y_plt_stat       = median(yValues);
+             y_rng_stat       = iqr(yValues);
+
+
+
+
+        case 'mean with STD'
+                y_plt_stat       = mean(yValues);
+                y_rng_stat       = std(yValues);
+
+    end
+
+        ySem             = y_rng_stat/sqrt(size(yValues,1));
+        yCI             =ySem*1.96;
+
+
     c = xCenters(i);
     %plot the standard deviation box
-    rectangle('Position',[c-Width/WhiskersWidthRatio,yMean-yStd,2*Width/WhiskersWidthRatio,2*yStd ],'FaceColor',StdColor(StdIndex,:),'EdgeColor', StdColor(StdIndex,:),'LineWidth',0.1);
+    rectangle('Position',[c-Width/WhiskersWidthRatio,y_plt_stat-y_rng_stat,2*Width/WhiskersWidthRatio,2*y_rng_stat ],'FaceColor',DistributionColor_Outer(StdIndex,:),'EdgeColor', DistributionColor_Outer(StdIndex,:),'LineWidth',0.1);
     %plot the mean+-SEM box
-    rectangle('Position',[c-Width/WhiskersWidthRatio,yMean-yCI,2*Width/WhiskersWidthRatio,2*yCI ],'FaceColor',SEMColor(SEMIndex,:),'EdgeColor', SEMColor(SEMIndex,:),'LineWidth',0.1);
+    rectangle('Position',[c-Width/WhiskersWidthRatio,y_plt_stat-yCI,2*Width/WhiskersWidthRatio,2*yCI ],'FaceColor',DistributionColor_Inner(SEMIndex,:),'EdgeColor', DistributionColor_Inner(SEMIndex,:),'LineWidth',0.1);
     %plot the mean line 
-    lh = plot([c-Width/WhiskersWidthRatio c+Width/WhiskersWidthRatio],[yMean yMean],'Color', MeanColor(MeanIndex,:), 'LineWidth',2);
+    lh = plot([c-Width/WhiskersWidthRatio c+Width/WhiskersWidthRatio],[y_plt_stat y_plt_stat],'Color', PlotStatColor(MeanIndex,:), 'LineWidth',2);
 
-    lh.Color(4)=0.5;
+    %lh.Color(4)=0.5;
 end
 %% Changing the xValue of each point
 % This is done the following way: The points are sorted in equidistant
@@ -628,22 +656,36 @@ FigHandles{i}=scatter(xValues,yValues,PointSize,PointStyle,'MarkerEdgeColor', Ma
 %If we want lines to represent the SEM and the std
 if strcmp(Whiskers,'lines') && numel(yValues)>2
     %plot the mean line
-    yMean =mean(yValues);
+    switch PlotStat
+
+        case 'median with IQR'
+             y_plt_stat       = median(yValues);
+             y_rng_stat       = iqr(yValues);
+
+        case 'mean with STD'
+            y_plt_stat       = mean(yValues);
+            y_rng_stat       = std(yValues);
+    end
+
     c = xCenters(i);
     
-    plot([c-Width/WhiskersWidthRatio c+Width/WhiskersWidthRatio],[yMean yMean],'Color',MeanColor(MeanIndex),'LineWidth',3)
+    plot([c-Width/WhiskersWidthRatio c+Width/WhiskersWidthRatio],[y_plt_stat y_plt_stat],'Color',PlotStatColor(MeanIndex),'LineWidth',3)
     
-    %plot the sd 
-    yStd=std(yValues);
-    plot([c-Width/WhiskersWidthRatio*0.5 c+Width/WhiskersWidthRatio*0.5],[yMean+yStd yMean+yStd],'Color',StdColor(StdIndex,:),'LineWidth',3)
-    plot([c-Width/WhiskersWidthRatio*0.5 c+Width/WhiskersWidthRatio*0.5],[yMean-yStd yMean-yStd],'Color',StdColor(StdIndex,:),'LineWidth',3)
-    plot([c c],[yMean-yStd yMean+yStd],'Color',StdColor(StdIndex,:))
+    %plot the SD or IQR
+    plot([c-Width/WhiskersWidthRatio*0.5 c+Width/WhiskersWidthRatio*0.5],[y_plt_stat+y_rng_stat y_plt_stat+y_rng_stat],...
+        'Color',DistributionColor_Outer(StdIndex,:),'LineWidth',3)
+
+    plot([c-Width/WhiskersWidthRatio*0.5 c+Width/WhiskersWidthRatio*0.5],[y_plt_stat-y_rng_stat y_plt_stat-y_rng_stat],...
+        'Color',DistributionColor_Outer(StdIndex,:),'LineWidth',3)
+
+    plot([c c],[y_plt_stat-y_rng_stat y_plt_stat+y_rng_stat],'Color',DistributionColor_Outer(StdIndex,:))
+    
     %plot the conf. interval of the mean
-    ySem=yStd/sqrt(size(yValues,1));
+    ySem=y_rng_stat/sqrt(size(yValues,1));
     yCI=ySem*1.96;
-    plot([c-Width/WhiskersWidthRatio*0.7 c+Width/WhiskersWidthRatio*0.7],[yMean+yCI yMean+yCI],'Color',SEMColor(SEMIndex,:),'LineWidth',3)
-    plot([c-Width/WhiskersWidthRatio*0.7 c+Width/WhiskersWidthRatio*0.7],[yMean-yCI yMean-yCI],'Color',SEMColor(SEMIndex,:),'LineWidth',3)
-    plot([c c],[yMean-yCI yMean+yCI],'Color',SEMColor(SEMIndex,:))
+    plot([c-Width/WhiskersWidthRatio*0.7 c+Width/WhiskersWidthRatio*0.7],[y_plt_stat+yCI y_plt_stat+yCI],'Color',DistributionColor_Inner(SEMIndex,:),'LineWidth',3)
+    plot([c-Width/WhiskersWidthRatio*0.7 c+Width/WhiskersWidthRatio*0.7],[y_plt_stat-yCI y_plt_stat-yCI],'Color',DistributionColor_Inner(SEMIndex,:),'LineWidth',3)
+    plot([c c],[y_plt_stat-yCI y_plt_stat+yCI],'Color',DistributionColor_Inner(SEMIndex,:))
 
 
    
@@ -679,7 +721,7 @@ if ~HoldWasOn
 hold off
 end
 
-grid MINOR;     box off
+box off
 end
 
 

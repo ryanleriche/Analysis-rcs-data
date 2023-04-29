@@ -1,4 +1,5 @@
-function  [sense_meta, by_pb_meta, ld0_meta, ld1_meta, state_meta]...
+function  [sense_meta, by_ld0_pb_meta, by_ld1_pb_meta,...
+           ld0_meta, ld1_meta, state_meta]...
         ...
         = parse_aDBS_params(...
         ...
@@ -29,41 +30,83 @@ sense_meta = sprintf(['TD samp rate    | %g Hz',newline,...
 %% only return bands used in LDs
 % check LD powerband detection inputs, if band is in either return its bin
 % in Hz
-if all(strcmp(plt_ss_tbl_oi{1, 'LD0_powerband_detectionInputs'}, 'None'))
+ld0_pb_vars   = all_vars(contains(all_vars, 'LD0_PowerBand_input_'));
+i_pb_input    = ~strcmp(plt_ss_tbl_oi{1, ld0_pb_vars}, 'Disabled');
 
-    nonzero_LD0_pbs = [];
+ld0_pb_inputs = plt_ss_tbl_oi{1, ld0_pb_vars}(i_pb_input);
+
+plt_pbs       = cell(1,length(ld0_pb_inputs));
+
+for i=1:length(ld0_pb_inputs)
+
+    switch ld0_pb_inputs{i}
+
+        case 'Ch0Band0'; pb ='Ch0_powerBinInHz0';
+        case 'Ch0Band1'; pb ='Ch0_powerBinInHz1';
+
+        case 'Ch1Band0'; pb ='Ch1_powerBinInHz2';
+        case 'Ch1Band1'; pb ='Ch1_powerBinInHz3';
+
+        case 'Ch2Band0'; pb ='Ch2_powerBinInHz4';
+        case 'Ch2Band1'; pb ='Ch2_powerBinInHz5';
+
+        case 'Ch3Band0'; pb ='Ch3_powerBinInHz6';
+        case 'Ch3Band1'; pb ='Ch3_powerBinInHz7';
+
+    end
+    plt_pbs{i}= pb;
+end
+if isempty(plt_pbs)
+
+    by_ld0_pb_meta = 'No Power-bands inputted to LD0';
 
 else
-    nonzero_LD0_pbs = cellfun(@(x) str2num(x(end)), plt_ss_tbl_oi{1, 'LD0_powerband_detectionInputs'});
-
-end
-
-
-if all(strcmp(plt_ss_tbl_oi{1, 'LD1_powerband_detectionInputs'}, 'None'))
-
-    nonzero_LD1_pbs = [];
-
-else
-    nonzero_LD1_pbs = cellfun(@(x) str2num(x(end)), plt_ss_tbl_oi{1, 'LD1_powerband_detectionInputs'});
-end
-
-nonzero_pbs     = unique([nonzero_LD0_pbs, nonzero_LD1_pbs]);
-
-by_chans_pb     =  {'Ch0_powerBinInHz0', 'Ch0_powerBinInHz1',...
-                    'Ch1_powerBinInHz2', 'Ch1_powerBinInHz3',...
-                    'Ch2_powerBinInHz4', 'Ch2_powerBinInHz5',...
-                    'Ch3_powerBinInHz6', 'Ch3_powerBinInHz7'};
-
-plt_pbs         = by_chans_pb(nonzero_pbs+1);
-
-form_pbs        = cellfun(@(x,y) [x,' | ', y, newline], ...
+    form_pbs        = cellfun(@(x,y) [x,' | ', y, newline], ...
                     plt_pbs,...
                     table2cell(plt_ss_tbl_oi(1,  plt_pbs)), 'UniformOutput',false);
 
-if isempty(form_pbs)
-    by_pb_meta = '';
+    by_ld0_pb_meta   = ['LD0 Inputs:', newline,form_pbs{:}];
+end
+%%
+% check LD powerband detection inputs, if band is in either return its bin
+% in Hz
+ld1_pb_vars   = all_vars(contains(all_vars, 'LD1_PowerBand_input_'));
+i_pb_input    = ~strcmp(plt_ss_tbl_oi{1, ld1_pb_vars}, 'Disabled');
+
+ld1_pb_inputs = plt_ss_tbl_oi{1, ld1_pb_vars}(i_pb_input);
+
+plt_pbs       = cell(1,length(ld1_pb_inputs));
+
+for i=1:length(ld1_pb_inputs)
+
+    switch ld1_pb_inputs{i}
+
+        case 'Ch0Band0'; pb ='Ch0_powerBinInHz0';
+        case 'Ch0Band1'; pb ='Ch0_powerBinInHz1';
+
+        case 'Ch1Band0'; pb ='Ch1_powerBinInHz2';
+        case 'Ch1Band1'; pb ='Ch1_powerBinInHz3';
+
+        case 'Ch2Band0'; pb ='Ch2_powerBinInHz4';
+        case 'Ch2Band1'; pb ='Ch2_powerBinInHz5';
+
+        case 'Ch3Band0'; pb ='Ch3_powerBinInHz6';
+        case 'Ch3Band1'; pb ='Ch3_powerBinInHz7';
+
+    end
+    plt_pbs{i}= pb;
+end
+
+if isempty(plt_pbs)
+
+    by_ld1_pb_meta = 'No Power-bands inputted to LD1';
+
 else
-    by_pb_meta   = [form_pbs{:}];
+    form_pbs        = cellfun(@(x,y) [x,' | ', y, newline], ...
+                    plt_pbs,...
+                    table2cell(plt_ss_tbl_oi(1,  plt_pbs)), 'UniformOutput',false);
+
+    by_ld1_pb_meta   = ['LD1 Inputs:', newline, form_pbs{:}];
 end
 
 %% 
@@ -78,8 +121,8 @@ if plt_ss_tbl_oi.LD0_biasTerm0 == plt_ss_tbl_oi.LD0_biasTerm1
 
 end
 
-plt_ld_vars            = ld0_vars(plt_ss_tbl_oi{:, ld0_vars} > 0 |...
-                                  contains(ld0_vars, {'fractionalFixed', 'Duration'}))';
+plt_ld_vars            = ld0_vars(plt_ss_tbl_oi{:, ld0_vars} ~=0  |...
+                                  contains(ld0_vars, {'fractionalFixed', 'Duration', 'biasTerm'}))';
 
 tmp_meta_cell          = table2cell(plt_ss_tbl_oi(1,  plt_ld_vars));
 
@@ -116,7 +159,7 @@ end
 
 str_form = repmat(['%s', newline], 1, length(by_ld_meta));
 
-if isempty(by_ld_meta)
+if isempty(by_ld_meta) || all([ld_meta_cell{2,:}] ==0)
     ld0_meta = 'LD0 was not used';
 else
     ld0_meta = sprintf(['LD0\n',str_form], by_ld_meta{:});
@@ -136,8 +179,8 @@ if plt_ss_tbl_oi.LD1_biasTerm0 == plt_ss_tbl_oi.LD1_biasTerm1
 end
     
 
-plt_ld_vars            = ld1_vars(plt_ss_tbl_oi{:, ld1_vars} > 0 |...
-                                  contains(ld1_vars, {'fractionalFixed', 'Duration'}))';
+plt_ld_vars            = ld1_vars(plt_ss_tbl_oi{:, ld1_vars} ~= 0 |...
+                                  contains(ld1_vars, {'fractionalFixed', 'Duration','biasTerm'}))';
 
 tmp_meta_cell         = table2cell(plt_ss_tbl_oi(1,  plt_ld_vars));
 
@@ -175,7 +218,8 @@ end
 
 str_form = repmat(['%s', newline], 1, length(by_ld_meta));
 
-if isempty(by_ld_meta)
+if isempty(by_ld_meta) || all([ld_meta_cell{2,:}] ==0)
+
     ld1_meta = 'LD1 was not used';
 else
     ld1_meta = sprintf(['LD1\n',str_form], by_ld_meta{:});
