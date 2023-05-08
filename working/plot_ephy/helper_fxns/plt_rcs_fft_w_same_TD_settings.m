@@ -128,12 +128,12 @@ cfg.freq       = [2, 85];
                                     ch_names_out, parsed_db_out, [save_dir, 'done/']);
 
 
-i_nan = any(squeeze(isnan(pwrspectra_by_sess(:,:,1))));
+i_nan = any(squeeze(isnan(pwrspectra_by_sess_out(:,:,1))));
 
 
-pwrspectra_by_sess_out =  pwrspectra_by_sess(:, ~i_nan, :);
-parsed_db_out          = parsed_db_in(~i_nan, :);
-ch_names_out           = ch_names(~i_nan,:);
+pwrspectra_by_sess_out =  pwrspectra_by_sess_out(:, ~i_nan, :);
+parsed_db_out          = parsed_db_out(~i_nan, :);
+ch_names_out           = ch_names_out(~i_nan,:);
 %%
 
 ch_names_out = unique(ch_names_out, 'rows', 'stable');
@@ -150,5 +150,10 @@ save([save_dir, pt_side_id, '_ch_names'], ...
 save([save_dir, pt_side_id, '_art_fft_peaks_tbl'], ...
     'art_fft_peaks_tbl', '-v7.3');
 
-writetable(parsed_db_out, [save_dir, pt_side_id, '_parsed_db_oi.xlsx']);
+%%% to ensure newest version of parsed database of interest is saved
+save_file = [save_dir, pt_side_id, '_parsed_db_oi.xlsx'];
+
+if isfile(save_file);   delete(save_file);  end
+
+writetable(parsed_db_out, save_file);
 end

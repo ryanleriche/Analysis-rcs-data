@@ -75,7 +75,7 @@ for i =   1:  length(u_settings)
                                             :);
 
     
-    if ge(plt_app_oi.time_INS(end) -plt_app_oi.time_INS(1) , duration('00:10:00')) &&...
+    if ge(plt_app_oi.time_INS(end) -plt_app_oi.time_INS(1) , duration('00:05:00')) &&...
             le(plt_app_oi.time_INS(end) -plt_app_oi.time_INS(1) , duration('21:00:00:00'))
 
       

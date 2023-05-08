@@ -48,4 +48,7 @@ end
 % return therapyStatus boolean for ease of parsing therapy "Off"s
 proc_g_changes.therapyStatus = contains(proc_g_changes.Group_Status, 'On');
 
+% identical times were actually loaded in order, but missed due to INS 1 Hz timestamping
+% -> prevent reordering by adding in half second in between
+
 end

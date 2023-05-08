@@ -146,7 +146,7 @@ if contains(cfg.pt_id, 'stage0')
     redcap_kept     = redcap;
 else
 
-    redcap_kept     = redcap(~i_trim_VAS_any, :);
+    redcap_kept     = redcap(all(redcap_vas ~= 50, 2), :);
     
 end
 % z-score columns that contain pain metrics

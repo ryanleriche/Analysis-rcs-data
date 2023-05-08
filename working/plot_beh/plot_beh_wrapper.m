@@ -1,49 +1,175 @@
-%% user-inputs
-% where RCS files are saved from PIA server
-pia_dir     = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/';
+% load CONFIG_beh_wrapper
 
-% where 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
-github_dir      = '/Users/Leriche/Github/';
+[dirs,    rcs_API_token,   pcs_API_token, ... -> input and output directories, and API tokens
+ PFS,     PFS_sum_stats,...                   -> pain fluctuation study (PFS) data and summary statistics
+ pt_META, stage_dates]...                     -> hard-coded pt meta data (RCS Stage dates pulled from patient iternaries, Google Drive folders, etc
+...
+    = CONFIG_beh_wrapper;
 
-% where DropBox desktop is saved locally
-dropbox_dir     = ['/Users/Leriche/Dropbox (UCSF Department of Neurological Surgery)/',...
-                   'SUBNETS Dropbox/Chronic Pain - Activa and Summit 2.0'];
-
-% application programming interface (API) token which is essentially a
-% password to access REDcap remotely, and is unique per researcher per
-% study (e.g., Ryan has a unique token for the RCS and PCS studies)
-
-rcs_API_token   = '95FDE91411C10BF91FD77328169F7E1B';
-pcs_API_token   = 'DB65F8CB50CFED9CA5A250EFD30F10DB';
-
-% pulls/organizes arms from REDcap (go into fxn to add new arms)
-cd([github_dir, 'Analysis-rcs-data/working']);         
-
-addpath(genpath([github_dir, 'Analysis-rcs-data/']));
-addpath(genpath([github_dir, 'rcs-simulation/']));
+%% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
+% as of Apr. 2023, only daily surveys are analysis-ready/organized
 
 REDcap                  = RCS_redcap_painscores(rcs_API_token);
 
-% stage dates and, home/clinic visits for RCS pts 1-7 w/ brief descriptions
-[visits, stage_dates]   = make_visit_dates;
-
-% per RCS pt, organize pain fluctuation study (pain prior to stage 0)
+%% import RCS databases, and INS logs per pt side as structures
 %{
-If this fails b/c of a time out issue go into MATLAB's 'webwrite()'fxn
-and below line ~126   --> 'options = validateRequestMethod(options);' 
-add                   --> 'options.Timeout   = 20;'
-%}  
 
-fluct             = RCS_redcap_painscores(rcs_API_token, pcs_API_token, {'FLUCT'});
+*   saves RCS session summaries as databases (db) from constellation of
+    .jsons saved during streaming sessions
 
-% pain fluctuation study descriptive stats provides basis for clinical
-% outcomes of interest
-cfg               = [];
-cfg.dates         = 'AllTime';
-pts               = {'RCS02', 'RCS04', 'RCS05', 'RCS06', 'RCS07'};
-for i = 1:length(pts)
-    fluct_sum_stats.(pts{i})  = calc_sum_stats(cfg, fluct.(pts{i}));
+*   saves INS logs (with AppLog.txt, and EventLog.txt changes) as INS_logs
+    importantly contains Adaptive state changes/stim defintions and Group changes
+
+*   from db created a parsed database (par_db) allowing for .xlsx
+    exportable and human readable one line summaries per streaming session
+
+    -> Note LAST stim and sense setting is returned for parsimonious report
+       of aDBS settings between streaming sessions
+
+*   from db create a stimLog containing every change in stim parameter
+    during a streaming session ("misses" offline PTM intiated changed)
+
+
+(pg. 12 of the 4NR010 Research Lab Programmer Guide M979053A001)
+
+"Multiple programs can be combined to define a group. Each group and its associated programs can be used
+to provide a therapy for specific symptoms or specific patient activities. Pulse width, amplitude, amplitude
+limits, and electrode polarity are programmed separately for each program within the group (ie, each
+program within the group can have different values). Pulse width limits, rate, rate limits, SoftStart/Stop,
+Cycling, and Active Recharge are programmed for each group (ie, each program within the group will have
+the same values)."
+
+Inital run can take hours if running multiple pts w/ 1000s of streaming
+sessions.
+%}
+
+cfg                    = [];
+cfg.load_EventLog      = true;
+
+% option to load previous database for efficient processing
+cfg.ignoreold_db                = false;
+cfg.ignoreold_INS_logs          = true;
+cfg.ignoreold_par_db            = true;
+
+cfg.raw_dir                     = [dirs.rcs_pia, 'raw/'];
+cfg.proc_dir                    = [dirs.rcs_pia, 'processed/'];
+
+cfg.ephy_anal_dir               = [dirs.rcs_pia, '/ephy_analysis/aDBS_offline_sessions/'];
+
+% specify patient hemispheres
+%%% pts to update database from scratch locally:
+pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
+
+%%% pts for NEJM submission:
+%pt_sides           = {'RCS02R', 'RCS05R', 'RCS05L'};
+
+%pt_sides           = {'RCS04R','RCS04L'};
+
+%pt_sides           = {'RCS02R','RCS05L','RCS05R'};
+
+for i = 1  : length(pt_sides)
+    %%% process RCS .jsons into searchable database
+    [db.(pt_sides{i}), bs.(pt_sides{i})] ...
+        ...
+        = makeDatabaseRCS_Ryan(...
+        ...
+        cfg, pt_sides{i});
+
+    %%% process INS logs .txts based on unique entries only
+        % (INS logs have mostly repeating entries)
+    INS_logs.(pt_sides{i})  ...
+        ...
+        = RCS_logs( ...
+        ...
+        cfg, pt_sides{i});
+
+
+    %%% unpack all sense, LD, and stimulation settings as own variable in table
+        % allows for programmatic discernment of unique RC+S settings
+    [par_db.(pt_sides{i}), ss_var_oi.(pt_sides{i})] ...
+        ...
+        = makeParsedDatabaseRCS(...
+        ...
+        cfg, pt_sides{i}, db);
+
+    %%% finally merge stim parameters to REDcap survey during said parameters
+    [stimLog.(pt_sides{i}), REDcap.(pt_sides{i})]  ...
+        ...
+        = align_REDcap_to_stimLog(...
+        ...
+        cfg, pt_sides{i}, db, REDcap);
 end
+%%
+%{
+EventLog.txt          -> tracks Group changes and TherapyStatus offline
+
+stimLog.json          -> tracks all Group changes during streaming sessions
+                         (misses cycling and other settings)
+
+DeviceSettings.json   -> shows comphrensive stimulation settings 
+
+Start from stimLog.json and add comprehensive stimulation settings 
+from nearest previous DeviceSettings.json (time_stimLog)
+
+W/ API-latency corrected INS_log entries (built parsimoniously from
+EventLog.txt files), find nearest previous stimLog entry and infer
+comprensive settings
+
+merge the comprehensive INS_log and stimLog entires into single table w/:
+
+* time_aligned column
+    - datetime vector in PST from the INS_log or stimLog
+    from whenever *either* changed
+
+* source
+    -cell array listing Left or Right and if INS or API
+        -(L_INS_time, L_API_time, R_INS_time, R_API_time)
+%}
+
+pt_sides           = {'RCS02R', 'RCS05R','RCS05L'};
+
+
+for i = 1: length(pt_sides)
+    %%% find nearest (yet, preceding) streaming session to INS log entry
+    % --> accounts for INS to API time latency
+    [par_db_aDBS_ss.(pt_sides{i}), INS_logs_API_t_synced.(pt_sides{i})] ...
+    ...
+        = align_INSLogs_to_API_time(...
+    ...
+    pt_sides{i}, INS_logs, par_db, ss_var_oi);
+end
+
+
+%%
+%%% specify which dates to return:
+cfg.dates         = 'DateRange';
+cfg.date_range    = {'28-Mar-2023'; '01-Jul-2023'};
+
+%%% return every aDBS ever tried (takes much longer):
+%cfg.dates        = 'AllTime';
+
+%%% state-current relationship (12 am - 12 pm)
+cfg.plt_state_dur = 'sub_session_duration';
+
+%%% state-current relationship (from 1-2 am and 1-2 pm):
+%cfg.plt_state_dur = 'two_chunks'; 
+
+%%% plot aDBS performance over months
+% w/ aligned INS logs, plot requested dates
+%pt_sides           = {'RCS02R','RCS05R','RCS05L'};
+
+pt_sides           = {'RCS02R','RCS05R','RCS05L'};
+
+for i = 1:length(pt_sides)
+
+    aDBS_sum.(pt_sides{i}) ...
+        ...
+        = plot_longitudinal_aDBS(...
+        ...
+    cfg,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
+end
+
+
 
 %%
 % last N days for: 

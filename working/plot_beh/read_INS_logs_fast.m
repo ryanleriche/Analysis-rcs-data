@@ -126,7 +126,6 @@ if ~isempty(str)  % only continue if the file is not empty
      
         TherapyStatus = table;
 
-
         TherapyStatus.time = get_date_from_hexstring(events);
     
         % simplifies name and trims whitespace

@@ -15,20 +15,15 @@ exp_sense_state_vars  = ss_var_oi.(pt_side_id);
 
 %%  shift INS time based on 'TimeSync.json'--which returns the API-INS latency
 %%% per packet--to assume similar latency when NOT streaming
+proc_g_changes = sortrows(INS_logs_RCSXXX.group_changes, "time");
 
-% first for processed hemisphere's AppLog.txt
-proc_app...
-    ...
-    = find_nearest_ss_to_INS_logs(...
-    ...
-par_db_RCSXXX, INS_logs_RCSXXX.app);
 
-% then for processed hemisphere's EventLog.txt
+% for processed hemisphere's EventLog.txt
 proc_g_changes...
     ...
     = find_nearest_ss_to_INS_logs(...
     ...
-par_db_RCSXXX,  INS_logs_RCSXXX.group_changes);
+par_db_RCSXXX,  proc_g_changes);
 
 % given that Group and Status changes occur discretly, return merged Group
 % and Status based on previous entry (i.e., the current device state)
@@ -37,6 +32,15 @@ proc_g_changes ...
     = determine_current_group_status(...
     ...
 proc_g_changes);
+
+
+% for processed hemisphere's AppLog.txt
+proc_app...
+    ...
+    = find_nearest_ss_to_INS_logs(...
+    ...
+par_db_RCSXXX, INS_logs_RCSXXX.app);
+
 %%  insert EventLog.txt entires btwn AppLog.txt entries
 %%% AppLog.txt does NOT reflect Groups or therapy status changes
 
@@ -187,6 +191,7 @@ u_aDBS_Settings = exp_sense_state_vars(...
 
 %%% for sake of finding unique parameters, put zeros for NaNs
 %--> (NaNs treated as different values in unique fuction)
+%--> is empty
 
 for i_var = 1 : length(u_aDBS_Settings)
 
@@ -194,6 +199,11 @@ for i_var = 1 : length(u_aDBS_Settings)
 
     if isnumeric(tmp_var)
         tmp_var(isnan(tmp_var)) = 0;
+        par_db_RCSXXX{:, u_aDBS_Settings{i_var}} = tmp_var;
+
+    elseif iscell(tmp_var)
+
+        tmp_var(cellfun(@isempty, tmp_var)) = {'Empty'};
         par_db_RCSXXX{:, u_aDBS_Settings{i_var}} = tmp_var;
 
     end
@@ -210,8 +220,17 @@ par_db_RCSXXX = movevars(par_db_RCSXXX, ...
 %%% add sessions with same aDBS settings to INSLog itself
 ol_cl_changes.sess_w_same_settings =nan(height(ol_cl_changes ),1);
 
-ol_cl_changes.prev_sess_name{...
-    cellfun(@isempty, ol_cl_changes.prev_sess_name)} = '';
+i_emp = cellfun(@isempty, ol_cl_changes.prev_sess_name);
+
+if sum(i_emp) > 0
+    ol_cl_changes.prev_sess_name{i_emp} = '';
+end
+
+i_emp = cellfun(@isempty, proc_app.prev_sess_name);
+
+if sum(i_emp) > 0
+    proc_app.prev_sess_name{i_emp} = '';
+end
 
 
 for i_par = 1:height(par_db_RCSXXX)
@@ -222,6 +241,18 @@ for i_par = 1:height(par_db_RCSXXX)
                          ));
 
     ol_cl_changes.sess_w_same_settings(i_same_sett) = i_par;
+
+end
+
+%%
+for i_par = 1:height(par_db_RCSXXX)
+
+    i_same_sett = find(contains(proc_app.prev_sess_name, ...
+                  par_db_RCSXXX.sess_name(...
+                  par_db_RCSXXX.sess_w_same_settings == i_par)...
+                         ));
+
+    proc_app.sess_w_same_settings(i_same_sett) = i_par;
 
 end
 

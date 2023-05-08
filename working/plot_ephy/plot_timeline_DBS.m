@@ -28,7 +28,7 @@ i_pt_L          = i_pt_hemi & strcmp(sides, 'L');
 
 if any(i_pt_L)
 
-    [L.dbs_oi, L.ss_tbl_oi] =...
+    [L_dbs_oi, L_ss_tbl_oi] =...
     ...
     pull_INSLog_SS_oi(...
     ...
@@ -38,7 +38,7 @@ end
 
 if any(i_pt_R)
 
-    [R.dbs_oi, R.ss_tbl_oi] =...
+    [R_dbs_oi, R_ss_tbl_oi] =...
     ...
     pull_INSLog_SS_oi(...
     ...
@@ -55,17 +55,16 @@ if ~isfolder(save_dir);     mkdir(save_dir);           end
 
 %% go through INS logs based on their unique settings
 % initalize longitudinal DBS summary table (long_DBS_tbl)
-
 long_DBS_tbl  = table;
-u_settings    = unique(dbs_oi.sess_w_same_settings);
+u_settings    = unique(R_dbs_oi.sess_w_same_settings);
 
 for i =   1   :  length(u_settings)
 
     j              =  u_settings(i);
-    i_ss           = find(ss_tbl_oi.sess_w_same_settings == j);
+    i_ss           = find(R_ss_tbl_oi.sess_w_same_settings == j);
     
-    plt_ss_tbl_oi  = ss_tbl_oi(i_ss(1), :);
-    plt_dbs_oi     = dbs_oi(dbs_oi.sess_w_same_settings == j,...
+    plt_ss_tbl_oi  = R_ss_tbl_oi(i_ss(1), :);
+    plt_dbs_oi     = R_dbs_oi(R_dbs_oi.sess_w_same_settings == j,...
                                             :);
 
     
@@ -186,7 +185,7 @@ for i =   1   :  length(u_settings)
         long_DBS_tbl.timeStart_INS_log(i)    = start_time;
         long_DBS_tbl.timeStop_INS_log(i)     = stop_time;
         
-        long_DBS_tbl.sess_name{i}            = ss_tbl_oi.sess_name(i_ss);
+        long_DBS_tbl.sess_name{i}            = R_ss_tbl_oi.sess_name(i_ss);
         long_DBS_tbl.sess_w_same_settings(i) = u_settings(i);
         
         long_DBS_tbl.avg_percent_on(i)       = mean(on_off_vec, 'omitnan');

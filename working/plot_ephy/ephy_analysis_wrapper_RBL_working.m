@@ -102,13 +102,111 @@ stage 1 streaming sessions had the same sense defintion.
 
 %} 
 close all
-pt_sides               = {'RCS06R','RCS07L', 'RCS07R'};
+pt_sides               = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
+
+pt_sides               = {'RCS06R','RCS06L','RCS07L', 'RCS07R'};
+
 
 set(0,'DefaultFigureVisible','on')
 for i = 1 : length(pt_sides)
     plt_rcs_fft_w_same_TD_settings(cfg, pt_sides{i}, dirs)
 end
 
+
+
+%%
+%{
+From FOOOFed RCS stage 1 spectra, identfy band peaks + width while plotting
+all sensing hemisphere is single figure.
+
+%}
+
+pt_sides               = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
+
+[hemi_sense_chan, fft_bins_inHz]        = import_fooofed_hemispheres(dirs, pt_sides);
+
+%%
+hemi_chan_lbls = hemi_sense_chan.Properties.RowNames;
+
+
+close all
+figure('Units','inches','Position',[0, 3, 8, 10])
+
+
+tiledlayout(5,2, 'Padding','tight')
+sgtitle(sprintf('Power-spectra across RC+S patient sensing hemispheres\nABOVE 1/f (the aperiodic component)'))
+
+i_cnt = 1;
+
+%i_sense = 1:height(hemi_sense_chan);
+
+i_sense = [1, 2, 4, 7:2:13, 14, 17];
+for j  = i_sense
+    nexttile(i_cnt)
+
+    plt_spectrum = hemi_sense_chan{j,"pwr_spectra_aperiodic_rmv"}{1};
+
+    [lineout, ~] = stdshade(plt_spectrum, 0.2, 'k', fft_bins_inHz);
+
+    input = {lineout.YData, fft_bins_inHz, 'MinPeakProminence',0.1,'Annotate','extents'};
+
+    [a, b, c, d] ...
+     ...
+        =  findpeaks(input{:});
+
+     hemi_sense_chan{j, 'ss_avg_pks_pwr'} = {a};
+     hemi_sense_chan{j, 'ss_avg_pks_freq'} = {b};
+
+     hemi_sense_chan{j, 'ss_avg_half_prom_freq_width'} = {c};
+     hemi_sense_chan{j, 'ss_avg_hprom_pwr'}            = {d};
+
+    
+    %%% nice built-in plotting call
+    findpeaks(input{:}); hold on;
+
+    ax = gca;
+    h = findobj(ax, 'tag', 'HalfProminenceWidth');  h.LineWidth = 2;  h.Color = 'g';
+    h = findobj(ax, 'tag', 'Prominence');           h.LineWidth = 2;
+    
+    h = findobj(ax, 'tag', 'Peak');                 h.MarkerSize = 10; 
+
+  
+    %ylim([-0.1, 1])
+    ylabel('log_{10}(mV^{2}/Hz)');      xlabel('Frequency (Hz)');
+    title(hemi_chan_lbls(j), 'Interpreter','none');
+
+ 
+    [lineout, ~] = stdshade(plt_spectrum, 0.2, 'k', fft_bins_inHz);
+    lineout.LineStyle = '-';              lineout.LineWidth = 2.25;
+    ylim([-0.1, .8])
+
+    i_cnt = i_cnt +1;
+    if j ==1
+
+        ax = gca;
+
+        ax.Legend.Position    = [0.55 0.8 0.4 0.125];
+        ax.Legend.FontSize     = 12;
+
+        ax.Legend.String(end)  = {'Mean periodic spectra'};
+
+
+        nexttile(i_cnt)
+        delete(gca)
+        i_cnt = i_cnt +1;
+
+    else
+        legend off
+
+    end
+end
+
+exportgraphics(gcf, [dirs.rcs_pia,'ephy_analysis/spectra_per_sess/group_rcs_s1_spectra_peaks.png'])
+
+%%
+i_sense = [1, 3 : 2 : height(hemi_sense_chan)];
+
+%%
 
 
 

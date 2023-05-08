@@ -1,4 +1,4 @@
-function varargout = plot_stim_groups(cfg, pt_id, stimGroups)
+function varargout = plot_stim_groups(cfg,dirs, pt_id, stimGroups)
 
 % cfg                   = [];
 % cfg.min_n_reports     = 3;
@@ -17,6 +17,8 @@ function varargout = plot_stim_groups(cfg, pt_id, stimGroups)
 % 
 % pt_id                   = 'RCS04';
 %%
+set(0,'DefaultFigureVisible','off');            close all
+
 stim_groups = stimGroups.(pt_id);
 % if  cfg.include_cl
 % 
@@ -228,6 +230,7 @@ for i = 1 : size(stimGroups(1,contains(stimGroups.Properties.VariableNames, '+')
 end
 %}
 %% break down stim_groups (with contacts) further by stim parameters
+
 by_parm_space_dir = [cfg.proc_dir,pt_id,'/',cfg.proc_subdir, '/'];
 
 if ~exist(by_parm_space_dir, 'dir');  mkdir(by_parm_space_dir);     end

@@ -59,6 +59,10 @@ else  %%% per RCS pt, organize pain fluctuation study (pain reproting prioir to 
     pts               = {'RCS02', 'RCS04', 'RCS05', 'RCS06', 'RCS07'};
     for i = 1:length(pts)
         PFS_sum_stats.(pts{i})  = calc_sum_stats(cfg, PFS.(pts{i}));
+
+        PFS_sum_stats.days_PFCS.(pts{i}) = days(PFS.(pts{i}).time(1) - PFS.(pts{i}).time(end));
+
+
     end
     
     if ~isfolder(save_dir);    mkdir(save_dir);   end

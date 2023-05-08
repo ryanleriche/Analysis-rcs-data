@@ -5,7 +5,9 @@ function plt_percent_ON_overtime(t_vec, on_off_vec,...
 
     plot(t_vec,   movmean(on_off_vec, [duration('01:00:00')/step_dur,0]), 'k', 'LineWidth',2); hold on
             
-    avg_per_on = mean(on_off_vec, 'omitnan');
+    i_toi      = ge(t_vec, t_plt_start) & le(t_vec, t_plt_end);
+
+    avg_per_on = mean(on_off_vec(i_toi), 'omitnan');
 
     plot(t_vec, repmat(avg_per_on, length(t_vec), 1),'--', 'Color', 'k', 'LineWidth', 1.5);
 

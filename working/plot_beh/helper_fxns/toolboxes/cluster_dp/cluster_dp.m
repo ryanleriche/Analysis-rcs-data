@@ -239,7 +239,8 @@ end
 
 
 title ('Cluster Center Density Distribution','FontSize',15.0)
-xlabel ('Descending')
+
+xlabel ('Every point (possible cluster centers)')
 ylabel ('\rho * \delta / max(\rho * \delta)')
 set(gca, 'FontSize', 10, 'TickLength', [0, 0])
 

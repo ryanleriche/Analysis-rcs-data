@@ -35,7 +35,7 @@ if exist('alpha','var')==0 || isempty(alpha)
     fillOut = fill([F fliplr(F)],[amean+astd fliplr(amean-astd)],acolor,'linestyle','none');
     acolor='k';
 else
-    fillOut = fill([F fliplr(F)],[amean+astd fliplr(amean-astd)],acolor, 'FaceAlpha', alpha,'linestyle','none');
+    fillOut = fill([F fliplr(F)],[amean+astd fliplr(amean-astd)],acolor, 'FaceAlpha', alpha,'linestyle','none', 'HandleVisibility','off');
 end
 
 if ishold==0

@@ -84,7 +84,6 @@ cfg.proc_dir = [cfg.proc_dir, '/INS_logs/'];
 if ~exist(cfg.proc_dir, 'dir');     mkdir(cfg.proc_dir);      end
 
 
-
 % exception for CPRCS01
 if ~ (contains(pt_side_id,'CPRCS01'))
     pt_id = pt_side_id(1:end-1); %remove the L or R letter
@@ -126,11 +125,8 @@ AppLog_tbl.aDBS_state   = cell(sum(i_app),1);
 AppLog_tbl.adapt_stat   = cell(sum(i_app),1);
 AppLog_tbl.ld_detect    = cell(sum(i_app),1);
 
-
 % if needed, make folder to save processed INS logs
-if ~exist(cfg.proc_dir, 'dir')
-    mkdir(cfg.proc_dir)
-end
+if ~exist(cfg.proc_dir, 'dir');     mkdir(cfg.proc_dir);    end
 
 INS_log_dir  = sprintf('%s%s_INS_logs.mat', cfg.proc_dir, pt_side_id);
 
@@ -169,7 +165,7 @@ end
 if ~isempty(AppLog_tbl)
     for j = 1 : height(AppLog_tbl)
     
-        fn = AppLog_tbl.path{j} ;
+        fn = AppLog_tbl.path{j};
     
         [AppLog_tbl.aDBS_state{j}, AppLog_tbl.ld_detect{j} ]...
             = ...
