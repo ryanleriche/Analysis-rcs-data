@@ -6,7 +6,7 @@ extraction of REDCAP survey data and transformation of data into a data format f
 
 **Aim**: To synthesize MATLAB functions and scripts for analyzing and visualizing REDCAP surveys that collect pain metrics and behavioral data.
 
-**Collaborators**: Ryan.Leriche@ucsf.edu, Joanna.Lin@ucsf.edu, Ana.Shaughnessy@ucsf.edu, Prasad.Shirvalkar@ucsf.edu (open for more colleagues to join...)
+Ryan.Leriche@ucsf.edu, Joanna.Lin@ucsf.edu, Ana.Shaughnessy@ucsf.edu, Prasad.Shirvalkar@ucsf.edu
 
 Note: This research is funded by UH# HEAL Grant; IRB Study: G190160.
 
