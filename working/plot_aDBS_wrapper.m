@@ -4,7 +4,7 @@
  PFS,     PFS_sum_stats,...                   -> pain fluctuation study (PFS) data and summary statistics
  pt_META, stage_dates]...                     -> hard-coded pt meta data (RCS Stage dates pulled from patient iternaries, Google Drive folders, etc
 ...
-    = CONFIG_aDBS_wrapper;
+    = CONFIG_aDBS;
 
 % import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
 % as of Apr. 2023, only daily surveys are analysis-ready/organized
