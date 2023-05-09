@@ -88,8 +88,7 @@ cfg.date_range    = {'28-Mar-2023'; '01-Jul-2023'};
 
 cfg.plt_state_dur = 'sub_session_duration'; %%% state-current relationship (12 am - 12 pm)
 
-%%% plot aDBS performance over months
-% w/ aligned INS logs, plot requested dates
+%%% plot aDBS performance over requested dates
 for i = 1:length(pt_sides)
 
     aDBS_sum.(pt_sides{i}) ...
