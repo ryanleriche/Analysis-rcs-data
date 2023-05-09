@@ -6,11 +6,9 @@
 ...
     = CONFIG_aDBS_wrapper;
 
-%% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
+% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
 % as of Apr. 2023, only daily surveys are analysis-ready/organized
-
 REDcap                  = RCS_redcap_painscores(rcs_API_token);
-
 %% import RCS databases, and INS logs per pt side as structures
 %{
 *   saves RCS session summaries as databases (db) from constellation of
@@ -65,7 +63,6 @@ for i = 1  : length(pt_sides)
         ...
         cfg, pt_sides{i});
 
-
     %%% unpack all sense, LD, and stimulation settings as own variable in table
         % allows for programmatic discernment of unique RC+S settings
     [par_db.(pt_sides{i}), ss_var_oi.(pt_sides{i})] ...
@@ -87,15 +84,9 @@ end
 %%% specify which dates to return:
 cfg.dates         = 'DateRange';
 cfg.date_range    = {'28-Mar-2023'; '01-Jul-2023'};
+%cfg.dates        = 'AllTime'; %%% return every aDBS ever tried (takes much longer):
 
-%%% return every aDBS ever tried (takes much longer):
-%cfg.dates        = 'AllTime';
-
-%%% state-current relationship (12 am - 12 pm)
-cfg.plt_state_dur = 'sub_session_duration';
-
-%%% state-current relationship (from 1-2 am and 1-2 pm):
-%cfg.plt_state_dur = 'two_chunks'; 
+cfg.plt_state_dur = 'sub_session_duration'; %%% state-current relationship (12 am - 12 pm)
 
 %%% plot aDBS performance over months
 % w/ aligned INS logs, plot requested dates
