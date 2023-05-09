@@ -4,7 +4,6 @@ def plt_save_aperiodic_overtime(fg_group_results, ch_name, exp_data_dir, aper_lo
     import numpy as np
     import pandas as pd
     import scipy
-    from scipy import stats
 
     tmp_params = pd.DataFrame(fg_group_results)
 

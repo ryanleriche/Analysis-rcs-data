@@ -65,7 +65,6 @@ For OpenMind
     * only load paths that do NOT exist in textlog_db
     
 
-
 NOT Done:
 
 * same fieldnames for 'every_entry' versus 'blazing_fast' calls
@@ -176,6 +175,7 @@ else
     fprintf('%s | reportedly no new AppLog.txt files to parse\n', pt_side_id)
 
 end
+
 %% parse through EventLog.txt files
 if ~isempty(EventLog_tbl)
     for j = 1 : height(EventLog_tbl)

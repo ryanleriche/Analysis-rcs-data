@@ -48,24 +48,24 @@ cfg.load_EventLog      = true;
 
 % option to load previous database for efficient processing
 cfg.ignoreold_db                = false;
-cfg.ignoreold_INS_logs          = true;
+cfg.ignoreold_INS_logs          = false;
 cfg.ignoreold_par_db            = true;
 
 cfg.raw_dir                     = [dirs.rcs_pia, 'raw/'];
 cfg.proc_dir                    = [dirs.rcs_pia, 'processed/'];
 
-cfg.ephy_anal_dir               = [dirs.rcs_pia, '/ephy_analysis/aDBS_offline_sessions/'];
+cfg.ephy_anal_dir               = [dirs.rcs_pia, '/ephy_analysis/'];
 
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
-pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
+%pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
 
 %%% pts for NEJM submission:
 %pt_sides           = {'RCS02R', 'RCS05R', 'RCS05L'};
 
 %pt_sides           = {'RCS04R','RCS04L'};
 
-%pt_sides           = {'RCS02R','RCS05L','RCS05R'};
+pt_sides           = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
 
 for i = 1  : length(pt_sides)
     %%% process RCS .jsons into searchable database
@@ -126,10 +126,6 @@ merge the comprehensive INS_log and stimLog entires into single table w/:
         -(L_INS_time, L_API_time, R_INS_time, R_API_time)
 %}
 
-pt_sides           = {'RCS02R', 'RCS05R','RCS05L'};
-
-%pt_sides           = {'RCS04L','RCS04R'};
-
 
 for i = 1: length(pt_sides)
     %%% find nearest (yet, preceding) streaming session to INS log entry
@@ -141,27 +137,22 @@ for i = 1: length(pt_sides)
     pt_sides{i}, INS_logs, par_db, ss_var_oi);
 end
 
-
-
 %%
 %%% specify which dates to return:
-cfg.dates         = 'DateRange';
-cfg.date_range    = {'28-Mar-2023'; '01-Jul-2023'};
+cfg.dates         = 'AllTime';
+cfg.date_range    = {'03-Mar-2023', '01-Jul-2023'};
 
 %%% return every aDBS ever tried (takes much longer):
 %cfg.dates        = 'AllTime';
 
 %%% state-current relationship (12 am - 12 pm)
 cfg.plt_state_dur = 'sub_session_duration';
-
 %%% state-current relationship (from 1-2 am and 1-2 pm):
 %cfg.plt_state_dur = 'two_chunks'; 
 
 %%% plot aDBS performance over months
 % w/ aligned INS logs, plot requested dates
 %pt_sides           = {'RCS02R','RCS05R','RCS05L'};
-
-
 pts                = {'RCS02'};
 
 for i = 1:length(pts)
@@ -171,14 +162,15 @@ for i = 1:length(pts)
         = plot_timeline_DBS(...
         ...
     cfg,    pts{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
+   
 end
 
 
 
-%%
-pt_sides           = {'RCS02R','RCS05R','RCS05L'};
-%%
-%pt_sides           = {'RCS04L','RCS04R'};
+%% plotting adaptive DBS only
+pt_sides           = {'RCS02R', 'RCS05R','RCS05L', 'RCS07R','RCS07L'};
+cfg.dates         = 'DateRange';
+cfg.date_range    = {'03-Mar-2023', '01-Jul-2023'};
 
 
 for i = 1:length(pt_sides)
@@ -189,7 +181,57 @@ for i = 1:length(pt_sides)
         ...
     cfg,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
 end
+%%
+%% plot duty cycle versus pain
+adbs_sum        = aDBS_sum.(pt_sides{i});
+r_cap_tbl       = REDcap.(pts{i});
 
+t_aDBS_sett = adbs_sum.timeStop_INS_log - adbs_sum.timeStart_INS_log ;
+
+
+
+adbs_sum(le(t_aDBS_sett, duration('72:00:00')), :) = [];
+
+pain_metrics = {'mayoNRS', 'painVAS', 'MPQtotal'};
+
+med_vars = cellfun(@(x) sprintf('median_%s',x), pain_metrics, 'UniformOutput',false);
+iqr_vars  = cellfun(@(x) sprintf('iqr_%s',x), pain_metrics, 'UniformOutput',false);
+n_vars    = cellfun(@(x) sprintf('N_%s',x), pain_metrics, 'UniformOutput',false);
+
+
+for i_aDBS = 1 : height(adbs_sum)
+
+    i_rcap = find(...
+                    isbetween(r_cap_tbl.time,...
+                            adbs_sum.timeStart_INS_log(i_aDBS), ...
+                            adbs_sum.timeStop_INS_log(i_aDBS)));
+
+    adbs_sum{i_aDBS, med_vars} ...
+        = median(r_cap_tbl{i_rcap, pain_metrics}, 'omitnan');
+
+
+    adbs_sum{i_aDBS, iqr_vars} ...
+        = iqr(r_cap_tbl{i_rcap, pain_metrics});
+    
+    adbs_sum{i_aDBS, n_vars} ...
+        = length(r_cap_tbl{i_rcap, pain_metrics});
+
+
+end
+
+figure
+errorbar(adbs_sum.avg_percent_on,...
+         adbs_sum.median_mayoNRS, ...
+         adbs_sum.iqr_mayoNRS/2, 'o', 'LineWidth',2);
+
+
+ylim([0, 10]); xlim([0, 100]);
+
+ylabel('mayoNRS');    xlabel('percent duty cycle');     
+
+title(['median w/ IQR pain',newline,'for given aDBS duty cycle'])
+
+set(gca, 'FontSize', 12)
 
 
 %% generate box plots of pain metrics wrt stim parameters

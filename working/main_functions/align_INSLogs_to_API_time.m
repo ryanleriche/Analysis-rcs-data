@@ -4,6 +4,7 @@ function [app_ss_tbl_out, INS_logs_out] ...
     ...
     pt_side_id, INS_logs, par_db, ss_var_oi)
 
+
 % i                  = 3;
 % pt_sides           = {'RCS02R','RCS05R','RCS05L'};
 % pt_side_id         = pt_sides{i};
@@ -44,16 +45,6 @@ par_db_RCSXXX, INS_logs_RCSXXX.app);
 %%  insert EventLog.txt entires btwn AppLog.txt entries
 %%% AppLog.txt does NOT reflect Groups or therapy status changes
 
-%{
-
-find EventLog.txt entires occuring between AppLog.txt entries
-
-report time, newstate, oldstate, program ampliudes *just like* proc_app
-    AT time of modification
-%}
-
-%proc_g_changes(strcmp(proc_g_changes.Group_Status, 'GroupD_On'), :) = [];
-%%
 to_add_proc_app = cell(height(proc_app)+1,1);
 
 for i_app = 1 : height(proc_app)
@@ -256,22 +247,12 @@ for i_par = 1:height(par_db_RCSXXX)
 
 end
 
-%proc_app = proc_app(~isnan(proc_app.sess_w_same_settings),:);
-
 % only save streaming sessions (and their expanded parameters) of aDBS
 % offline sessions
 i_entry      = find(~strcmp(ol_cl_changes.prev_sess_name, 'No Entry'));
 i_sess_oi    = find(contains(par_db_RCSXXX.sess_name, ...
                           unique(ol_cl_changes.prev_sess_name(i_entry))));
 
-% 
-% doi = datetime({'09-Mar-2023', '17-Mar-2023'}, 'TimeZone','America/Los_Angeles');
-% 
-% i_par_db = ge(par_db_RCSXXX.timeStart, doi(1)) & le(par_db_RCSXXX.timeStart, doi(2));
-% 
-% 
-% parsed_database = par_db_RCSXXX(i_par_db,...
-%      {'sess_name','timeStart', 'timeStop', 'GroupDProg0_ampInMilliamps'});
 
 ambig_state   = find(ol_cl_changes.newstate(1:end-1) ~= ol_cl_changes.oldstate(2:end));
 per_ambig     = 100*length(ambig_state) / height(ol_cl_changes);

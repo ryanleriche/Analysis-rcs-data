@@ -1,4 +1,4 @@
-function  long_aDBS_tbl = plot_longitudinal_aDBS(cfg, pt_side_id, REDcap, INS_logs, app_SS_tbl)
+function  long_DBS_tbl = plot_longitudinal_all_DBS(cfg, pt_id, REDcap, INS_logs, app_SS_tbl)
 
 % cfg             = [];
 % cfg.dates       = 'AllTime';
@@ -14,140 +14,102 @@ function  long_aDBS_tbl = plot_longitudinal_aDBS(cfg, pt_side_id, REDcap, INS_lo
 % see cfg.ephy_anal_dir for the aDBS longitudinal plots)
 set(0,'DefaultFigureVisible','off')
 
-% per pt side, pull processed INS logs, streaming sessions, and REDcap
-proc_app        = INS_logs.(pt_side_id).app;
-app_ss_tbl      = app_SS_tbl.(pt_side_id);
+redcap          = REDcap.(pt_id);
 
-proc_g_chan     = INS_logs.(pt_side_id).group_changes;
+% per pt side, pull processed INS logs, and streaming sessions
+all_pt_hemi     = fieldnames(INS_logs);
+sides           = cellfun(@(x) {x(end)}, all_pt_hemi);
 
-redcap          = REDcap.(pt_side_id(1:end-1));
+i_pt_hemi       = contains(all_pt_hemi, pt_id);
 
-%%
-% check for/make saving directory
-save_dir        = [cfg.ephy_anal_dir, pt_side_id ,'/'];
+i_pt_R          = i_pt_hemi & strcmp(sides, 'R');
+i_pt_L          = i_pt_hemi & strcmp(sides, 'L');
 
-if ~isfolder(save_dir);     mkdir(save_dir);           end
+if any(i_pt_L)
 
-% option to run specific dates
-if strcmp(cfg.dates, 'DateRange') == 1
-
-    date_range  = datetime(cfg.date_range, 'TimeZone', 'America/Los_Angeles', 'InputFormat','dd-MMM-uuuu');
-    
-    i_entries   = find(ge(proc_app.time_INS, date_range(1)) & ...
-                     le(proc_app.time_INS, date_range(2)));
-    app_oi      = proc_app(i_entries,:);
-
-
-    i_entries   = find(ge(app_ss_tbl.timeStart, date_range(1)) & ...
-                     le(app_ss_tbl.timeStart, date_range(2)));
-    ss_tbl_oi   = app_ss_tbl(i_entries,:);
-
-
-    i_entries   = find(ge(proc_g_chan.time_INS, date_range(1)) & ...
-                     le(proc_g_chan.time_INS, date_range(2)));
-
-    g_chan_oi   = proc_g_chan(i_entries, :);
-
-
-elseif strcmp(cfg.dates, 'AllTime') == 1
-
-    app_oi      = proc_app;
-    ss_tbl_oi   = app_ss_tbl;
-    g_chan_oi   = proc_g_chan;
+    [L_dbs_oi, L_ss_tbl_oi] =...
+    ...
+    pull_INSLog_SS_oi(...
+    ...
+    cfg, all_pt_hemi{i_pt_L}, INS_logs, app_SS_tbl);
 
 end
 
+if any(i_pt_R)
+
+    [R_dbs_oi, R_ss_tbl_oi] =...
+    ...
+    pull_INSLog_SS_oi(...
+    ...
+    cfg, all_pt_hemi{i_pt_R}, INS_logs, app_SS_tbl);
+
+end
+
+%%
+% check for/make saving directory
+save_dir        = [cfg.ephy_anal_dir, pt_id ,'/'];
+
+if ~isfolder(save_dir);     mkdir(save_dir);           end
+
+
 %% go through INS logs based on their unique settings
-% initalize longitudinal aDBS summary table (long_aDBS_tbl)
+% initalize longitudinal DBS summary table (long_DBS_tbl)
+long_DBS_tbl  = table;
+u_settings    = unique(R_dbs_oi.sess_w_same_settings);
 
-long_aDBS_tbl  = table;
-
-
-u_settings  = unique(app_oi.sess_w_same_settings);
-
-for i =   1:  length(u_settings)
+for i =   1  :  length(u_settings)
 
     j              =  u_settings(i);
-    i_ss           = find(ss_tbl_oi.sess_w_same_settings == j);
+    i_ss           = find(R_ss_tbl_oi.sess_w_same_settings == j);
     
-    plt_ss_tbl_oi  = ss_tbl_oi(i_ss(1), :);
-    plt_app_oi     = app_oi(app_oi.sess_w_same_settings == j,...
+    plt_ss_tbl_oi  = R_ss_tbl_oi(i_ss(1), :);
+    plt_dbs_oi     = R_dbs_oi(R_dbs_oi.sess_w_same_settings == j,...
                                             :);
 
     
-    if ge(plt_app_oi.time_INS(end) -plt_app_oi.time_INS(1) , duration('00:05:00')) &&...
-            le(plt_app_oi.time_INS(end) -plt_app_oi.time_INS(1) , duration('21:00:00:00'))
+    if ge(plt_dbs_oi.time_INS(end) -plt_dbs_oi.time_INS(1) , duration('00:10:00')) &&...
+            le(plt_dbs_oi.time_INS(end) -plt_dbs_oi.time_INS(1) , duration('21:00:00:00'))
 
       
         step_dur        = duration('00:00:10');
-        
-%         start_time      = dateshift(plt_app_oi.time_INS(1), 'start', 'minute');
-%         stop_time       = dateshift(plt_app_oi.time_INS(end), 'end', 'minute');
-%         
-        start_time      = plt_app_oi.time_INS(1);
-        stop_time       = plt_app_oi.time_INS(end);
+               
+        start_time      = plt_dbs_oi.time_INS(1);
+        stop_time       = plt_dbs_oi.time_INS(end);
         
 
         t_vec           = start_time:step_dur:stop_time;
         state_vec       = nan(length(t_vec),1);
         
-        amp_vec         = state_vec;
-        rate_vec        = state_vec;
+        amp_vec         = state_vec;          rate_vec        = state_vec;
         stream_sess_vec = state_vec;
 
-      
         % from linearly-spaced vector from start to end time, define based
         % off of times of INS entries
         
-        for h = 2:height(plt_app_oi)
+        for h = 2:height(plt_dbs_oi)
         
-            i_t_vec = find(ge(t_vec, plt_app_oi.time_INS(h-1))...
+            i_t_vec = find(ge(t_vec, plt_dbs_oi.time_INS(h-1))...
                            &...
-                           le(t_vec, plt_app_oi.time_INS(h))...
+                           le(t_vec, plt_dbs_oi.time_INS(h))...
                            );
         
-            state_vec(i_t_vec) = plt_app_oi.oldstate(h);
+            state_vec(i_t_vec) = plt_dbs_oi.oldstate(h);
 
-            if plt_app_oi.oldstate(h) == 15
+            if plt_dbs_oi.oldstate(h) == 15 ||  plt_dbs_oi.oldstate(h) == -1
                      amp_vec(i_t_vec)       = NaN;
                      rate_vec(i_t_vec)      = NaN;
             else
                 % stim vector according to amplitude setting of OLD state NOT current state
-                amp_vec(i_t_vec)       = plt_app_oi.prog0mA(h);
-                rate_vec(i_t_vec)      = plt_app_oi.rateHz(h);
+                amp_vec(i_t_vec)       = plt_dbs_oi.prog0mA(h);
+                rate_vec(i_t_vec)      = plt_dbs_oi.rateHz(h);
             end
 
-            stream_sess_vec(i_t_vec)    = plt_app_oi.sess_w_same_settings(h);
+            stream_sess_vec(i_t_vec)    = plt_dbs_oi.sess_w_same_settings(h);
         
         end
 
         % any amplitude of stim > 0 mA consider aDBS on
         on_off_vec                = 100*(amp_vec> 0);
-
-        % attempt to define washout based on therapyStatus of
-        % AppLog.txt
-
-        %{
-        on_off_vec(isnan(stim_vec)) = NaN;
-
-        % therapyStatus Off based on AppLog.txt files only
-        i_nan        = isnan(on_off_vec);
-        
-        i_starts_nan  = find(diff(i_nan)==1);
-        i_ends_nan   = find(diff(i_nan)==-1);
-        
-        
-        if i_nan(1)
-        i_starts_nan = [1; i_starts_nan]; %#ok<AGROW> 
-        end
-        
-        if i_nan(end)
-        i_ends_nan = [i_ends_nan; length(on_off_vec)]; %#ok<AGROW> 
-        end
-        
-        
-        plt_ther_off = [t_vec(i_starts_nan); t_vec(i_ends_nan)];
-        %}
 
         [sense_meta, by_ld0_pb_meta, by_ld1_pb_meta,...
             ld0_meta, ld1_meta, state_meta]...
@@ -155,42 +117,45 @@ for i =   1:  length(u_settings)
             = parse_aDBS_params(...
             ...
         plt_ss_tbl_oi);
+%%
+        i_off      = find(any(plt_dbs_oi.oldstate == [15, -1], 2));
+        i_off_ends = diff(i_off) > 1;
+        
+        if ~isempty(i_off)
+            if ~any(i_off_ends)  
+                any_off = plt_dbs_oi.time_INS(i_off(1));
+                any_on  = plt_dbs_oi.time_INS(i_off(end));
 
+            else
+                off_ends = find(i_off_ends);        
+                for i_wash = 1 : length(off_ends) - 1
 
-        %% therapy status based on group changes and streaming sessions
-        tmp_tbl         = g_chan_oi(~contains(g_chan_oi.event, {'Group','Lead', 'Transitioning'}),:);
+                    i_t_on            = i_off(off_ends(i_wash));
+                    any_on(i_wash)    = plt_dbs_oi.time_INS(i_t_on+1);
+                    any_off(i_wash)   = plt_dbs_oi.time_INS(i_t_on);
+                    
+                end
+            end
 
-        i_rep_events    = diff([inf; findgroups(tmp_tbl.event)])~=0;
-        tmp_tbl         = tmp_tbl(i_rep_events,:);
-
-
-        i_any_on    = find(contains(tmp_tbl.event,'On'));
-        i_any_off   = find(strcmp(tmp_tbl.event, 'Off'));
-
-
-        any_off          = tmp_tbl.time_INS(i_any_off);
-        any_on           = tmp_tbl.time_INS(i_any_on);
-
-        if i_any_on(1) ==1
-            any_on = any_on(2:end);
+        else
+            any_off = datetime('','TimeZone','America/Los_Angeles');       
+            any_on  = any_off;
         end
 
-        % when last parsed RCS database shows stim still being On
-        if length(any_off) < length(any_on)
-            any_on = any_on(2:end); 
-        end
 
-        % when last parsed RCS database shows stim still off--end patch at
-        % plt end
-        if length(any_off) > length(any_on)
-            any_on(end+1) = stop_time; %#ok<*AGROW> 
-        end
-     
+%         if any(plt_dbs_oi.oldstate(end) == [-1, 15])
+% 
+%             any_off(end+1) = plt_dbs_oi.time_INS(end);
+%             any_on(end+1)  = plt_dbs_oi.time_INS(end);
+% 
+%         end
+
         wash_out         = table();
-        wash_out.start   = any_off;           wash_out.stop    = any_on;
+        wash_out.start   = any_off';    wash_out.stop  =    any_on';
 
-        %% when offline aDBS is longer than 12 hours, view w/n 12 hour
-        % chunks w/n folder
+        clear any_on any_off
+%% when offline aDBS is longer than 12 hours, view w/n 12 hour
+% chunks w/n folder
 
         longest_dur = duration('24:00:00');
 
@@ -217,21 +182,21 @@ for i =   1:  length(u_settings)
 %%% save times, streaming sessions, same session index, and "spontaneous"
 %%% aDBS--w/ 0.1 Hz "samping rate" from the raw AppLog.txt outputs
 
-        long_aDBS_tbl.timeStart_INS_log(i)    = start_time;
-        long_aDBS_tbl.timeStop_INS_log(i)     = stop_time;
+        long_DBS_tbl.timeStart_INS_log(i)    = start_time;
+        long_DBS_tbl.timeStop_INS_log(i)     = stop_time;
         
-        long_aDBS_tbl.sess_name{i}            = ss_tbl_oi.sess_name(i_ss);
-        long_aDBS_tbl.sess_w_same_settings(i) = u_settings(i);
+        long_DBS_tbl.sess_name{i}            = R_ss_tbl_oi.sess_name(i_ss);
+        long_DBS_tbl.sess_w_same_settings(i) = u_settings(i);
         
-        long_aDBS_tbl.avg_percent_on(i)       = mean(on_off_vec, 'omitnan');
+        long_DBS_tbl.avg_percent_on(i)       = mean(on_off_vec, 'omitnan');
 
         if mean(on_off_vec, 'omitnan') > 0 || mean(on_off_vec, 'omitnan') ==100
 
-            long_aDBS_tbl.t_vec{i}                = t_vec;
-            long_aDBS_tbl.on_off_vec{i}           = on_off_vec;
-            long_aDBS_tbl.state_vec{i}            = state_vec;
-            long_aDBS_tbl.amp_vec{i}              = amp_vec;
-            long_aDBS_tbl.ratevec{i}              = rate_vec;
+            long_DBS_tbl.t_vec{i}                = t_vec;
+            long_DBS_tbl.on_off_vec{i}           = on_off_vec;
+            long_DBS_tbl.state_vec{i}            = state_vec;
+            long_DBS_tbl.amp_vec{i}              = amp_vec;
+            long_DBS_tbl.ratevec{i}              = rate_vec;
         end
 %% plot day by day and whole time period with given--uninterrupted setting
         for h = 0:  n_sub_sess
@@ -251,9 +216,11 @@ for i =   1:  length(u_settings)
                 fig_h = figure('Units', 'Inches', 'Position', [0, 0, 22, 10]);
                 subplot(5,3, 1:5)
                 
-                plt_percent_ON_overtime(t_vec, on_off_vec, step_dur, ...
-                                        wash_out, redcap, brew_col,...
-                                        t_plt_start, t_plt_end)
+                plt_percent_DBS_ON_overtime(t_vec, on_off_vec, state_vec,...
+                                            wash_out,...
+                                            step_dur, ...
+                                            redcap, brew_col,...
+                                            t_plt_start, t_plt_end)
     
                 xticks(t_plt_start:x_tick_dur:t_plt_end);
     
@@ -280,7 +247,7 @@ for i =   1:  length(u_settings)
                 % data
                 dur_range =  t_plt_end -  t_plt_start;
             
-                text(t_plt_start - dur_range/15, fig_h.CurrentAxes.YLim(2)*1.9, pt_side_id , 'FontSize', 32);
+                text(t_plt_start - dur_range/15, fig_h.CurrentAxes.YLim(2)*1.9, pt_id , 'FontSize', 32);
                 
                 text(t_plt_start - dur_range/15, fig_h.CurrentAxes.YLim(2)*1.4, sense_meta, 'FontSize', 10);
     
@@ -295,16 +262,16 @@ for i =   1:  length(u_settings)
                 text(t_plt_end - dur_range/8,...
                           fig_h.CurrentAxes.YLim(2) *1.6, ...
                           ...
-                          [state_meta, sprintf('    GroupDrateInHz | %g', mode(plt_app_oi.rateHz(plt_app_oi.prog0mA > 0)))],...
+                          [state_meta, sprintf('    GroupDrateInHz | %g', mode(plt_dbs_oi.rateHz(plt_dbs_oi.prog0mA > 0)))],...
                           ...
                           'FontSize',10, 'Interpreter','none');
              
                 %%% explicilty show state (0-7) to stim (current in mA) relationship
-                plt_app_oi.oldstate(plt_app_oi.oldstate == 15) = NaN;
+                plt_dbs_oi.oldstate(plt_dbs_oi.oldstate == 15) = NaN;
     
                 subplot(5,3, 12:15)
         
-                        stairs(plt_app_oi.time_INS(1:end-1), plt_app_oi.prog0mA(2:end),...
+                        stairs(plt_dbs_oi.time_INS(1:end-1), plt_dbs_oi.prog0mA(2:end),...
                             '-','LineWidth',1.25, 'Color',  'k');    hold on
         
                         yticks(0:0.5:3);            ylim([0, 3.25]); 
@@ -313,7 +280,7 @@ for i =   1:  length(u_settings)
                         
                         yyaxis right
             
-                            stairs(plt_app_oi.time_INS(1:end-1), plt_app_oi.oldstate(2:end), ...
+                            stairs(plt_dbs_oi.time_INS(1:end-1), plt_dbs_oi.oldstate(2:end), ...
                                 '-','LineWidth',1.5, 'Color',  brew_col(1, :));  
                             ylim([0,8.5]); yticks(0:8); ylabel('State');    grid on;
     
@@ -336,7 +303,7 @@ for i =   1:  length(u_settings)
     
                         fig_h.CurrentAxes.Position([1, 2, 3,4]) = [0.557, 0.1, .35, 0.24];
         
-                            stairs(plt_app_oi.time_INS(1:end-1), plt_app_oi.prog0mA(2:end),...
+                            stairs(plt_dbs_oi.time_INS(1:end-1), plt_dbs_oi.prog0mA(2:end),...
                                 '-','LineWidth',1.75, 'Color',  'k');    hold on
             
                              yticks(0:0.5:3);         ylim([0, 3.25]);
@@ -344,7 +311,7 @@ for i =   1:  length(u_settings)
                             
                              yyaxis right
                 
-                                stairs(plt_app_oi.time_INS(1:end-1), plt_app_oi.oldstate(2:end), ...
+                                stairs(plt_dbs_oi.time_INS(1:end-1), plt_dbs_oi.oldstate(2:end), ...
                                     '-','LineWidth',2, 'Color',  brew_col(1, :));  
                                 ylim([0,8.5]); yticks(0:8); ylabel('State');    grid on;
     
@@ -384,7 +351,7 @@ for i =   1:  length(u_settings)
                     filename =  sprintf('%s (whole time-period).png', ...
                                     offline_sess_name);
     
-                    long_aDBS_tbl.report_dir{i}    =  [save_dir,filename];
+                    long_DBS_tbl.report_dir{i}    =  [save_dir,filename];
 
                 else
 
@@ -404,18 +371,21 @@ for i =   1:  length(u_settings)
                 exportgraphics(gcf, [save_dir,filename]);
 
             else % if aDBS was always or never On
-                 long_aDBS_tbl.report_dir{i}    = 'No report (0% or 100% duty cycle)';
+                 long_DBS_tbl.report_dir{i}    = 'No report (0% or 100% duty cycle)';
             end
+       
         end
 
     else % if aDBS is of uninteresting duration (<10 min | > 21 days)
-        long_aDBS_tbl.sess_w_same_settings(i) = NaN;
-        long_aDBS_tbl.avg_percent_on(i)       = NaN;
-        long_aDBS_tbl.report_dir{i}           = 'No report (not between 10 min or 21 days)';
+        long_DBS_tbl.sess_w_same_settings(i) = NaN;
+        long_DBS_tbl.avg_percent_on(i)       = NaN;
+        long_DBS_tbl.report_dir{i}           = 'No report (not between 10 min or 21 days)';
     end
 end
 
-long_aDBS_tbl= sortrows(long_aDBS_tbl,'timeStart_INS_log','ascend');
+long_DBS_tbl= sortrows(long_DBS_tbl,'timeStart_INS_log','ascend');
+
+long_DBS_tbl(isnan(long_DBS_tbl.avg_percent_on), : ) = [];
 close all % remove hidden figures per pt to reduce overhead
 set(0,'DefaultFigureVisible','on')
 end
