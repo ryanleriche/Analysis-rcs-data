@@ -5,7 +5,11 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 
 **Aim**: To consolidate a set of matlab functions and scripts for accessing RCS data from .json files, transform it to a data format that enables further data analyses, and provide plotting and visualization tools.
 
+<<<<<<< HEAD
 **Collaborators**: Roee.Gilron@ucsf.edu, Kristin.Sellers@ucsf.edu, Juan.AnsoRomeo@ucsf.edu, Kenneth.Louie@ucsf.edu, Simon.Little@ucsf.edu, Prasad.Shirvalkar@ucsf.edu (open for more colleagues to join...)
+=======
+Ryan.Leriche@ucsf.edu, Joanna.Lin@ucsf.edu, Ana.Shaughnessy@ucsf.edu, Prasad.Shirvalkar@ucsf.edu
+>>>>>>> 1e52ffad80e0bb4f7ba39e6af72b526887787a37
 
 **Policy**: Master will contain functions that have been tested in branch and pushed after pull request reviewers have approved. The collaborator doing the initial development and testing of a function in a testing branch (e.g. in 'importRawData') will make a pull request and assign 1-2 reviewers of the group who will review the code structure and the output of each function.
 

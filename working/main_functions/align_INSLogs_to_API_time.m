@@ -3,7 +3,23 @@ function [app_ss_tbl_out, INS_logs_out] ...
     = align_INSLogs_to_API_time(...
     ...
     pt_side_id, INS_logs, par_db, ss_var_oi)
+%{
+EventLog.txt          -> tracks Group changes and TherapyStatus offline
 
+stimLog.json          -> tracks all Group changes during streaming sessions
+                         (misses cycling and other settings)
+
+DeviceSettings.json   -> shows comphrensive stimulation settings 
+
+Start from stimLog.json and add comprehensive stimulation settings 
+from nearest previous DeviceSettings.json (time_stimLog)
+
+W/ API-latency corrected INS_log entries (built parsimoniously from
+EventLog.txt files), find nearest previous stimLog entry and infer
+comprensive settings
+
+merge the comprehensive INS_log and stimLog entires into single table w/:
+%}
 
 % i                  = 3;
 % pt_sides           = {'RCS02R','RCS05R','RCS05L'};

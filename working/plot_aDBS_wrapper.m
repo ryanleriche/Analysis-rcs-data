@@ -1,14 +1,6 @@
-% load CONFIG_beh_wrapper
+% call CONFIG_aDBS to load directories, and REDcap data 
 
-[dirs,    rcs_API_token,   pcs_API_token, ... -> input and output directories, and API tokens
- PFS,     PFS_sum_stats,...                   -> pain fluctuation study (PFS) data and summary statistics
- pt_META, stage_dates]...                     -> hard-coded pt meta data (RCS Stage dates pulled from patient iternaries, Google Drive folders, etc
-...
-    = CONFIG_aDBS;
-
-% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
-% as of Apr. 2023, only daily surveys are analysis-ready/organized
-REDcap                  = RCS_redcap_painscores(rcs_API_token);
+CONFIG_aDBS;
 %% import RCS databases, and INS logs per pt side as structures
 %{
 *   saves RCS session summaries as databases (db) from constellation of
@@ -30,22 +22,17 @@ Inital run takes hours for running multiple pts w/ 1000s of streaming
 sessions.
 %}
 
-cfg                    = [];
-cfg.load_EventLog      = true;
+sub_cfg                    = [];
+sub_cfg.load_EventLog      = true;
 
 % option to load previous database for efficient processing
-cfg.ignoreold_db                = false;
-cfg.ignoreold_INS_logs          = false;
-cfg.ignoreold_par_db            = true;    % <-- keep as true to avoid version issues
-
-cfg.raw_dir                     = [dirs.rcs_pia, 'raw/'];
-cfg.proc_dir                    = [dirs.rcs_analysis, 'rcs_device_data/processed/'];
-cfg.ephy_anal_dir               = [dirs.rcs_analysis, 'rcs_device_data/ephy_analysis/'];
+sub_cfg.ignoreold_db                = false;
+sub_cfg.ignoreold_INS_logs          = false;
+sub_cfg.ignoreold_par_db            = true;    % <-- keep as true to avoid version issues
 
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
 pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
-
 
 for i = 1  : length(pt_sides)
     %%% process RCS .jsons into searchable database
@@ -53,7 +40,7 @@ for i = 1  : length(pt_sides)
         ...
         = makeDatabaseRCS_Ryan(...
         ...
-        cfg, pt_sides{i});
+        sub_cfg, pt_sides{i});
 
     %%% process INS logs .txts based on unique entries only
         % (INS logs have mostly repeating entries)
@@ -61,7 +48,7 @@ for i = 1  : length(pt_sides)
         ...
         = RCS_logs( ...
         ...
-        cfg, pt_sides{i});
+        sub_cfg, pt_sides{i});
 
     %%% unpack all sense, LD, and stimulation settings as own variable in table
         % allows for programmatic discernment of unique RC+S settings
@@ -69,7 +56,7 @@ for i = 1  : length(pt_sides)
         ...
         = makeParsedDatabaseRCS(...
         ...
-        cfg, pt_sides{i}, db);
+        sub_cfg, pt_sides{i}, db);
 
     %%% find nearest (yet, preceding) streaming session to INS log entry
         % accounts for INS to API time latency
@@ -82,11 +69,11 @@ for i = 1  : length(pt_sides)
 end
 %% plot aDBS performance longitudinally
 %%% specify which dates to return:
-cfg.dates         = 'DateRange';
-cfg.date_range    = {'28-Mar-2023'; '01-Jul-2023'};
+sub_cfg.dates         = 'DateRange';
+sub_cfg.date_range    = {'28-Mar-2023'; '01-Jul-2023'};
 %cfg.dates        = 'AllTime'; %%% return every aDBS ever tried (takes much longer):
 
-cfg.plt_state_dur = 'sub_session_duration'; %%% state-current relationship (12 am - 12 pm)
+sub_cfg.plt_state_dur = 'sub_session_duration'; %%% state-current relationship (12 am - 12 pm)
 
 %%% plot aDBS performance over requested dates
 for i = 1:length(pt_sides)
@@ -95,5 +82,5 @@ for i = 1:length(pt_sides)
         ...
         = plot_longitudinal_aDBS(...
         ...
-    cfg,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
+    sub_cfg,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
 end

@@ -1,11 +1,4 @@
-% load CONFIG_beh_wrapper
-
-[dirs,    rcs_API_token,   pcs_API_token, ... -> input and output directories, and API tokens
- PFS,     PFS_sum_stats,...                   -> pain fluctuation study (PFS) data and summary statistics
- pt_META, stage_dates]...                     -> hard-coded pt meta data (RCS Stage dates pulled from patient iternaries, Google Drive folders, etc
-...
-    = CONFIG_beh_wrapper;
-
+CONFIG_plot_beh;
 %% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
 % as of Apr. 2023, only daily surveys are analysis-ready/organized
 
@@ -31,19 +24,12 @@ REDcap                  = RCS_redcap_painscores(rcs_API_token);
 Inital run takes hours for running multiple pts w/ 1000s of streaming
 sessions.
 %}
-
-cfg                    = [];
-cfg.load_EventLog      = true;
+cfg_rcs_db.load_EventLog      = true;
 
 % option to load previous database for efficient processing
-cfg.ignoreold_db                = false;
-cfg.ignoreold_INS_logs          = false;
-cfg.ignoreold_par_db            = true;    % <-- keep as true to avoid version issues
-
-cfg.raw_dir                     = [dirs.rcs_pia, 'raw/'];
-cfg.proc_dir                    = [dirs.rcs_pia, 'processed/'];
-
-cfg.ephy_anal_dir               = [dirs.rcs_pia, '/ephy_analysis/aDBS_offline_sessions/'];
+cfg_rcs_db.ignoreold_db                = false;
+cfg_rcs_db.ignoreold_INS_logs          = false;
+cfg_rcs_db.ignoreold_par_db            = true;    % <-- keep as true to avoid version issues
 
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
@@ -56,7 +42,7 @@ for i = 1  : length(pt_sides)
         ...
         = makeDatabaseRCS_Ryan(...
         ...
-        cfg, pt_sides{i});
+        cfg_rcs_db, pt_sides{i});
 
     %%% process INS logs .txts based on unique entries only
         % (INS logs have mostly repeating entries)
@@ -64,7 +50,7 @@ for i = 1  : length(pt_sides)
         ...
         = RCS_logs( ...
         ...
-        cfg, pt_sides{i});
+        cfg_rcs_db, pt_sides{i});
 
 
     %%% unpack all sense, LD, and stimulation settings as own variable in table
@@ -73,7 +59,7 @@ for i = 1  : length(pt_sides)
         ...
         = makeParsedDatabaseRCS(...
         ...
-        cfg, pt_sides{i}, db);
+        cfg_rcs_db, pt_sides{i}, db);
 
     %%% find nearest (yet, preceding) streaming session to INS log entry
         % accounts for INS to API time latency
@@ -86,14 +72,14 @@ for i = 1  : length(pt_sides)
 end
 %% plot aDBS performance longitudinally
 %%% specify which dates to return:
-cfg.dates         = 'DateRange';
-cfg.date_range    = {'28-Mar-2023'; '01-Jul-2023'};
+cfg_rcs_db.dates         = 'DateRange';
+cfg_rcs_db.date_range    = {'28-Mar-2023'; '01-Jul-2023'};
 
 %%% return every aDBS ever tried (takes much longer):
 %cfg.dates        = 'AllTime';
 
 %%% state-current relationship (12 am - 12 pm)
-cfg.plt_state_dur = 'sub_session_duration';
+cfg_rcs_db.plt_state_dur = 'sub_session_duration';
 
 %%% state-current relationship (from 1-2 am and 1-2 pm):
 %cfg.plt_state_dur = 'two_chunks'; 
@@ -106,7 +92,7 @@ for i = 1:length(pt_sides)
         ...
         = plot_longitudinal_aDBS(...
         ...
-    cfg,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
+    cfg_rcs_db,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
 end
 
 
@@ -114,47 +100,47 @@ end
 %% behavioral plotting only
 %%
 % last N days for: 
-cfg                     = [];
+cfg_rcap                     = [];
 
-cfg.pt_id               = 'RCS05';
-cfg.dates               = 'PreviousDays';
-cfg.ndays               = 10;
+cfg_rcap.pt_id               = 'RCS05';
+cfg_rcap.dates               = 'PreviousDays';
+cfg_rcap.ndays               = 10;
 
 %%% return every pain score:
 %cfg.dates        = 'AllTime';
 
-cfg.subplot             = true;
-cfg.stim_parameter      = '';
+cfg_rcap.subplot             = true;
+cfg_rcap.stim_parameter      = '';
 
-    plot_timeline(cfg, REDcap, fluct_sum_stats);
+    plot_timeline(cfg_rcap, REDcap, fluct_sum_stats);
     
     
-cfg                     = [];
+cfg_rcap                     = [];
 
-cfg.pt_id               = 'RCS06';
-cfg.dates               = 'PreviousDays';
-cfg.ndays               = 10;
-
-%%% return every pain score:
-%cfg.dates        = 'AllTime';
-
-cfg.subplot             = true;
-cfg.stim_parameter      = '';
-
-    plot_timeline(cfg, REDcap, fluct_sum_stats);
-
-
-
-cfg                     = [];
-
-cfg.pt_id               = 'RCS07';
-cfg.dates               = 'PreviousDays';
-cfg.ndays               = 10;
+cfg_rcap.pt_id               = 'RCS06';
+cfg_rcap.dates               = 'PreviousDays';
+cfg_rcap.ndays               = 10;
 
 %%% return every pain score:
 %cfg.dates        = 'AllTime';
 
-cfg.subplot             = true;
-cfg.stim_parameter      = '';
+cfg_rcap.subplot             = true;
+cfg_rcap.stim_parameter      = '';
 
-    plot_timeline(cfg, REDcap, fluct_sum_stats);
+    plot_timeline(cfg_rcap, REDcap, fluct_sum_stats);
+
+
+
+cfg_rcap                     = [];
+
+cfg_rcap.pt_id               = 'RCS07';
+cfg_rcap.dates               = 'PreviousDays';
+cfg_rcap.ndays               = 10;
+
+%%% return every pain score:
+%cfg.dates        = 'AllTime';
+
+cfg_rcap.subplot             = true;
+cfg_rcap.stim_parameter      = '';
+
+    plot_timeline(cfg_rcap, REDcap, fluct_sum_stats);

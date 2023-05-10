@@ -1,10 +1,5 @@
 %% load CONFIG_ephy_wrapper
-
-[dirs,    rcs_API_token,   pcs_API_token, ... -> input and output directories, and API tokens
- PFS,     PFS_sum_stats,...                   -> pain fluctuation study (PFS) data and summary statistics
- pt_META, stage_dates]...                     -> hard-coded pt meta data (RCS Stage dates pulled from patient iternaries, Google Drive folders, etc
-...
-    = CONFIG_ephy_wrapper;
+CONFIG_ephy_analysis;
 
 %% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
 % as of Apr. 2023, only daily surveys are analysis-ready/organized

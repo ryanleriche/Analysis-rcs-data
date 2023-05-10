@@ -1,15 +1,6 @@
-%% load CONFIG_beh_wrapper
-
-[dirs,    rcs_API_token,   pcs_API_token, ... -> input and output directories, and API tokens
- PFS,     PFS_sum_stats,...                   -> pain fluctuation study (PFS) data and summary statistics
- pt_META, stage_dates]...                     -> hard-coded pt meta data (RCS Stage dates pulled from patient iternaries, Google Drive folders, etc
-...
-    = CONFIG_plot_beh;
-
-%% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
-% as of Apr. 2023, only daily surveys are analysis-ready/organized
-
-REDcap                  = RCS_redcap_painscores(rcs_API_token);
+% see CONFIG_plot_beh.m script to specify directories, pull REDcap, 
+% and generate subdirectories
+CONFIG_plot_beh;
 
 %% import RCS databases, and INS logs per pt side as structures
 %{
@@ -28,44 +19,20 @@ REDcap                  = RCS_redcap_painscores(rcs_API_token);
 
 *   from db create a stimLog containing every change in stim parameter
     during a streaming session ("misses" offline PTM intiated changed)
-
-
-(pg. 12 of the 4NR010 Research Lab Programmer Guide M979053A001)
-
-"Multiple programs can be combined to define a group. Each group and its associated programs can be used
-to provide a therapy for specific symptoms or specific patient activities. Pulse width, amplitude, amplitude
-limits, and electrode polarity are programmed separately for each program within the group (ie, each
-program within the group can have different values). Pulse width limits, rate, rate limits, SoftStart/Stop,
-Cycling, and Active Recharge are programmed for each group (ie, each program within the group will have
-the same values)."
-
-Inital run can take hours if running multiple pts w/ 1000s of streaming
-sessions.
 %}
 
-cfg                    = [];
-cfg.load_EventLog      = true;
+cfg_rcs_db.load_EventLog      = true;
 
 % option to load previous database for efficient processing
-cfg.ignoreold_db                = false;
-cfg.ignoreold_INS_logs          = false;
-cfg.ignoreold_par_db            = true;
-
-cfg.raw_dir                     = [dirs.rcs_pia, 'raw/'];
-cfg.proc_dir                    = [dirs.rcs_pia, 'processed/'];
-
-cfg.ephy_anal_dir               = [dirs.rcs_pia, '/ephy_analysis/'];
+cfg_rcs_db.ignoreold_db                = false;
+cfg_rcs_db.ignoreold_INS_logs          = false;
+cfg_rcs_db.ignoreold_par_db            = true;
 
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
 %pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
 
-%%% pts for NEJM submission:
-%pt_sides           = {'RCS02R', 'RCS05R', 'RCS05L'};
-
-%pt_sides           = {'RCS04R','RCS04L'};
-
-pt_sides           = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
+pt_sides           = {'RCS02R'};
 
 for i = 1  : length(pt_sides)
     %%% process RCS .jsons into searchable database
@@ -73,7 +40,7 @@ for i = 1  : length(pt_sides)
         ...
         = makeDatabaseRCS_Ryan(...
         ...
-        cfg, pt_sides{i});
+        cfg_rcs_db, pt_sides{i});
 
     %%% process INS logs .txts based on unique entries only
         % (INS logs have mostly repeating entries)
@@ -81,7 +48,7 @@ for i = 1  : length(pt_sides)
         ...
         = RCS_logs( ...
         ...
-        cfg, pt_sides{i});
+        cfg_rcs_db, pt_sides{i});
 
 
     %%% unpack all sense, LD, and stimulation settings as own variable in table
@@ -90,43 +57,10 @@ for i = 1  : length(pt_sides)
         ...
         = makeParsedDatabaseRCS(...
         ...
-        cfg, pt_sides{i}, db);
+        cfg_rcs_db, pt_sides{i}, db);
 
-    %%% finally merge stim parameters to REDcap survey during said parameters
-    [stimLog.(pt_sides{i}), REDcap.(pt_sides{i})]  ...
-        ...
-        = align_REDcap_to_stimLog(...
-        ...
-        cfg, pt_sides{i}, db, REDcap);
 end
 %%
-%{
-EventLog.txt          -> tracks Group changes and TherapyStatus offline
-
-stimLog.json          -> tracks all Group changes during streaming sessions
-                         (misses cycling and other settings)
-
-DeviceSettings.json   -> shows comphrensive stimulation settings 
-
-Start from stimLog.json and add comprehensive stimulation settings 
-from nearest previous DeviceSettings.json (time_stimLog)
-
-W/ API-latency corrected INS_log entries (built parsimoniously from
-EventLog.txt files), find nearest previous stimLog entry and infer
-comprensive settings
-
-merge the comprehensive INS_log and stimLog entires into single table w/:
-
-* time_aligned column
-    - datetime vector in PST from the INS_log or stimLog
-    from whenever *either* changed
-
-* source
-    -cell array listing Left or Right and if INS or API
-        -(L_INS_time, L_API_time, R_INS_time, R_API_time)
-%}
-
-
 for i = 1: length(pt_sides)
     %%% find nearest (yet, preceding) streaming session to INS log entry
     % --> accounts for INS to API time latency
@@ -139,14 +73,14 @@ end
 
 %%
 %%% specify which dates to return:
-cfg.dates         = 'AllTime';
-cfg.date_range    = {'03-Mar-2023', '01-Jul-2023'};
+cfg_rcs_db.dates         = 'AllTime';
+cfg_rcs_db.date_range    = {'03-May-2023', '01-Jul-2023'};
 
 %%% return every aDBS ever tried (takes much longer):
 %cfg.dates        = 'AllTime';
 
 %%% state-current relationship (12 am - 12 pm)
-cfg.plt_state_dur = 'sub_session_duration';
+cfg_rcs_db.plt_state_dur = 'sub_session_duration';
 %%% state-current relationship (from 1-2 am and 1-2 pm):
 %cfg.plt_state_dur = 'two_chunks'; 
 
@@ -159,9 +93,9 @@ for i = 1:length(pts)
 
     DBS_sum.(pts{i}) ...
         ...
-        = plot_timeline_DBS(...
+        = plot_longitudinal_all_DBS(...
         ...
-    cfg,    pts{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
+    cfg_rcs_db,    pts{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
    
 end
 
@@ -169,8 +103,8 @@ end
 
 %% plotting adaptive DBS only
 pt_sides           = {'RCS02R', 'RCS05R','RCS05L', 'RCS07R','RCS07L'};
-cfg.dates         = 'DateRange';
-cfg.date_range    = {'03-Mar-2023', '01-Jul-2023'};
+cfg_rcs_db.dates         = 'DateRange';
+cfg_rcs_db.date_range    = {'03-Mar-2023', '01-Jul-2023'};
 
 
 for i = 1:length(pt_sides)
@@ -179,7 +113,7 @@ for i = 1:length(pt_sides)
         ...
         = plot_longitudinal_aDBS(...
         ...
-    cfg,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
+    cfg_rcs_db,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
 end
 %%
 %% plot duty cycle versus pain
@@ -292,6 +226,18 @@ pts = {'RCS02', 'RCS05'};
 
 %pts = {'RCS02','RCS04', 'RCS05','RCS07'};
 
+
+pt_sides           = {'RCS02R','RCS05L','RCS05R','RCS07L', 'RCS07R'};
+
+for i = 1  : length(pt_sides)
+    %%% finally merge stim parameters to REDcap survey during said parameters
+    [stimLog.(pt_sides{i}), REDcap.(pt_sides{i})]  ...
+        ...
+        = align_REDcap_to_stimLog(...
+        ...
+        cfg_rcs_db, pt_sides{i}, db, REDcap);
+end
+
 for i = 1:length(pts)
 
     switch pts{i}
@@ -313,66 +259,66 @@ for i = 1:length(pts)
     stimGroups.(pts{i}).('Pre-trial baseline') = {PFS.(pts{i})};
 end
 %% return stim boxplots based on specified grouping of stim parameters
-cfg                          = [];
-cfg.min_n_reports            = 10;
-cfg.min_n_reports_subspace   = 2;
-cfg.proc_dir                 = [dirs.rcs_pia, 'processed/pain_per_DBS_parameters/'];
+cfg_rcs_db                          = [];
+cfg_rcs_db.min_n_reports            = 10;
+cfg_rcs_db.min_n_reports_subspace   = 2;
+cfg_rcs_db.proc_dir                 = [dirs.rcs_pia, 'processed/pain_per_DBS_parameters/'];
 
 % sub-folder for specified stim params
-cfg.proc_subdir       = 'by_freq_amp_pw_cyc';                             
+cfg_rcs_db.proc_subdir       = 'by_freq_amp_pw_cyc';                             
 
 %**note** plots are ranked by mean of FIRST pain metric specified below
-cfg.plt_metrics       = {'mayoNRS', 'painVAS', 'MPQtotal', 'unpleasantVAS'};
+cfg_rcs_db.plt_metrics       = {'mayoNRS', 'painVAS', 'MPQtotal', 'unpleasantVAS'};
 
-cfg.exclude_VAS_50s.decision = true;
-cfg.exclude_VAS_50s.plot     = true;
+cfg_rcs_db.exclude_VAS_50s.decision = true;
+cfg_rcs_db.exclude_VAS_50s.plot     = true;
 
 % see 'stimGroups' for variable names (do NOT include side--done automatically)
 % to find all combinations of said stim parameters, and
 % plot as seperate boxplots w/ clear labels
-cfg.seperate_by               = {'rateInHz', 'pulseWidthInMicroseconds','ampInMilliamps',...  
+cfg_rcs_db.seperate_by               = {'rateInHz', 'pulseWidthInMicroseconds','ampInMilliamps',...  
                                  'cycleOnInSecs', 'cycleOffInSecs'};
 % option to include the closed-loop settings (of a given contact) as
 % furthest right boxplot (treats closed-loop setting as one group)
-cfg.include_cl                = true;
+cfg_rcs_db.include_cl                = true;
 
-cfg.pt_lbls.RCS02 = 'Patient 1';
-cfg.pt_lbls.RCS05 = 'Patient 2';
+cfg_rcs_db.pt_lbls.RCS02 = 'Patient 1';
+cfg_rcs_db.pt_lbls.RCS05 = 'Patient 2';
 
 pts = {'RCS02', 'RCS05'};
 
 for i = 1:length(pts)
-    plted_stim_groups.(pts{i})  = plot_stim_groups(cfg, dirs, pts{i}, stimGroups);
+    plted_stim_groups.(pts{i})  = plot_stim_groups(cfg_rcs_db, dirs, pts{i}, stimGroups);
 end
 %%% repeat but keep duty cycle and frequency the same (group amplitude and
 % pulse width together--returned as mean amplitude and pulse width for
 % given frequency and duty cycle)
 
-cfg.proc_subdir       = 'same_dutyCycle_and_freq';
-cfg.seperate_by       = {'percentDutyCycle', 'rateInHz'};
+cfg_rcs_db.proc_subdir       = 'same_dutyCycle_and_freq';
+cfg_rcs_db.seperate_by       = {'percentDutyCycle', 'rateInHz'};
 
 for i = 1:length(pts)
-    plted_stim_groups.(pts{i})  = plot_stim_groups(cfg,pts{i}, stimGroups);
+    plted_stim_groups.(pts{i})  = plot_stim_groups(cfg_rcs_db,pts{i}, stimGroups);
 end
 %% parsimonious open and closed-loop programs for 2023 NEJM submission
-cfg                          = [];
-cfg.min_n_reports            = 30;
-cfg.min_n_reports_subspace   = 5;
+cfg_rcs_db                          = [];
+cfg_rcs_db.min_n_reports            = 30;
+cfg_rcs_db.min_n_reports_subspace   = 5;
 
-cfg.proc_dir                 = [dirs.rcs_pia, 'beh_analysis/pain_per_DBS_parameters/NEJM_2023_submission/'];
-cfg.proc_subdir              = 'same_dutyCycle_and_freq';
+cfg_rcs_db.proc_dir                 = [dirs.rcs_pia, 'beh_analysis/pain_per_DBS_parameters/NEJM_2023_submission/'];
+cfg_rcs_db.proc_subdir              = 'same_dutyCycle_and_freq';
 
 %**note** plots are ranked by mean of FIRST pain metric specified below
-cfg.plt_metrics              = {'mayoNRS', 'painVAS', 'MPQtotal', 'unpleasantVAS'};
+cfg_rcs_db.plt_metrics              = {'mayoNRS', 'painVAS', 'MPQtotal', 'unpleasantVAS'};
 
-cfg.exclude_VAS_50s.decision = true;
-cfg.exclude_VAS_50s.plot     = false;
+cfg_rcs_db.exclude_VAS_50s.decision = true;
+cfg_rcs_db.exclude_VAS_50s.plot     = false;
 
-cfg.seperate_by              = {'percentDutyCycle', 'rateInHz'};
-cfg.include_cl               = true;
+cfg_rcs_db.seperate_by              = {'percentDutyCycle', 'rateInHz'};
+cfg_rcs_db.include_cl               = true;
 
-cfg.pt_lbls.RCS02            = 'Patient 1';
-cfg.pt_lbls.RCS05            = 'Patient 2';
+cfg_rcs_db.pt_lbls.RCS02            = 'Patient 1';
+cfg_rcs_db.pt_lbls.RCS05            = 'Patient 2';
 
 for i = 1:length(pts)
     
@@ -394,7 +340,7 @@ for i = 1:length(pts)
     [plted_stim_groups.(pts{i}),...
      plted_stimGroups_parsi_subspace.(pts{i})]...
         ...
-        = plot_stim_groups(cfg, pts{i}, stimGroups_parsi);
+        = plot_stim_groups(cfg_rcs_db, pts{i}, stimGroups_parsi);
 end
 
 
@@ -428,18 +374,18 @@ washout:   both sides OFF
 %% for RCS02's Stage 3, have own boxplots delineating open-loop programs versus sham
 % as well as the "day-by-day" showing each stim parameters over given sets
 % of days
-cfg                   = [];
-cfg.proc_dir          = [dirs.rcs_pia, 'beh_analysis/pain_per_DBS_parameters/NEJM_2023_submission/'];
-cfg.proc_subdir       = 'Stage 3 (ol-DBS_versus_sham)';
+cfg_rcs_db                   = [];
+cfg_rcs_db.proc_dir          = [dirs.rcs_pia, 'beh_analysis/pain_per_DBS_parameters/NEJM_2023_submission/'];
+cfg_rcs_db.proc_subdir       = 'Stage 3 (ol-DBS_versus_sham)';
 
 
-cfg.plt_metrics       = {'mayoNRS','painVAS',  'MPQtotal', 'unpleasantVAS'};
-cfg.pt_id             = 'RCS02';
+cfg_rcs_db.plt_metrics       = {'mayoNRS','painVAS',  'MPQtotal', 'unpleasantVAS'};
+cfg_rcs_db.pt_id             = 'RCS02';
 
-cfg.pt_meta           = pt_META;
-cfg.N_days            = duration('3:00:00:00');
+cfg_rcs_db.pt_meta           = pt_META;
+cfg_rcs_db.N_days            = duration('3:00:00:00');
 
-cfg.seperate_by       = {'R_stim_groups'};
+cfg_rcs_db.seperate_by       = {'R_stim_groups'};
 
 close all
 set(0,'DefaultFigureVisible','off')
@@ -449,57 +395,57 @@ s3.RCS02 = struct;
     ...
     = plot_RCS02_stage3_v2(...
     ...
-cfg, stimGroups.RCS02.s3{1}, stimLog.RCS02R);
+cfg_rcs_db, stimGroups.RCS02.s3{1}, stimLog.RCS02R);
 %% seperate out RCS05's blinded testing
 
-cfg                   = [];
-cfg.proc_dir          = [dirs.rcs_pia, 'beh_analysis/pain_per_DBS_parameters/NEJM_2023_submission/'];
-cfg.proc_subdir       = '/blinded testing/';
+cfg_rcs_db                   = [];
+cfg_rcs_db.proc_dir          = [dirs.rcs_pia, 'beh_analysis/pain_per_DBS_parameters/NEJM_2023_submission/'];
+cfg_rcs_db.proc_subdir       = '/blinded testing/';
 
 
-cfg.plt_metrics       = {'mayoNRS','painVAS',  'MPQtotal', 'unpleasantVAS'};
+cfg_rcs_db.plt_metrics       = {'mayoNRS','painVAS',  'MPQtotal', 'unpleasantVAS'};
 pt_id                 = 'RCS05';
 
-cfg.pt_meta           = pt_META;
+cfg_rcs_db.pt_meta           = pt_META;
 
 
-s2_blind.RCS05        = plot_RCS05_blinded(cfg, pt_id, stimGroups, INS_logs_API_t_synced);
+s2_blind.RCS05        = plot_RCS05_blinded(cfg_rcs_db, pt_id, stimGroups, INS_logs_API_t_synced);
 
 %% RCS04 --> stim groups after starting buprenorphine (after July 2022 home visit)
-cfg                   = [];
-cfg.pt_id             = 'RCS04_July22_Apr23';
+cfg_rcs_db                   = [];
+cfg_rcs_db.pt_id             = 'RCS04_July22_Apr23';
 
 
 i_epoch          = find(ge(REDcap.RCS04.time, pt_META.RCS04.dates(end) + duration('24:00:00')));
 
-[~, stimGroups.(cfg.pt_id)] ...
+[~, stimGroups.(cfg_rcs_db.pt_id)] ...
     ...
     = make_stim_groups(...
     ...
  'RCS04', REDcap.RCS04L(i_epoch : end,:), REDcap.RCS04R(i_epoch: end, :), pt_META.RCS04);
 
- stimGroups.(cfg.pt_id).('Pre-trial baseline') = {fluct.('RCS04')};
+ stimGroups.(cfg_rcs_db.pt_id).('Pre-trial baseline') = {fluct.('RCS04')};
 %%
 %cfg                          = [];
-cfg.min_n_reports            = 3;
+cfg_rcs_db.min_n_reports            = 3;
 
-cfg.min_n_reports_subspace   = 2;
+cfg_rcs_db.min_n_reports_subspace   = 2;
 
-cfg.proc_dir          = [dirs.rcs_pia, '/beh_analysis/pain_per_DBS_parameters/'];
-cfg.proc_subdir       = 'same_dutyCycle_and_freq';
+cfg_rcs_db.proc_dir          = [dirs.rcs_pia, '/beh_analysis/pain_per_DBS_parameters/'];
+cfg_rcs_db.proc_subdir       = 'same_dutyCycle_and_freq';
 
-cfg.plt_metrics       = {'painVAS', 'mayoNRS',  'MPQtotal', 'unpleasantVAS'};
+cfg_rcs_db.plt_metrics       = {'painVAS', 'mayoNRS',  'MPQtotal', 'unpleasantVAS'};
 
-cfg.seperate_by       = {'percentDutyCycle', 'rateInHz'};
+cfg_rcs_db.seperate_by       = {'percentDutyCycle', 'rateInHz'};
 
-cfg.include_cl        = false;
+cfg_rcs_db.include_cl        = false;
 
-cfg.exclude_VAS_50s.decision   = false;
-cfg.exclude_VAS_50s.plot       = true;
+cfg_rcs_db.exclude_VAS_50s.decision   = false;
+cfg_rcs_db.exclude_VAS_50s.plot       = true;
 
-cfg.pt_lbls.RCS04_July22_Apr23 = 'RCS04_July22_Apr23';
+cfg_rcs_db.pt_lbls.RCS04_July22_Apr23 = 'RCS04_July22_Apr23';
 
-    plted_stim_groups.(cfg.pt_id )= plot_stim_groups(cfg,'RCS04_July22_Apr23', stimGroups);
+    plted_stim_groups.(cfg_rcs_db.pt_id )= plot_stim_groups(cfg_rcs_db,'RCS04_July22_Apr23', stimGroups);
 
 
 
@@ -510,21 +456,21 @@ cfg.pt_lbls.RCS04_July22_Apr23 = 'RCS04_July22_Apr23';
 %% distributions of pain metrics and relationship BETWEEN pain metrics
 pts = {'RCS02', 'RCS04', 'RCS05', 'RCS06', 'RCS07'};
 
-cfg                     = [];
-cfg.dates               = 'AllTime';
+cfg_rcs_db                     = [];
+cfg_rcs_db.dates               = 'AllTime';
 
 for i = 4%1:length(pts)
-    cfg.pt_id  = pts{i};       
+    cfg_rcs_db.pt_id  = pts{i};       
 
     %plot_hist(cfg, REDcap);          
-    plot_versus(cfg, REDcap);
+    plot_versus(cfg_rcs_db, REDcap);
 end
 
 %% RCS02: explore NRS and VAS "mismatch" 
-cfg.pt_id               = 'RCS02-mismatch';
-cfg.stage_dates         = stage_dates{2}; % starts at Stage 1
+cfg_rcs_db.pt_id               = 'RCS02-mismatch';
+cfg_rcs_db.stage_dates         = stage_dates{2}; % starts at Stage 1
 
-      plot_timeline(cfg, REDcap);
+      plot_timeline(cfg_rcs_db, REDcap);
 
 %{
 Takeaways:
@@ -552,23 +498,23 @@ pts = {'RCS02', 'RCS04', 'RCS05', 'RCS06', 'RCS07'};
 
 pain_space      = [];
 
-cfg             = [];     
-cfg.dates       = 'AllTime';
-cfg.pca         = false;
-cfg.plt_VAS     = true;
-cfg.VAS_only    = false;
+cfg_rcs_db             = [];     
+cfg_rcs_db.dates       = 'AllTime';
+cfg_rcs_db.pca         = false;
+cfg_rcs_db.plt_VAS     = true;
+cfg_rcs_db.VAS_only    = false;
 
-cfg.save_xlsx   = true;
+cfg_rcs_db.save_xlsx   = true;
 
-cfg.CBDP_method = 'manual'; %cfg.CBDP_method = 'top_two';
+cfg_rcs_db.CBDP_method = 'manual'; %cfg.CBDP_method = 'top_two';
 
-cfg.clus_fp_plots = false;
+cfg_rcs_db.clus_fp_plots = false;
 
-cfg.source_dir  = ['/Users/Leriche/',...
+cfg_rcs_db.source_dir  = ['/Users/Leriche/',...
                    'Dropbox (UCSF Department of Neurological Surgery)/',...
                    'UFlorida_UCSF_RCS_collab/Pain Reports/beh_clustered/'];
 
-cfg.fig_dir       = ['/Users/Leriche/', ...
+cfg_rcs_db.fig_dir       = ['/Users/Leriche/', ...
                     'Dropbox (UCSF Department of Neurological Surgery)/', ...
                     'UFlorida_UCSF_RCS_collab/beh_analysis/figs/beh_only/stages1_2_3'];
 
@@ -576,9 +522,9 @@ pts = {'RCS05'};
 
 for i =  1:length(pts)
 
-    cfg.pt_id  = pts{i};
+    cfg_rcs_db.pt_id  = pts{i};
 
-    [pain_space.(pts{i})] = plot_pain_space(cfg, REDcap);
+    [pain_space.(pts{i})] = plot_pain_space(cfg_rcs_db, REDcap);
 end
 
 set(0,'DefaultFigureVisible','on')
@@ -589,15 +535,15 @@ set(0,'DefaultFigureVisible','on')
 %%
 % last N days for: 
 close all
-cfg                     = [];
+cfg_rcs_db                     = [];
 
-cfg.pt_id               = 'RCS04';
-cfg.dates               = 'PreviousDays';
-cfg.ndays               = 10;
+cfg_rcs_db.pt_id               = 'RCS04';
+cfg_rcs_db.dates               = 'PreviousDays';
+cfg_rcs_db.ndays               = 10;
 
-cfg.subplot             = true;
-cfg.sum_stat_txt        = true;
-cfg.stim_parameter      = '';
+cfg_rcs_db.subplot             = true;
+cfg_rcs_db.sum_stat_txt        = true;
+cfg_rcs_db.stim_parameter      = '';
 
-    plot_timeline(cfg, REDcap, PFS_sum_stats);
+    plot_timeline(cfg_rcs_db, REDcap, PFS_sum_stats);
 
