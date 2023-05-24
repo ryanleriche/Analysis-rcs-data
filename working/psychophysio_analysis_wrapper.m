@@ -60,7 +60,7 @@ set(0,'DefaultFigureVisible','off')
 
 for i =  1  :  length(rcs_pts)
 
-    [r_cap] = filt_VAS_50s(rcs_pts{i}, cfg, PRISM_r_cap.(rcs_pts{i}));
+    [r_cap] = preproc_prisim_rcap(rcs_pts{i}, cfg, PRISM_r_cap.(rcs_pts{i}));
  
     cfg.var_oi             = r_cap.vars_oi;
 

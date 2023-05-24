@@ -1,5 +1,8 @@
-function [r_cap] ...
-    = filt_VAS_50s(pt_id, cfg, redcap) 
+function [r_cap] = preproc_prisim_rcap(pt_id, cfg, redcap) 
+
+% After importing REDcap from server, remove unanswered MPQ surveys based
+% on the NRS/VAS, remove likely fencesitting surveys based on VAS(s)
+% ==50, and plot the pre-processing decisions
 
 
 %% ignore unanswered surveys
