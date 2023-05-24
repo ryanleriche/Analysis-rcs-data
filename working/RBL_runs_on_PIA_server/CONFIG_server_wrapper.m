@@ -1,11 +1,3 @@
-function  [dirs, rcs_API_token, pcs_API_token, ...  input and output directories, and API tokens
-           ...
-           PFS, PFS_sum_stats,...                   pain fluctuation study (PFS) data and summary statistics
-           ...
-           pt_META, stage_dates]...                 hard-coded pt meta data (RCS Stage dates pulled from patient iternaries, Google Drive folders, etc
-           ...
-           = CONFIG_server_wrapper
-
 %% input directories unique to user w/n 'dirs' structure
 dirs = struct;
 
@@ -69,4 +61,3 @@ end
 %%% make_visit_dates was periodically updated throughout RCS trial
 
 [pt_META, stage_dates]   = make_visit_dates;
-end

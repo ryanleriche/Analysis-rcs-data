@@ -1,4 +1,5 @@
-%% load CONFIG_ephy_wrapper
+% see CONFIG_plot_beh.m script to specify directories, pull REDcap, 
+% and generate subdirectories
 CONFIG_ephy_analysis;
 
 %% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
@@ -13,17 +14,21 @@ cfg.load_EventLog      = true;
 % option to load previous database for efficient processing
 cfg.ignoreold_db                = false;
 cfg.ignoreold_INS_logs          = false;
-cfg.ignoreold_par_db            = true;
+cfg.ignoreold_par_db            = false;
 
 cfg.raw_dir                     = [dirs.rcs_pia, 'raw/'];
 cfg.proc_dir                    = [dirs.rcs_pia, 'processed/'];
-
+cfg.anal_dir                    = [dirs.rcs_pia, 'ephy_analysis/'];
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
 %pt_sides               = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
-pt_sides                = {'RCS06R','RCS06L','RCS07L', 'RCS07R'};
+%pt_sides                = {'RCS06R','RCS06L','RCS07L', 'RCS07R'};
 
 cfg.pp_RCS_TD_subset   = 'stage1_only';
+
+cfg.pp_fft             = '30s_pre_survey';
+
+pt_sides               = {'RCS02R'};
 
 %% main loop (per pt hemisphere)
 for i = 1 : length(pt_sides)
@@ -71,10 +76,10 @@ for i = 1 : length(pt_sides)
         cfg.pp_RCS_TD_subset, pt_sides{i}, dirs.rcs_preproc,...
         par_db, stimLog);
 
-    %%% save FFT per channel across sessions
+   %%% save FFT per channel across sessions
     % summary spectrograms over sessions (i.e., days to months worth of
     % spectra saved in cfg.proc_dir subfolders)
-        per_rcs_session_fft(cfg, dirs.rcs_preproc, pt_sides{i}, par_db_out)
+       rcs_fft_peri_survey(cfg, dirs.rcs_preproc, pt_sides{i}, par_db_out, REDcap);
 
     %%% plot API to INS latency
     % (i.e., how long is the INS ahead OR behind internet time [generally behind])
@@ -99,9 +104,6 @@ stage 1 streaming sessions had the same sense defintion.
 close all
 pt_sides               = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
 
-pt_sides               = {'RCS06R','RCS06L','RCS07L', 'RCS07R'};
-
-
 set(0,'DefaultFigureVisible','on')
 for i = 1 : length(pt_sides)
     plt_rcs_fft_w_same_TD_settings(cfg, pt_sides{i}, dirs)
@@ -109,7 +111,7 @@ end
 
 
 
-%%
+%% merge RCS and NK spectra 
 %{
 From FOOOFed RCS stage 1 spectra, identfy band peaks + width while plotting
 all sensing hemisphere is single figure.
@@ -118,18 +120,28 @@ all sensing hemisphere is single figure.
 
 pt_sides               = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
 
-[hemi_sense_chan, fft_bins_inHz]        = import_fooofed_hemispheres(dirs, pt_sides);
+
+[rcs.sense_chan, rcs.fft_bins_inHz]   = import_fooof(...
+                                            fullfile(dirs.rcs_preproc, 'spectra_per_sess/'),...
+                                             pt_sides, ...
+                                            '/stage1_only (pp work up)');
+
+[nk.sense_chan, nk.fft_bins_inHz]     = import_fooof(...
+                                            fullfile(dirs.nk_preproc, 'fooof_specs (30s_prior_to_survey)'),...
+                                            pts,...
+                                            '');
+
+
+
+%%
+
+plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs)
+
 
 %%
 hemi_chan_lbls = hemi_sense_chan.Properties.RowNames;
 
 
-close all
-figure('Units','inches','Position',[0, 3, 8, 10])
-
-
-tiledlayout(5,2, 'Padding','tight')
-sgtitle(sprintf('Power-spectra across RC+S patient sensing hemispheres\nABOVE 1/f (the aperiodic component)'))
 
 i_cnt = 1;
 

@@ -456,7 +456,7 @@ if ~isempty(old_database)
                 if ~any(strcmp(RCSdatabase_out.Properties.VariableNames, varnames{k}))
 
             
-                   RCSdatabase_out.(varnames{k}) = cell(height(RCSdatabase_out), k);
+                   RCSdatabase_out.(varnames{k}) = cell(height(RCSdatabase_out), 1);
                 end
             end
 
@@ -464,8 +464,10 @@ if ~isempty(old_database)
         else
             RCSdatabase_out  = old_database;
 
-            disp(['Database as of ', datestr(old_database.timeStart{end}(1)), '; ',...
-            old_database.sess_name{end},'---no new files since ALL were empty'])
+            i_entr = find(~cellfun(@isempty, old_database.timeStart));
+
+            disp(['Database as of ', datestr(old_database.timeStart{i_entr(end)}(1)), '; ',...
+            old_database.sess_name{i_entr(end)},'---no new files since ALL were empty'])
         end
     
         if ~isempty(badsessions)

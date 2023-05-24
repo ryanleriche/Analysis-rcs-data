@@ -1,24 +1,11 @@
 function plot_timeline(cfg, REDcap, fluct_sum_stats, varargin)
-    
+   
 
-% cfg                     = [];
-% cfg.pt_id               = 'RCS04';
-% cfg.stage_dates         = stage_dates{4}; % starts at Stage 1
-% cfg.subplot             = true;
-% 
-% cfg.stim_parameter      = 'all';
-% 
-% cfg.dates               = 'DateRange';
-% cfg.date_range               = {'14-Jul-2022'; '6-Sep-2022'};
-% cfg.subplot             = false;
-% 
-% redcap                  = wrt_stim_REDcap.RCS04;
 %%
 
 redcap                  = REDcap.(cfg.pt_id);
-[~, stage_dates]        = make_visit_dates;
 
-cfg.stage_dates         = stage_dates{str2double(cfg.pt_id(end))}; % starts at Stage 1
+cfg.stage_dates         = cfg.stage_dates{str2double(cfg.pt_id(end))}; % starts at Stage 1
 
 % bring in pain fluctuation study as reference of baseline pain
 if contains(cfg.pt_id, 'stage0')

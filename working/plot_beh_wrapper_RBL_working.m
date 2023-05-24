@@ -32,7 +32,10 @@ cfg_rcs_db.ignoreold_par_db            = true;
 %%% pts to update database from scratch locally:
 %pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
 
-pt_sides           = {'RCS02R'};
+
+pt_sides           = {'RCS02R', 'RCS07R','RCS04L'};
+
+
 
 for i = 1  : length(pt_sides)
     %%% process RCS .jsons into searchable database
@@ -71,16 +74,33 @@ for i = 1: length(pt_sides)
     pt_sides{i}, INS_logs, par_db, ss_var_oi);
 end
 
+%%% plotting adaptive DBS only
+cfg_rcs_db.dates         = 'DateRange';
+cfg_rcs_db.date_range    = {'03-Mar-2023', '01-Jul-2023'};
+cfg_rcs_db.plt_state_dur = 'sub_session_duration';
+
+for i = 1:length(pt_sides)
+
+    aDBS_sum.(pt_sides{i}) ...
+        ...
+        = plot_longitudinal_aDBS(...
+        ...
+    cfg_rcs_db,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
+end
+
+
+
 %%
 %%% specify which dates to return:
-cfg_rcs_db.dates         = 'AllTime';
-cfg_rcs_db.date_range    = {'03-May-2023', '01-Jul-2023'};
+cfg_rcs_db.dates         = 'DateRange';
+cfg_rcs_db.date_range    = {'20-Apr-2023', '01-Jul-2023'};
 
 %%% return every aDBS ever tried (takes much longer):
 %cfg.dates        = 'AllTime';
 
 %%% state-current relationship (12 am - 12 pm)
 cfg_rcs_db.plt_state_dur = 'sub_session_duration';
+
 %%% state-current relationship (from 1-2 am and 1-2 pm):
 %cfg.plt_state_dur = 'two_chunks'; 
 
@@ -101,20 +121,7 @@ end
 
 
 
-%% plotting adaptive DBS only
-pt_sides           = {'RCS02R', 'RCS05R','RCS05L', 'RCS07R','RCS07L'};
-cfg_rcs_db.dates         = 'DateRange';
-cfg_rcs_db.date_range    = {'03-Mar-2023', '01-Jul-2023'};
 
-
-for i = 1:length(pt_sides)
-
-    aDBS_sum.(pt_sides{i}) ...
-        ...
-        = plot_longitudinal_aDBS(...
-        ...
-    cfg_rcs_db,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
-end
 %%
 %% plot duty cycle versus pain
 adbs_sum        = aDBS_sum.(pt_sides{i});
@@ -527,23 +534,24 @@ for i =  1:length(pts)
     [pain_space.(pts{i})] = plot_pain_space(cfg_rcs_db, REDcap);
 end
 
-set(0,'DefaultFigureVisible','on')
+
 %%
 %
 %% ******************** in-progress versions below ******************** %%
 %
 %%
 % last N days for: 
-close all
-cfg_rcs_db                     = [];
+close all; set(0,'DefaultFigureVisible','on')
+cfg_rcap                     = [];
 
-cfg_rcs_db.pt_id               = 'RCS04';
-cfg_rcs_db.dates               = 'PreviousDays';
-cfg_rcs_db.ndays               = 10;
+cfg_rcap.pt_id               = 'RCS04';
+cfg_rcap.dates               = 'PreviousDays';
+cfg_rcap.ndays               = 7;
 
-cfg_rcs_db.subplot             = true;
-cfg_rcs_db.sum_stat_txt        = true;
-cfg_rcs_db.stim_parameter      = '';
+cfg_rcap.stage_dates         = stage_dates;
 
-    plot_timeline(cfg_rcs_db, REDcap, PFS_sum_stats);
+cfg_rcap.subplot             = true;
+cfg_rcap.sum_stat_txt        = true;
+cfg_rcap.stim_parameter      = '';
 
+    plot_timeline(cfg_rcap, REDcap, PFS_sum_stats);

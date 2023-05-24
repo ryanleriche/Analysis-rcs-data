@@ -1,8 +1,4 @@
 CONFIG_plot_beh;
-%% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
-% as of Apr. 2023, only daily surveys are analysis-ready/organized
-
-REDcap                  = RCS_redcap_painscores(rcs_API_token);
 
 %% import RCS databases, and INS logs per pt side as structures
 %{
@@ -33,7 +29,8 @@ cfg_rcs_db.ignoreold_par_db            = true;    % <-- keep as true to avoid ve
 
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
-pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
+%pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
+pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS07L', 'RCS07R'};
 
 
 for i = 1  : length(pt_sides)
@@ -73,7 +70,7 @@ end
 %% plot aDBS performance longitudinally
 %%% specify which dates to return:
 cfg_rcs_db.dates         = 'DateRange';
-cfg_rcs_db.date_range    = {'28-Mar-2023'; '01-Jul-2023'};
+cfg_rcs_db.date_range    = {'01-May-2023'; '01-Jul-2023'};
 
 %%% return every aDBS ever tried (takes much longer):
 %cfg.dates        = 'AllTime';

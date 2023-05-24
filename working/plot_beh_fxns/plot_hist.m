@@ -2,7 +2,7 @@ function plot_hist(cfg, REDcap)
 
     redcap  = REDcap.(cfg.pt_id);
     
-    figure('Units', 'Inches', 'Position', [0, 0, 20, 15])
+    figure('Units', 'Inches', 'Position', [0, 0, 10, 7])
 
     [redcap, date_range] = date_parser(cfg, redcap);
 

@@ -19,6 +19,9 @@ dirs.rcs_preproc        = '/Volumes/DBS Pain 3/rcs_device_data/processed/';
 dirs.dropbox     = ['/Users/Leriche/Dropbox (UCSF Department of Neurological Surgery)/',...
                    'SUBNETS Dropbox/Chronic Pain - Activa and Summit 2.0'];
 
+% where processed NK data are saved locally
+dirs.nk_preproc  = '/Volumes/DBS Pain 3/nk_device_data/processed/';
+
 
 % application programming interface (API) token which is essentially a
 % password to access REDcap remotely, and is unique per researcher per
@@ -27,9 +30,19 @@ dirs.dropbox     = ['/Users/Leriche/Dropbox (UCSF Department of Neurological Sur
 rcs_API_token   = '95FDE91411C10BF91FD77328169F7E1B';
 pcs_API_token   = 'DB65F8CB50CFED9CA5A250EFD30F10DB';
 
-%% below loads pain fluctuation study and PT meta data
-%%% set-up working directories
+%%
+% below loads pain fluctuation study and PT meta data
+%-------------------------------------------------------------------------%
+%------------------------↓↓↓ no input needed ↓↓↓--------------------------%
+%-------------------------------------------------------------------------%
 cd(fullfile(dirs.rcs_analysis, 'working/'));         addpath(genpath(cd));
+
+% where top-level FieldTrip folder is saved (do not add recursively)
+dirs.ft     = fullfile(dirs.rcs_analysis, 'fieldtrip-20220912/');
+addpath(dirs.ft);
+
+% initalize FieldTrip
+ft_defaults;
 
 %%%  load REDcap from pain fluctuation study, and stages 1, 2, and 3
 save_dir = fullfile(dirs.rcs_pia,'processed/REDcap/');
@@ -63,6 +76,5 @@ else  %%% per RCS pt, organize pain fluctuation study (pain reproting prioir to 
 
 end
 
-%% stage dates and, home/clinic visits for RCS pts 1-7 w/ brief descriptions
-%%% make_visit_dates was periodically updated throughout RCS trial
-[pt_META, stage_dates]   = make_visit_dates;
+%%% load pt meta data (dates of stage starts/stops, and home/clinic visits for RCS pts)
+CONFIG_pt_meta;

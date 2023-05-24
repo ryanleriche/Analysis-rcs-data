@@ -1,4 +1,4 @@
-function [lineOut, fillOut] = stdshade(amatrix,alpha,acolor,F,smth)
+function [lineOut, fillOut] = stdshade(amatrix, x_vec, alpha,acolor,smth)
 % usage: stdshading(amatrix,alpha,acolor,F,smth)
 % plot mean and sem/std coming from a matrix of data, at which each row is an
 % observation. sem/std is shown as shading.
@@ -12,16 +12,16 @@ if exist('acolor','var')==0 || isempty(acolor)
     acolor='r'; 
 end
 
-if exist('F','var')==0 || isempty(F)
-    F=1:size(amatrix,2);
+if exist('x_vec','var')==0 || isempty(x_vec)
+    x_vec=1:size(amatrix,2);
 end
 
 if exist('smth','var'); if isempty(smth); smth=1; end
 else smth=1; %no smoothing by default
 end  
 
-if ne(size(F,1),1)
-    F=F';
+if ne(size(x_vec,1),1)
+    x_vec=x_vec';
 end
 
 amean = nanmean(amatrix,1); %get man over first dimension
@@ -32,10 +32,10 @@ astd = nanstd(amatrix,[],1); % to get std shading
 % astd = nanstd(amatrix,[],1)/sqrt(size(amatrix,1)); % to get sem shading
 
 if exist('alpha','var')==0 || isempty(alpha) 
-    fillOut = fill([F fliplr(F)],[amean+astd fliplr(amean-astd)],acolor,'linestyle','none');
+    fillOut = fill([x_vec fliplr(x_vec)],[amean+astd fliplr(amean-astd)],acolor,'linestyle','none');
     acolor='k';
 else
-    fillOut = fill([F fliplr(F)],[amean+astd fliplr(amean-astd)],acolor, 'FaceAlpha', alpha,'linestyle','none', 'HandleVisibility','off');
+    fillOut = fill([x_vec fliplr(x_vec)],[amean+astd fliplr(amean-astd)],acolor, 'FaceAlpha', alpha,'linestyle','none', 'HandleVisibility','off');
 end
 
 if ishold==0
@@ -43,7 +43,7 @@ if ishold==0
 end
 
 hold on;
-lineOut = plot(F,amean, 'color', acolor,'linewidth',1.5); %% change color or linewidth to adjust mean line
+lineOut = plot(x_vec,amean, 'color', acolor,'linewidth',1.5); %% change color or linewidth to adjust mean line
 
 if check
     hold off;

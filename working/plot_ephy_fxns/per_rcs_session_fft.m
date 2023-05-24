@@ -1,4 +1,5 @@
-function per_rcs_session_fft(cfg,  rcs_pp_dir, pt_side_id, par_db)
+function per_rcs_session_fft(cfg,  rcs_pp_dir, pt_side_id,...
+                                par_db, REDcap)
 %{
 
 
@@ -9,7 +10,10 @@ cfg.min_sess_dur    = duration('00:05:00');
 cfg.fftSize         = 1024;             % N samples to use in FFT
 cfg.windowLoad      = '100% Hann';      % 100 percent hanning window
 cfg.fftinterval     = 500;              % how often in ms a FFT should be calculated
-%%%
+
+
+%cfg.
+%%
 
 %%
 dir_ss_pt_side  = [rcs_pp_dir,'/streaming_sessions/' pt_side_id, '/' cfg.pp_RCS_TD_subset, '/'];
@@ -25,15 +29,32 @@ par_db_oi  = db_RCSXXX(...
                     ismember(db_RCSXXX.sess_name, {save_dir_struct.name}) &...
                     db_RCSXXX.TDsampleRates == 250 ...
                     ,:);
+%%
+redcap    = REDcap.(pt_side_id(1:end-1));
+% db_oi     = db.(pt_side_id);
+% 
+% for i_sess = 1 : height(par_db_oi)
+% 
+%     i_sess_oi = find(strcmp(par_db_oi.sess_name(i_sess), db_oi.sess_name));
+% 
+%     eventLog_tbl = db_oi(i_sess_oi, :).eventLogTable{1}
+% 
+% 
+% 
+% end
+
 
 %%
 pwrspectra_by_sess  = nan(4, height(par_db_oi), cfg.fftSize/2+1);
 freq_by_sess        = nan(height(par_db_oi), cfg.fftSize/2+1);
 
-for i_sess = 1:height(par_db_oi)
+for i_sess = 1 : height(par_db_oi)
     
     load([dir_ss_pt_side, par_db_oi.sess_name{i_sess},'/', 'rcs_streamed.mat']);
     
+
+    t_diff_rcap_by_rcs = redcap.time' - rcs_streamed.TimeInPST;
+
 
     % actual fft size of device for 64, 250, 1024 fftpoints
     switch cfg.fftSize
