@@ -31,12 +31,9 @@ cfg_rcs_db.ignoreold_par_db            = true;
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
 %pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
-
-
 pt_sides           = {'RCS02R', 'RCS07R','RCS04L'};
 
-
-
+pt_sides           = {'RCS05L'};
 for i = 1  : length(pt_sides)
     %%% process RCS .jsons into searchable database
     [db.(pt_sides{i}), bs.(pt_sides{i})] ...
@@ -86,10 +83,11 @@ for i = 1:length(pt_sides)
         = plot_longitudinal_aDBS(...
         ...
     cfg_rcs_db,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
+
+    
 end
 
-
-
+ 
 %%
 %%% specify which dates to return:
 cfg_rcs_db.dates         = 'DateRange';

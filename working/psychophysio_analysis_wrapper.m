@@ -40,13 +40,12 @@ cfg                 = [];
 % specify 'top_two' clusters to return two clusters w/ highest density*distance
 cfg.CBDP_method     = 'manual';
 
-% where all raw, z-scored, clustered, fingerprints, and .xlsx of metrics
-% are saved
+% where all raw, z-scored, clustered, fingerprints, and .xlsx of metrics are saved
 cfg.proc            = fullfile(dirs.working,'psychophysio_fingerprinting/');
 
 % 'true' to cluster based on N principal components needed to describe 95% of variaance
 % 'false' to cluster on z-score metrics themselves
-cfg.pca             = true;
+cfg.pca             = false;
 
 % name of subdirectoy and pt ids (used folder creation/saving)
 cfg.proc_subdir    = 'psy_only';
@@ -79,11 +78,8 @@ cfg.CBDP_method     =  'top_two';
 psy_vars            = {'vas_depression','vas_anxiety', 'vas_energy','hamd2_score','sss'};
 phy_vars            = {'TotalMinutesAsleep','TotalTimeInBed', 'RestingHeartRate', 'Steps'};
 
-
-%%%
-raw_dir = fullfile(dirs.working, 'presidio_data/behavioral_data');
-
 %%% import Presidio pt data to merged REDcap + FitBit structures
+raw_dir    = fullfile(dirs.working, 'presidio_data/behavioral_data');
 PR_rcap_fb = import_presidio_csvs(raw_dir);
 pt_ids     = fieldnames(PR_rcap_fb);
 
@@ -94,7 +90,6 @@ i = 3;
 pr_beh = PR_rcap_fb.(pt_ids{i});
 
 %%% cluster by psychological reporting of neuropsychiatric states
-
 cfg.proc_subdir    = 'psy_only';
 cfg.var_oi         = psy_vars;
 cfg.pca            = true;

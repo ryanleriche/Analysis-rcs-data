@@ -1,32 +1,33 @@
-% see CONFIG_plot_beh.m script to specify directories, pull REDcap, 
+% see CONFIG_ephy_analysis.m script to specify directories, pull REDcap, 
 % and generate subdirectories
 CONFIG_ephy_analysis;
 
 %% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
 % as of Apr. 2023, only daily surveys are analysis-ready/organized
-
 REDcap                = RCS_redcap_painscores(rcs_API_token);
 
 %% import RCS databases, and INS logs per pt side
-cfg                    = [];
-cfg.load_EventLog      = true;
+cfg_rcs                    = [];
+cfg_rcs.load_EventLog      = true;
 
 % option to load previous database for efficient processing
-cfg.ignoreold_db                = false;
-cfg.ignoreold_INS_logs          = false;
-cfg.ignoreold_par_db            = false;
+cfg_rcs.ignoreold_db                = false;
+cfg_rcs.ignoreold_INS_logs          = false;
+cfg_rcs.ignoreold_par_db            = false;
+cfg_rcs.ignoreold_td_parsing        = false;
 
-cfg.raw_dir                     = [dirs.rcs_pia, 'raw/'];
-cfg.proc_dir                    = [dirs.rcs_pia, 'processed/'];
-cfg.anal_dir                    = [dirs.rcs_pia, 'ephy_analysis/'];
+cfg_rcs.raw_dir                     = [dirs.rcs_pia, 'raw/'];
+cfg_rcs.proc_dir                    = [dirs.rcs_pia, 'processed/'];
+cfg_rcs.anal_dir                    = [dirs.rcs_pia, 'ephy_analysis/'];
+
+cfg_rcs.pp_RCS_TD_subset            = 'stage1_only';
+cfg_rcs.pp_fft                      = '30s_pre_survey';
+
+
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
 %pt_sides               = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
 %pt_sides                = {'RCS06R','RCS06L','RCS07L', 'RCS07R'};
-
-cfg.pp_RCS_TD_subset   = 'stage1_only';
-
-cfg.pp_fft             = '30s_pre_survey';
 
 pt_sides               = {'RCS02R'};
 
@@ -38,7 +39,7 @@ for i = 1 : length(pt_sides)
         ...
         = makeDatabaseRCS_Ryan(...
         ...
-        cfg, pt_sides{i});
+        cfg_rcs , pt_sides{i});
 
     %%% process INS logs .txts based on unique entries only
         % (INS logs have mostly repeating entries)
@@ -47,7 +48,7 @@ for i = 1 : length(pt_sides)
         ...
         = RCS_logs(...
         ...
-        cfg, pt_sides{i});
+        cfg_rcs , pt_sides{i});
 
     %%% unpack all sense, LD, and stimulation settings as own variable in table
         % allows for programmatic discernment of unique RC+S settings
@@ -56,14 +57,14 @@ for i = 1 : length(pt_sides)
         ...
         = makeParsedDatabaseRCS(...
         ...
-        cfg, pt_sides{i}, db);
+        cfg_rcs , pt_sides{i}, db);
 
     %%% find stim settings during each REDcap survey
     [stimLog.(pt_sides{i}), REDcap.(pt_sides{i})]  ...
         ...
         = align_REDcap_to_stimLog(...
         ...
-        cfg, pt_sides{i}, db, REDcap);
+        cfg_rcs , pt_sides{i}, db, REDcap);
 
     %%% save time-domain LFPs (from RC+S streaming sessions) 
         % across pt hemispheres as clearly labelled .mat
@@ -73,20 +74,20 @@ for i = 1 : length(pt_sides)
         ...
         = pp_RCS_ss_TD( ...
         ...
-        cfg.pp_RCS_TD_subset, pt_sides{i}, dirs.rcs_preproc,...
+        cfg_rcs .pp_RCS_TD_subset, pt_sides{i}, dirs.rcs_preproc,...
         par_db, stimLog);
 
-   %%% save FFT per channel across sessions
+  %%% save FFT per channel across sessions
     % summary spectrograms over sessions (i.e., days to months worth of
-    % spectra saved in cfg.proc_dir subfolders)
-       rcs_fft_peri_survey(cfg, dirs.rcs_preproc, pt_sides{i}, par_db_out, REDcap);
+    % spectra saved in cfg_rcs.proc_dir subfolders)
+        fft_taper_comparison(cfg_rcs, dirs, pt_sides{i}, ft_form_TD);
 
     %%% plot API to INS latency
     % (i.e., how long is the INS ahead OR behind internet time [generally behind])
-        plt_INS_lat_per_session(cfg, pt_sides{i}, db);
+        plt_INS_lat_per_session(cfg_rcs , pt_sides{i}, db);
 
     %%% plot impedance over time (contacts to case during a "Lead Integrity Test")
-        plt_impedance_per_session(cfg, pt_sides{i}, db);
+        plt_impedance_per_session(cfg_rcs , pt_sides{i}, db);
 end
 
 
@@ -106,7 +107,7 @@ pt_sides               = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06
 
 set(0,'DefaultFigureVisible','on')
 for i = 1 : length(pt_sides)
-    plt_rcs_fft_w_same_TD_settings(cfg, pt_sides{i}, dirs)
+    plt_rcs_fft_w_same_TD_settings(cfg_rcs , pt_sides{i}, dirs)
 end
 
 

@@ -3,14 +3,12 @@ function [rcs_streamed_oi, par_db_row, Fsample_TD] ...
             cfg, redcap, rcs_streamed, par_db_row)
 
 %{
-(1) find REDcap survey within streaming session
+(1) find nearest sample point to REDcap survey time
 
-(2) see which sample point is closest to REDcap survey time
-
-(3) find continuous TD data of specified duration (cfg.epoch_dur) w/n specified 
+(2) find continuous TD data of specified duration (cfg.epoch_dur) w/n specified 
 time window (cfg.r_cap_cent_toi)
 
-(4) return continuous TD data; and REDcap survey index w/n TD data, explicit
+(3) return continuous TD data; and REDcap survey index w/n TD data, explicit
 epoch start and end (REDcap at 0 s) w/n parsed database
 %}
 

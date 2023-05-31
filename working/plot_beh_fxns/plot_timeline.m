@@ -150,7 +150,7 @@ hold on
                     redcap.painVAS, redcap.reliefVAS, ...
                     redcap.moodVAS];
 
-                c =brewermap(NaN, 'Set2');
+                c =brewermap([], 'Set2');
 
                 for h =1:size(stage0_metrics,2)
                     plot(redcap.time, movmean(stage0_metrics(:,h), 5),...

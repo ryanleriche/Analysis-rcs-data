@@ -1,3 +1,7 @@
+% input and output directories, and API tokens
+% call pain fluctuation study (PFS) data and summary statistics
+% call hard-coded pt meta data (RCS Stage dates pulled from patient iternaries, Google Drive folders, etc)
+
 %% input directories unique to user w/n 'dirs' structure
 dirs = struct;
 
@@ -61,3 +65,6 @@ end
 %%% make_visit_dates was periodically updated throughout RCS trial
 
 [pt_META, stage_dates]   = make_visit_dates;
+
+
+

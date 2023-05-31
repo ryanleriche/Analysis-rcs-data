@@ -49,7 +49,7 @@ for j_plt = 1:length(plt_lbl)
     
     for i_ch = 1:4
         nexttile
-        plt_ch_name = unique(ch_names(:, i_ch));
+        plt_ch_name = unique(ch_names(i_ch));
 
         title(sprintf('Ch%g | %s', i_ch - 1, plt_ch_name{:}));
 

@@ -8,6 +8,9 @@ classes      = varfun(@class, psy_phy_tbl, 'OutputFormat','cell');
 psy_phy_tbl = renamevars(psy_phy_tbl, ...
                     vars(strcmp(classes, 'datetime')), 'time');
 
+psy_phy_tbl(all(isnan(psy_phy_tbl{:,cfg.var_oi}), 2), :) = [];
+
+
 cmap = flip(brewermap([], "RdYlBu"));
 
 
@@ -103,7 +106,9 @@ if cfg.pca == true
     clus_tbl = psy_phy_oi(:, compose('PC%g_score', i_comp_oi));
     
 else
+    % if not using PCA
     clus_tbl = z_psy_phy_tbl(:,cfg.var_oi);
+
 end
 
 
@@ -147,9 +152,17 @@ format_plot(cfg);
 
 legend(compose('Cluster %g',unique(beh_cl.i_cl)), 'Location','best')
 
-title(sprintf('%s\nclustered from first %g PCs (%.2f%% variance)',pt_id, i_95_var(1),  cum_sum_vec(i_95_var(1))),...
-    'Fontsize',16, 'Interpreter','none'); hold on
+if cfg.pca
 
+    txt_title = sprintf('%s\nclustered from first %g PCs (%.2f%% variance)',...
+        pt_id, i_95_var(1),  cum_sum_vec(i_95_var(1)));
+
+else
+     txt_title = sprintf('%s\nclustered from z-scored metrics per se', pt_id);
+
+
+end
+title(txt_title,'Fontsize',16, 'Interpreter','none'); hold on
 %% plot so-called psychophysio fingerprints (mean +- std of metrics w/n clusters
 
 plt_def = {'TickLabelInterpreter', 'none', 'FontSize', 12, 'TickLength', [0,0]};
