@@ -27,6 +27,8 @@ pcs_API_token   = 'DB65F8CB50CFED9CA5A250EFD30F10DB';
 %%% set-up working directories
 cd(fullfile(dirs.rcs_analysis, 'working/'));         addpath(genpath(cd));
 
+addpath(genpath(fullfile(dirs.rcs_analysis, 'code/')));
+
 %%%  load REDcap from pain fluctuation study, and stages 1, 2, and 3
 save_dir = fullfile(dirs.rcs_preproc, 'REDcap/');
 
