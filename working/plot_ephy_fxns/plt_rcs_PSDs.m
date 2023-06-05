@@ -45,29 +45,42 @@ for j_plt = 1  :  length(plt_lbl)
             hold on
 
             for h = 1 : size(plt_spectrum_1, 1)
-                hand_plt = plot(freq_oi, plt_spectrum_1(h,:),  '-k', 'LineWidth', .5, 'Marker','none');
+                if h > 1
+                   plt_sett = {'-r', 'LineWidth', .5, 'Marker','none'};
 
+                else
+                    plt_sett = {'-r', 'LineWidth', .5, 'Marker','none', 'HandleVisibility', 'off'};
+
+
+                end
+
+                hand_plt          = plot(freq_oi, plt_spectrum_1(h,:),  plt_sett{:});
                 hand_plt.Color(4) = .1;
             end
 
             for h = 1 : size(plt_spectrum_1, 1)
-                hand_plt = plot(freq_oi, plt_spectrum_2(h,:),  '-b', 'LineWidth', .5, 'Marker','none');
+                if h > 1
+                    plt_sett = {'-b', 'LineWidth', .5, 'Marker','none'};
+                else
+                    plt_sett = {'-b', 'LineWidth', .5, 'Marker','none', 'HandleVisibility', 'off'};
+                end
 
+                hand_plt          = plot(freq_oi, plt_spectrum_2(h,:),  plt_sett{:});
                 hand_plt.Color(4) = .1;
             end
             
         else
-            [lineout, ~] = stdshade(plt_spectrum_1, freq_oi, 0.2, 'k'); hold on
+            [lineout, ~] = stdshade(plt_spectrum_1, freq_oi, 0.2, 'r'); hold on
             
-            lineout.LineStyle = '-';              lineout.LineWidth = 2;
+            lineout.LineStyle = '-';              lineout.LineWidth = 3;
 
             [lineout, ~] = stdshade(plt_spectrum_2, freq_oi, 0.2, 'b');
             
-            lineout.LineStyle = '-';              lineout.LineWidth = 2;
-
-            legend(cfg.txt_leg)
+            lineout.LineStyle = '-';              lineout.LineWidth = 1.25;
         
         end
+
+        legend(cfg.txt_leg)
 
         title(ft_freq_struct_1.label(i_ch));
 
@@ -77,6 +90,6 @@ for j_plt = 1  :  length(plt_lbl)
         if ~isfolder(save_dir);    mkdir(save_dir);  end
  
     end
-    exportgraphics(gcf, [save_dir, cfg.title, '_', plt_lbl{j_plt}, '_session_power_spectra.png'])
+    exportgraphics(gcf, fullfile(save_dir, [cfg.title, '_', plt_lbl{j_plt}, '_session_power_spectra.png']))
 end
 end

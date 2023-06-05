@@ -8,13 +8,14 @@ function ft_form_TD_struct = rcs_TD_peri_survey(cfg,  rcs_pp_dir, pt_side_id, pa
 par_db_RCS0XX   = par_db.(pt_side_id);
 redcap          = REDcap.(pt_side_id(1:end-1));
 
+
 for i_ss  = 1 : height(par_db_RCS0XX)
     i_rcap_oi       = find(...
                             isbetween(redcap.time, ...
                                 par_db_RCS0XX.timeStart(i_ss),...
                                 par_db_RCS0XX.timeStop(i_ss)));
     if ~isempty(i_rcap_oi)
-        par_db_RCS0XX.rcap_indices{i_ss}             = i_rcap_oi;
+        par_db_RCS0XX.rcap_indices{i_ss}              = i_rcap_oi;
         par_db_RCS0XX.rcap_latency_timeStart{i_ss}    = redcap.time(i_rcap_oi) - par_db_RCS0XX.timeStart(i_ss);
         par_db_RCS0XX.rcap_N{i_ss}                    = length(i_rcap_oi);
     end
@@ -23,6 +24,8 @@ end
 N_rcap_assigned = length(unique(vertcat(par_db_RCS0XX.rcap_indices{:})));
 N_rcap_possible = sum(isbetween(redcap.time, ...
                             par_db_RCS0XX.timeStart(1), par_db_RCS0XX.timeStop(end)));
+
+
 
 
 fprintf('%s | %g/%g, %.1f%%, of REDcap surveys w/n streaming sessions (**pre-session** rejection)\n',...

@@ -27,8 +27,8 @@ cfg_freq.taper      = 'dpss';      % multiple tapers based on discrete prolate s
 cfg_freq.pad        ='nextpow2';
 cfg_freq.foi        = 1:.25:100;    % frequencies of interest
 
-cfg_freq.toi              = 'all';
-cfg_freq.t_ftimwin        = time_width;
+cfg_freq.toi         = 'all';
+cfg_freq.t_ftimwin   = time_width;
 cfg_freq.tapsmofrq   = tapsmofrq;  % number, the amount of spectral smoothing through multi-tapering. 
 %                                  % Note that 4 Hz smoothing means plus-minus 4 Hz, i.e. a 8 Hz smoothing box.
 cfg_freq.keeptrials  = 'yes';
@@ -48,7 +48,7 @@ cfg_freq.taper      = 'hanning';
 cfg_freq.pad        ='nextpow2';
 cfg_freq.foi        = 1:.25:100;    % frequencies of interest
 
-cfg_freq.toi              = 'all';
+cfg_freq.toi        = 'all';
 
 cfg_freq.keeptrials  = 'yes';
 cfg_freq.polyremoval = -1;

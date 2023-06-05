@@ -26,33 +26,19 @@ cfg_rcs.pp_fft                      = '30s_pre_survey';
 
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
-%pt_sides               = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
-%pt_sides                = {'RCS06R','RCS06L','RCS07L', 'RCS07R'};
-
-pt_sides               = {'RCS02R'};
+pt_sides               = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
 
 %% main loop (per pt hemisphere)
 for i = 1 : length(pt_sides)
     %%% process RCS .jsons into searchable database 
-
     [db.(pt_sides{i}), bs.(pt_sides{i})] ...
         ...
         = makeDatabaseRCS_Ryan(...
         ...
         cfg_rcs , pt_sides{i});
 
-    %%% process INS logs .txts based on unique entries only
-        % (INS logs have mostly repeating entries)
-
-    INS_logs.(pt_sides{i})  ...
-        ...
-        = RCS_logs(...
-        ...
-        cfg_rcs , pt_sides{i});
-
     %%% unpack all sense, LD, and stimulation settings as own variable in table
         % allows for programmatic discernment of unique RC+S settings
-
     [par_db.(pt_sides{i}), ~]...
         ...
         = makeParsedDatabaseRCS(...
@@ -66,31 +52,43 @@ for i = 1 : length(pt_sides)
         ...
         cfg_rcs , pt_sides{i}, db, REDcap);
 
-    %%% save time-domain LFPs (from RC+S streaming sessions) 
-        % across pt hemispheres as clearly labelled .mat
-        % first entry allows subsetting of streaming sessions based on
-        % criteria within fxn
-    par_db_out.(pt_sides{i})  ...
-        ...
-        = pp_RCS_ss_TD( ...
-        ...
-        cfg_rcs .pp_RCS_TD_subset, pt_sides{i}, dirs.rcs_preproc,...
-        par_db, stimLog);
+    %%% plot API to INS latency
+    % (i.e., how long is the INS ahead OR behind internet time [generally behind])
+        plt_INS_lat_per_session(cfg_rcs , pt_sides{i}, db);
+    
+    %%% plot impedance over time (contacts to case during a "Lead Integrity Test")
+        plt_impedance_per_session(cfg_rcs , pt_sides{i}, db);
+
+
+end
+%% load RCS TD and format as FFT
+for i = 1 : length(pt_sides)
+  %%% save RCS time-domain data wrt REDcap survey
+   ft_form_TD.(pt_sides{i}) ...
+       = rcs_TD_peri_survey(cfg_rcs, dirs.rcs_preproc, pt_sides{i}, par_db, REDcap);
 
   %%% save FFT per channel across sessions
     % summary spectrograms over sessions (i.e., days to months worth of
     % spectra saved in cfg_rcs.proc_dir subfolders)
         fft_taper_comparison(cfg_rcs, dirs, pt_sides{i}, ft_form_TD);
 
-    %%% plot API to INS latency
-    % (i.e., how long is the INS ahead OR behind internet time [generally behind])
-        plt_INS_lat_per_session(cfg_rcs , pt_sides{i}, db);
+  %%% pre-process FieldTrip FFT spectra
+    % (1) remove noisy sessions by visual inspection
+    % (2) interpolate over RC+S spectra artifacts in frequency-domain
+        pp_rcs_spectra(cfg_rcs, dirs, pt_sides{i})
 
-    %%% plot impedance over time (contacts to case during a "Lead Integrity Test")
-        plt_impedance_per_session(cfg_rcs , pt_sides{i}, db);
 end
 
+for i = 1 : length(pt_sides)
 
+    load_dir = fullfile(dirs.rcs_preproc,'spectra_per_sess', pt_sides{i}, [cfg_rcs.pp_RCS_TD_subset, ' (pp work up)'], cfg_rcs.pp_fft);
+    
+    load(fullfile(load_dir, [pt_sides{i} '_ft_form_pp_FFT_struct.mat'])); %#ok<*LOAD>    
+    
+    
+    writetable(ft_freq_pp.rcs.par_db, fullfile(load_dir, [pt_sides{i}, '_par_db.xlsx']));
+
+end
 %% filter out sessions with nonsequitor sense settings
 %{
 after running 'per_rcs_session_fft" on Chang Lab server, noticed not all
@@ -119,24 +117,29 @@ all sensing hemisphere is single figure.
 
 %}
 
-pt_sides               = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
-
+pt_sides    = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
+pts         = {'RCS02', 'RCS04', 'RCS05', 'RCS06','RCS07'};          
 
 [rcs.sense_chan, rcs.fft_bins_inHz]   = import_fooof(...
                                             fullfile(dirs.rcs_preproc, 'spectra_per_sess/'),...
                                              pt_sides, ...
-                                            '/stage1_only (pp work up)');
+                                            '/stage1_only (pp work up)/30s_pre_survey/');
 
 [nk.sense_chan, nk.fft_bins_inHz]     = import_fooof(...
-                                            fullfile(dirs.nk_preproc, 'fooof_specs (30s_prior_to_survey)'),...
+                                            fullfile(dirs.nk_preproc, 'fooof_specs (30s_prior_to_survey, updated channels)'),...
                                             pts,...
                                             '');
+%% compare peak frequencies between NK and RC+S spectra
+%{
+
+% find distance between peaks
 
 
 
-%%
 
-plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs)
+%}
+
+plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs, 'ALL_hemispheres_nk_rcs (30s pre survey)')
 
 
 %%

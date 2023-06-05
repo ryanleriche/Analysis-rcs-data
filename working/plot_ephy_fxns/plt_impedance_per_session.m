@@ -70,7 +70,7 @@ title(pt_side_id)
 set(gca, 'FontSize', 16, 'TickLength', [0,0]);
 
 %%%
-cfg.proc_dir = [cfg.proc_dir, '/impedance_per_session/'];
+cfg.proc_dir = fullfile(cfg.proc_dir, 'impedance_per_session/');
 
 if ~isfolder(cfg.proc_dir);    mkdir(cfg.proc_dir);     end
 

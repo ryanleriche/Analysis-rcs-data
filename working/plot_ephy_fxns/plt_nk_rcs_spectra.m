@@ -1,4 +1,4 @@
-function plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs)
+function plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs, fig_name)
 
     colors = brewermap(NaN, 'Dark2');
     
@@ -58,5 +58,5 @@ function plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs)
         
     end
     
-    exportgraphics(gcf, [save_dir, 'ALL_hemispheres_nk_rcs.png']);
+    exportgraphics(gcf, [save_dir, fig_name, '.png']);
 end
