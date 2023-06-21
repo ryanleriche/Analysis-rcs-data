@@ -12,9 +12,8 @@ dirs.rcs_pia           = '/datastore_spirit/human/rcs_chronic_pain/rcs_device_da
 % this a fork off of 'Analysis-rcs-data" as off April 2023
 dirs.rcs_analysis      = '/home/rleriche/Analysis-rcs-data/';
 
-
 % where processed RCS streaming sessions are saved
-dirs.rcs_preproc        = '/home/rleriche/rcs_device_data/processed/';
+dirs.rcs_preproc       = '/home/rleriche/rcs_device_data/processed/';
 
 % application programming interface (API) token which is essentially a
 % password to access REDcap remotely, and is unique per researcher per
@@ -24,8 +23,7 @@ rcs_API_token   = '95FDE91411C10BF91FD77328169F7E1B';
 pcs_API_token   = 'DB65F8CB50CFED9CA5A250EFD30F10DB';
 
 
-% ensure that paths are where raw, processed, vs analysis data/figures are
-% saved
+% paths where raw, processed, and analysis data/figures are saved
 cfg_rcs.raw_dir     = [dirs.rcs_pia, 'raw/'];
 cfg_rcs.proc_dir    = dirs.rcs_preproc;
 cfg_rcs.anal_dir    = '/home/rleriche/rcs_device_data/ephy_analysis/';

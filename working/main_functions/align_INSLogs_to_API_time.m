@@ -191,7 +191,7 @@ var_oi  = {'chanFullStr', ...
          'powerBandinHz', 'powerBinInHz',...
          ...
          'LD0', 'LD1', 'GroupDProg0_contacts',...
-         'rise', 'fall','state'};
+         'rise', 'fall','state','activeGroup'};
 
 u_aDBS_Settings = exp_sense_state_vars(...
                       contains(exp_sense_state_vars, var_oi));
@@ -220,9 +220,6 @@ end
 par_db_RCSXXX.sess_w_same_settings ...
     = findgroups(par_db_RCSXXX(:,u_aDBS_Settings));
 
-par_db_RCSXXX = movevars(par_db_RCSXXX, ...
-    'sess_w_same_settings', 'After', 'sess_name');
-
 
 %%% add sessions with same aDBS settings to INSLog itself
 ol_cl_changes.sess_w_same_settings =nan(height(ol_cl_changes ),1);
@@ -238,37 +235,69 @@ i_emp = cellfun(@isempty, proc_app.prev_sess_name);
 if sum(i_emp) > 0
     proc_app.prev_sess_name{i_emp} = '';
 end
+%% since same aDBS settings may have been tried over time
+% -> see settings change, and save out non-consequtive settings primary key
+diff_ss   = [1;...
+                 diff(par_db_RCSXXX.sess_w_same_settings) ~=0 ...
+                 ];
 
+i_diffs  = find(diff_ss);
+i_starts = [];           i_ends   = [];
 
-for i_par = 1:height(par_db_RCSXXX)
-
-    i_same_sett = find(contains(ol_cl_changes.prev_sess_name, ...
-                  par_db_RCSXXX.sess_name(...
-                  par_db_RCSXXX.sess_w_same_settings == i_par)...
-                         ));
-
-    ol_cl_changes.sess_w_same_settings(i_same_sett) = i_par;
-
+for h=1:length(i_diffs)-1
+    i_starts(h) = i_diffs(h); %#ok<*AGROW> 
+    i_ends(h)   = i_diffs(h+1)-1;
 end
+
+i_starts = [i_starts, i_ends(end)+1];
+i_ends   = [i_ends,height(par_db_RCSXXX)];
+
+for h=1:length(i_starts)
+    par_db_RCSXXX.sess_setting_changes(i_starts(h):i_ends(h))  = h;
+end
+
+%%% save ss w/ the same settings w/n INS Log entries 
+% --> allows easier indexing going forward
+for i_par_db = 1:height(par_db_RCSXXX)
+    % first for ol-cl comprehensive changes
+    i_ss = contains(ol_cl_changes.prev_sess_name, ...
+                         par_db_RCSXXX.sess_name(i_par_db));
+
+    ol_cl_changes.sess_w_same_settings(i_ss)...
+        =...
+    par_db_RCSXXX.sess_w_same_settings(i_par_db);
+
+
+    ol_cl_changes.sess_setting_changes(i_ss)...
+        =...
+    par_db_RCSXXX.sess_setting_changes(i_par_db);
+
+
+    % then for AppLog.txt only
+    i_ss = contains(proc_app.prev_sess_name,...
+                         par_db_RCSXXX.sess_name(i_par_db));
+
+    proc_app.sess_w_same_settings(i_ss)...
+        =...
+    par_db_RCSXXX.sess_w_same_settings(i_par_db);
+
+
+    proc_app.sess_setting_changes(i_ss)...
+        =...
+    par_db_RCSXXX.sess_setting_changes(i_par_db);
+end
+
+par_db_RCSXXX = movevars(par_db_RCSXXX,...
+                         {'sess_w_same_settings','sess_setting_changes'},...
+                          'After', 'sess_name');
+
 
 %%
-for i_par = 1:height(par_db_RCSXXX)
-
-    i_same_sett = find(contains(proc_app.prev_sess_name, ...
-                  par_db_RCSXXX.sess_name(...
-                  par_db_RCSXXX.sess_w_same_settings == i_par)...
-                         ));
-
-    proc_app.sess_w_same_settings(i_same_sett) = i_par;
-
-end
-
 % only save streaming sessions (and their expanded parameters) of aDBS
 % offline sessions
 i_entry      = find(~strcmp(ol_cl_changes.prev_sess_name, 'No Entry'));
 i_sess_oi    = find(contains(par_db_RCSXXX.sess_name, ...
                           unique(ol_cl_changes.prev_sess_name(i_entry))));
-
 
 ambig_state   = find(ol_cl_changes.newstate(1:end-1) ~= ol_cl_changes.oldstate(2:end));
 per_ambig     = 100*length(ambig_state) / height(ol_cl_changes);

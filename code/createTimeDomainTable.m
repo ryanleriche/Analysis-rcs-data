@@ -24,6 +24,9 @@ nrows = sum(packetSizes);
 allVarNames = {'key0','key1','key2','key3','systemTick','timestamp',...
     'samplerate','PacketGenTime','PacketRxUnixTime','packetsizes',...
     'dataTypeSequence'};
+
+
+
 outdat = NaN(nrows, length(allVarNames)); % pre allocate memory
 
 % Loop through packets to populate  fields
@@ -31,23 +34,33 @@ start = tic;
 currentIndex = 0;
 
 for p = 1:size(dataSizes,1)
-    rowidx = currentIndex + 1:(packetSizes(p) + currentIndex);
+    
     currentIndex = currentIndex + packetSizes(p);
-    packetidx = currentIndex;  % the time is always associated with the last sample in the packet
-    samples = TDdat.TimeDomainData(p).ChannelSamples;
+    packetidx    = currentIndex;  % the time is always associated with the last sample in the packet
+    samples      = TDdat.TimeDomainData(p).ChannelSamples;
+    
+    rowidx = currentIndex + 1:(packetSizes(p) + currentIndex);
+
     nchan =  nChans(p,1);
 
-    for c = 1:size(samples,1)
-        idxuse = samples(c).Key+1;% bcs keys (channels) are zero indexed
+    for c = 1 : size(samples,1)
+        idxuse                = samples(c).Key+1;% b/c keys (channels) are zero indexed
+        rowidx                = currentIndex + 1:(length(samples(c).Value) + currentIndex);
         outdat(rowidx,idxuse) = samples(c).Value;
     end
-    outdat(packetidx,5) = TDdat.TimeDomainData(p).Header.systemTick;
-    outdat(packetidx,6) = TDdat.TimeDomainData(p).Header.timestamp.seconds;
-    outdat(packetidx,7) = srates(p);
-    outdat(packetidx,8) = TDdat.TimeDomainData(p).PacketGenTime;
-    outdat(packetidx,9) = TDdat.TimeDomainData(p).PacketRxUnixTime;
-    outdat(packetidx,10) = packetSizes(p);
-    outdat(packetidx,11) = TDdat.TimeDomainData(p).Header.dataTypeSequence;
+    outdat(packetidx,5)    = TDdat.TimeDomainData(p).Header.systemTick;
+    outdat(packetidx,6)    = TDdat.TimeDomainData(p).Header.timestamp.seconds;
+    outdat(packetidx,7)    = srates(p);
+    outdat(packetidx,8)    = TDdat.TimeDomainData(p).PacketGenTime;
+    outdat(packetidx,9)    = TDdat.TimeDomainData(p).PacketRxUnixTime;
+    outdat(packetidx,10)   = packetSizes(p);
+    outdat(packetidx,11)   = TDdat.TimeDomainData(p).Header.dataTypeSequence;
+
+    % only call into EvokedMarker structure, when EvokedMode has entries
+%     if ~isempty(TDdat.TimeDomainData(p).EvokedMarker)
+%         outdata(packetidx, 12) = TDdat.TimeDomainData(p).EvokedMarker(1).Key;
+%         outdata(packetidx, 13) = TDdat.TimeDomainData(p).EvokedMarker(1).Value;
+%     end
 end
 
 %%

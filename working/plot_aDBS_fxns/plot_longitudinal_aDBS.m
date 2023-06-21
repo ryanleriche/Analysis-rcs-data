@@ -57,22 +57,22 @@ elseif strcmp(cfg.dates, 'AllTime') == 1
 
 end
 
+
 %% go through INS logs based on their unique settings
 % initalize longitudinal aDBS summary table (long_aDBS_tbl)
 
 long_aDBS_tbl  = table;
-
-
-u_settings  = unique(app_oi.sess_w_same_settings);
+u_settings     = unique(ss_tbl_oi.sess_w_same_settings_non_conseq);
 
 for i =   1:  length(u_settings)
 
-    j              =  u_settings(i);
-    i_ss           = find(ss_tbl_oi.sess_w_same_settings == j);
+    i_ss           = find(ss_tbl_oi.sess_w_same_settings_non_conseq == u_settings(i));
     
     plt_ss_tbl_oi  = ss_tbl_oi(i_ss(1), :);
-    plt_app_oi     = app_oi(app_oi.sess_w_same_settings == j,...
-                                            :);
+    plt_app_oi     = app_oi(...
+                            plt_ss_tbl_oi.sess_w_same_settings == app_oi.sess_w_same_settings...
+                            , :);
+
 
     start_time      = plt_app_oi.time_INS(1);
     stop_time       = plt_app_oi.time_INS(end);
@@ -245,165 +245,161 @@ for i =   1:  length(u_settings)
                 x_tick_rotation = 0;
             end
              
-            if mean(on_off_vec, 'omitnan') > 0 || mean(on_off_vec, 'omitnan') ==100
-                fig_h = figure('Units', 'Inches', 'Position', [0, 0, 22, 10]);
-                subplot(5,3, 1:5)
-                
-                plt_percent_ON_overtime(t_vec, on_off_vec, step_dur, ...
-                                        wash_out, redcap, brew_col,...
-                                        t_plt_start, t_plt_end)
-    
-                xticks(t_plt_start:x_tick_dur:t_plt_end);
-    
-    
-                set(gca,'xlim', [t_plt_start, t_plt_end],...
-                        'GridAlpha',0.3,...
-                        'YColor', 'k', 'TickLength', [0,0], 'FontSize', 12);
-    
-                
-                % reduce axis to 65% of its size so sense, and LD data can fit
-                % above
-                fig_h.CurrentAxes.Position(2)        = fig_h.CurrentAxes.Position(2) *.65;
-                
-                % format xtick labels to fit on multiple lines
-                if h == 0 && ge(t_plt_end-t_plt_start, duration('72:00:00'))
-                    fig_h.CurrentAxes.XTickLabelRotation = x_tick_rotation;
-                    tmp_tick = cellfun(@(x) split(x,','), fig_h.CurrentAxes.XTickLabel, 'UniformOutput', false);
-                    new_tick = cellfun(@(x) sprintf('%s\\newline%s\n', x{1},x{2}), tmp_tick, 'UniformOutput', false);
-                    xticklabels([new_tick{:}]);
-                end
-    
-    
-                % based on time range shown, add pt, sense, and LD meta
-                % data
-                dur_range =  t_plt_end -  t_plt_start;
+            fig_h = figure('Units', 'Inches', 'Position', [0, 0, 22, 10]);
+            subplot(5,3, 1:5)
             
-                text(t_plt_start - dur_range/15, fig_h.CurrentAxes.YLim(2)*1.9, pt_side_id , 'FontSize', 32);
-                
-                text(t_plt_start - dur_range/15, fig_h.CurrentAxes.YLim(2)*1.4, sense_meta, 'FontSize', 10);
-    
-                text(t_plt_start + dur_range/5.5, fig_h.CurrentAxes.YLim(2)*1.8, by_ld0_pb_meta, 'FontSize',10, 'Interpreter','none');
-                text(t_plt_start + dur_range/5.5, fig_h.CurrentAxes.YLim(2)*1.45, by_ld1_pb_meta, 'FontSize',10, 'Interpreter','none');
-                
-                
-                
-                text(t_plt_end - dur_range/1.6, fig_h.CurrentAxes.YLim(2)*1.7, ld0_meta, 'FontSize',9, 'Interpreter','none');
-                text(t_plt_end - dur_range/2.5, fig_h.CurrentAxes.YLim(2)*1.7, ld1_meta, 'FontSize',9, 'Interpreter','none');
+            plt_percent_ON_overtime(t_vec, on_off_vec, step_dur, ...
+                                    wash_out, redcap, brew_col,...
+                                    t_plt_start, t_plt_end)
+
+            xticks(t_plt_start:x_tick_dur:t_plt_end);
+
+
+            set(gca,'xlim', [t_plt_start, t_plt_end],...
+                    'GridAlpha',0.3,...
+                    'YColor', 'k', 'TickLength', [0,0], 'FontSize', 12);
+
+            
+            % reduce axis to 65% of its size so sense, and LD data can fit
+            % above
+            fig_h.CurrentAxes.Position(2)        = fig_h.CurrentAxes.Position(2) *.65;
+            
+            % format xtick labels to fit on multiple lines
+            if h == 0 && ge(t_plt_end-t_plt_start, duration('72:00:00'))
+                fig_h.CurrentAxes.XTickLabelRotation = x_tick_rotation;
+                tmp_tick = cellfun(@(x) split(x,','), fig_h.CurrentAxes.XTickLabel, 'UniformOutput', false);
+                new_tick = cellfun(@(x) sprintf('%s\\newline%s\n', x{1},x{2}), tmp_tick, 'UniformOutput', false);
+                xticklabels([new_tick{:}]);
+            end
+
+
+            % based on time range shown, add pt, sense, and LD meta
+            % data
+            dur_range =  t_plt_end -  t_plt_start;
         
-                text(t_plt_end - dur_range/8,...
-                          fig_h.CurrentAxes.YLim(2) *1.6, ...
-                          ...
-                          [state_meta, sprintf('    GroupDrateInHz | %g', mode(plt_app_oi.rateHz(plt_app_oi.prog0mA > 0)))],...
-                          ...
-                          'FontSize',10, 'Interpreter','none');
-             
-                %%% explicilty show state (0-7) to stim (current in mA) relationship
-                plt_app_oi.oldstate(plt_app_oi.oldstate == 15) = NaN;
+            text(t_plt_start - dur_range/15, fig_h.CurrentAxes.YLim(2)*1.9, pt_side_id , 'FontSize', 32);
+            
+            text(t_plt_start - dur_range/15, fig_h.CurrentAxes.YLim(2)*1.4, sense_meta, 'FontSize', 10);
+
+            text(t_plt_start + dur_range/5.5, fig_h.CurrentAxes.YLim(2)*1.8, by_ld0_pb_meta, 'FontSize',10, 'Interpreter','none');
+            text(t_plt_start + dur_range/5.5, fig_h.CurrentAxes.YLim(2)*1.45, by_ld1_pb_meta, 'FontSize',10, 'Interpreter','none');
+            
+            
+            
+            text(t_plt_end - dur_range/1.6, fig_h.CurrentAxes.YLim(2)*1.7, ld0_meta, 'FontSize',9, 'Interpreter','none');
+            text(t_plt_end - dur_range/2.5, fig_h.CurrentAxes.YLim(2)*1.7, ld1_meta, 'FontSize',9, 'Interpreter','none');
     
-                subplot(5,3, 12:15)
+            text(t_plt_end - dur_range/8,...
+                      fig_h.CurrentAxes.YLim(2) *1.6, ...
+                      ...
+                      [state_meta, sprintf('    GroupDrateInHz | %g', mode(plt_app_oi.rateHz(plt_app_oi.prog0mA > 0)))],...
+                      ...
+                      'FontSize',10, 'Interpreter','none');
+         
+            %%% explicilty show state (0-7) to stim (current in mA) relationship
+            plt_app_oi.oldstate(plt_app_oi.oldstate == 15) = NaN;
+
+            subplot(5,3, 12:15)
+    
+                    stairs(plt_app_oi.time_INS(1:end-1), plt_app_oi.prog0mA(2:end),...
+                        '-','LineWidth',1.25, 'Color',  'k');    hold on
+    
+                    yticks(0:0.5:3);            ylim([0, 3.25]); 
+
+                    ylabel('Current (mA)');     set(gca, 'FontSize', 12);  
+                    
+                    yyaxis right
         
+                        stairs(plt_app_oi.time_INS(1:end-1), plt_app_oi.oldstate(2:end), ...
+                            '-','LineWidth',1.5, 'Color',  brew_col(1, :));  
+                        ylim([0,8.5]); yticks(0:8); ylabel('State');    grid on;
+
+            switch cfg.plt_state_dur
+                case 'two_chunks'
+                    % specific sizing
+                    fig_h.CurrentAxes.Position([1, 2, 3,4]) = [0.125, 0.1, .35, 0.24];
+                    
+                    set(gca, 'TickLength', [0, 0],'FontSize', 12, 'YColor', brew_col(1, :), ...
+                                  'XLim', [t_plt_start + duration('1:00:00'), ...
+                                  t_plt_start + + duration('2:00:00')],...
+                                  'GridAlpha',0.3);
+
+                    xticks(t_plt_start + duration('1:00:00')...
+                        :duration('0:05:00'):...
+                        t_plt_start+ duration('2:00:00'))
+
+                    % repeatl ↑↑↑ code for second sub-session hour chunk
+                    subplot(5,3, 15)
+
+                    fig_h.CurrentAxes.Position([1, 2, 3,4]) = [0.557, 0.1, .35, 0.24];
+    
                         stairs(plt_app_oi.time_INS(1:end-1), plt_app_oi.prog0mA(2:end),...
-                            '-','LineWidth',1.25, 'Color',  'k');    hold on
+                            '-','LineWidth',1.75, 'Color',  'k');    hold on
         
-                        yticks(0:0.5:3);            ylim([0, 3.25]); 
-    
-                        ylabel('Current (mA)');     set(gca, 'FontSize', 12);  
+                         yticks(0:0.5:3);         ylim([0, 3.25]);
+                         ylabel('Current (mA)');   set(gca, 'FontSize', 12);  
                         
-                        yyaxis right
+                         yyaxis right
             
                             stairs(plt_app_oi.time_INS(1:end-1), plt_app_oi.oldstate(2:end), ...
-                                '-','LineWidth',1.5, 'Color',  brew_col(1, :));  
+                                '-','LineWidth',2, 'Color',  brew_col(1, :));  
                             ylim([0,8.5]); yticks(0:8); ylabel('State');    grid on;
-    
-                switch cfg.plt_state_dur
-                    case 'two_chunks'
-                        % specific sizing
-                        fig_h.CurrentAxes.Position([1, 2, 3,4]) = [0.125, 0.1, .35, 0.24];
-                        
-                        set(gca, 'TickLength', [0, 0],'FontSize', 12, 'YColor', brew_col(1, :), ...
-                                      'XLim', [t_plt_start + duration('1:00:00'), ...
-                                      t_plt_start + + duration('2:00:00')],...
-                                      'GridAlpha',0.3);
-    
-                        xticks(t_plt_start + duration('1:00:00')...
-                            :duration('0:05:00'):...
-                            t_plt_start+ duration('2:00:00'))
-    
-                        % repeatl ↑↑↑ code for second sub-session hour chunk
-                        subplot(5,3, 15)
-    
-                        fig_h.CurrentAxes.Position([1, 2, 3,4]) = [0.557, 0.1, .35, 0.24];
-        
-                            stairs(plt_app_oi.time_INS(1:end-1), plt_app_oi.prog0mA(2:end),...
-                                '-','LineWidth',1.75, 'Color',  'k');    hold on
+
+                    set(gca, 'TickLength', [0, 0],'FontSize', 12, 'YColor', brew_col(1, :), ...
+                            'XLim', [t_plt_start + duration('13:00:00'), ...
+                            t_plt_start + + duration('14:00:00')],...
+                            'GridAlpha',0.3);
+
+                    xticks(t_plt_start + duration('13:00:00')...
+                        :duration('0:05:00'):...
+                        t_plt_start+ duration('14:00:00'))
+
+                case 'sub_session_duration'
+
+                  set(gca,'TickLength', [0, 0],'FontSize', 12, 'YColor', brew_col(1, :), ...
+                          'XLim', [t_plt_start, t_plt_end],...
+                          'GridAlpha',0.3);
+
+                    % specific sizing
+                    fig_h.CurrentAxes.Position([2, 4]) = [0.1, 0.24];
+
+                    xticks(t_plt_start:x_tick_dur:t_plt_end) 
+            end
+
+             % format xtick labels to fit on multiple lines
+            if h == 0 && ge(t_plt_end-t_plt_start, duration('72:00:00'))
+                fig_h.CurrentAxes.XTickLabelRotation = x_tick_rotation;
+                tmp_tick = cellfun(@(x) split(x,','), fig_h.CurrentAxes.XTickLabel, 'UniformOutput', false);
+                new_tick = cellfun(@(x) sprintf('%s\\newline%s\n', x{1},x{2}), tmp_tick, 'UniformOutput', false);
+                xticklabels([new_tick{:}]);
+            end
+
+           %%% make folders based on sub-session times, and save as .pngs
             
-                             yticks(0:0.5:3);         ylim([0, 3.25]);
-                             ylabel('Current (mA)');   set(gca, 'FontSize', 12);  
-                            
-                             yyaxis right
-                
-                                stairs(plt_app_oi.time_INS(1:end-1), plt_app_oi.oldstate(2:end), ...
-                                    '-','LineWidth',2, 'Color',  brew_col(1, :));  
-                                ylim([0,8.5]); yticks(0:8); ylabel('State');    grid on;
-    
-                        set(gca, 'TickLength', [0, 0],'FontSize', 12, 'YColor', brew_col(1, :), ...
-                                'XLim', [t_plt_start + duration('13:00:00'), ...
-                                t_plt_start + + duration('14:00:00')],...
-                                'GridAlpha',0.3);
-    
-                        xticks(t_plt_start + duration('13:00:00')...
-                            :duration('0:05:00'):...
-                            t_plt_start+ duration('14:00:00'))
-    
-                    case 'sub_session_duration'
-    
-                      set(gca,'TickLength', [0, 0],'FontSize', 12, 'YColor', brew_col(1, :), ...
-                              'XLim', [t_plt_start, t_plt_end],...
-                              'GridAlpha',0.3);
-    
-                        % specific sizing
-                        fig_h.CurrentAxes.Position([2, 4]) = [0.1, 0.24];
-    
-                        xticks(t_plt_start:x_tick_dur:t_plt_end) 
-                end
-    
-                 % format xtick labels to fit on multiple lines
-                if h == 0 && ge(t_plt_end-t_plt_start, duration('72:00:00'))
-                    fig_h.CurrentAxes.XTickLabelRotation = x_tick_rotation;
-                    tmp_tick = cellfun(@(x) split(x,','), fig_h.CurrentAxes.XTickLabel, 'UniformOutput', false);
-                    new_tick = cellfun(@(x) sprintf('%s\\newline%s\n', x{1},x{2}), tmp_tick, 'UniformOutput', false);
-                    xticklabels([new_tick{:}]);
-                end
-    
-               %%% make folders based on sub-session times, and save as .pngs
-                
-                if h == 0 && ge(t_plt_end-t_plt_start, duration('72:00:00'))
-                     
-                    filename =  sprintf('%s (whole time-period).png', ...
-                                    offline_sess_name);
-    
-                    long_aDBS_tbl.report_dir{i}    =  [save_dir,filename];
+            if h == 0 && ge(t_plt_end-t_plt_start, duration('72:00:00'))
+                 
+                filename =  sprintf('%s (whole time-period).png', ...
+                                offline_sess_name);
 
+                long_aDBS_tbl.report_dir{i}    =  [save_dir,filename];
+
+            else
+
+                if ge(stop_time - start_time, longest_dur)
+                
+                    if ~isfolder([save_dir, offline_sess_name]);  mkdir([save_dir, offline_sess_name]);    end
+                
+                    filename =  sprintf('%s/%s-->%s.png', ...
+                    offline_sess_name, string(t_plt_start, 'yy-MM-dd'), string(t_plt_end, 'yy-MM-dd'));
                 else
-
-                    if ge(stop_time - start_time, longest_dur)
-                    
-                        if ~isfolder([save_dir, offline_sess_name]);  mkdir([save_dir, offline_sess_name]);    end
-                    
-                        filename =  sprintf('%s/%s-->%s.png', ...
-                        offline_sess_name, string(t_plt_start, 'yy-MM-dd'), string(t_plt_end, 'yy-MM-dd'));
-                    else
-                        filename = sprintf('%s.png', offline_sess_name);
-                    
-                    end
+                    filename = sprintf('%s.png', offline_sess_name);
+                
                 end
+            end
                 % defined at start from cfg.ephy_anal_dir as specified in wrapper
                 if isfile([save_dir,filename]);    delete([save_dir,filename]);   end
                 exportgraphics(gcf, [save_dir,filename]);
 
-            else % if aDBS was always or never On
-                 long_aDBS_tbl.report_dir{i}    = 'No report (0% or 100% duty cycle)';
-            end
         end
 
     else % if aDBS is of uninteresting duration (<10 min | > 21 days)

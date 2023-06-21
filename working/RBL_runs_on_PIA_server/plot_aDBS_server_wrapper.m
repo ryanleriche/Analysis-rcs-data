@@ -1,6 +1,11 @@
-% call CONFIG_aDBS to load directories, and REDcap data 
+% call CONFIG_plot_aDBS_server_wrapper to load directories, and REDcap data 
 
-CONFIG_aDBS;
+CONFIG_plot_aDBS_server_wrapper
+
+% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
+% as of Apr. 2023, only daily surveys are analysis-ready/organized
+REDcap                  = RCS_redcap_painscores(rcs_API_token);
+
 %% import RCS databases, and INS logs per pt side as structures
 %{
 *   saves RCS session summaries as databases (db) from constellation of
@@ -22,12 +27,12 @@ Inital run takes hours for running multiple pts w/ 1000s of streaming
 sessions.
 %}
 
-sub_cfg.load_EventLog      = true;
+cfg_rcs.load_EventLog      = true;
 
 % option to load previous database for efficient processing
-sub_cfg.ignoreold_db                = false;
-sub_cfg.ignoreold_INS_logs          = false;
-sub_cfg.ignoreold_par_db            = true;    % <-- keep as true to avoid version issues
+cfg_rcs.ignoreold_db                = false;
+cfg_rcs.ignoreold_INS_logs          = false;
+cfg_rcs.ignoreold_par_db            = true;    % <-- keep as true to avoid version issues
 
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
@@ -39,7 +44,7 @@ for i = 1  : length(pt_sides)
         ...
         = makeDatabaseRCS_Ryan(...
         ...
-        sub_cfg, pt_sides{i});
+        cfg_rcs, pt_sides{i});
 
     %%% process INS logs .txts based on unique entries only
         % (INS logs have mostly repeating entries)
@@ -47,7 +52,7 @@ for i = 1  : length(pt_sides)
         ...
         = RCS_logs( ...
         ...
-        sub_cfg, pt_sides{i});
+        cfg_rcs, pt_sides{i});
 
     %%% unpack all sense, LD, and stimulation settings as own variable in table
         % allows for programmatic discernment of unique RC+S settings
@@ -55,7 +60,7 @@ for i = 1  : length(pt_sides)
         ...
         = makeParsedDatabaseRCS(...
         ...
-        sub_cfg, pt_sides{i}, db);
+        cfg_rcs, pt_sides{i}, db);
 
     %%% find nearest (yet, preceding) streaming session to INS log entry
         % accounts for INS to API time latency
@@ -68,13 +73,11 @@ for i = 1  : length(pt_sides)
 end
 %% plot aDBS performance longitudinally
 %%% specify which dates to return:
-pt_sides              = {'RCS04L'};%,'RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS07L', 'RCS07R'};
-
-sub_cfg.dates         = 'DateRange';
-sub_cfg.date_range    = {'01-May-2023'; '08-Jun-2027'};
+cfg_rcs.dates         = 'DateRange';
+cfg_rcs.date_range    = {'01-Jan-2023'; '08-Jun-2027'};
 %cfg.dates        = 'AllTime'; %%% return every aDBS ever tried (takes much longer):
 
-sub_cfg.plt_state_dur = 'sub_session_duration'; %%% state-current relationship (12 am - 12 pm)
+cfg_rcs.plt_state_dur = 'sub_session_duration'; %%% state-current relationship (12 am - 12 pm)
 
 %%% plot aDBS performance over requested dates
 for i = 1:length(pt_sides)
@@ -83,5 +86,5 @@ for i = 1:length(pt_sides)
         ...
         = plot_longitudinal_aDBS_2(...
         ...
-    sub_cfg,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
+    cfg_rcs,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
 end

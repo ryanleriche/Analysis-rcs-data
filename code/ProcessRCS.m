@@ -163,11 +163,11 @@ if processFlag == 1 || processFlag == 2
     if isfile(TD_fileToLoad)
         jsonobj_TD = deserializeJSON(TD_fileToLoad);
         if isfield(jsonobj_TD,'TimeDomainData') && ~isempty(jsonobj_TD.TimeDomainData)
-             if cfg.textoutputs;     disp('Loading Time Domain Data');       end
-
+             
+            disp('Loading Time Domain Data');       
             [outtable_TD, srates_TD] = createTimeDomainTable(jsonobj_TD);
             
-             if cfg.textoutputs;     disp('Creating derivedTimes for time domain:');     end
+            disp('Creating derivedTimes for time domain:');     
             timeDomainData = assignTime(outtable_TD, shortGaps_systemTick);
         else
             timeDomainData = [];

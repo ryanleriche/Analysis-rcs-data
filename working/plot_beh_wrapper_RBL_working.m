@@ -539,10 +539,10 @@ end
 %
 %%
 % last N days for: 
-close all; set(0,'DefaultFigureVisible','on')
+set(0,'DefaultFigureVisible','on')
 cfg_rcap                     = [];
 
-cfg_rcap.pt_id               = 'RCS04';
+cfg_rcap.pt_id               = 'RCS05';
 cfg_rcap.dates               = 'PreviousDays';
 cfg_rcap.ndays               = 7;
 
