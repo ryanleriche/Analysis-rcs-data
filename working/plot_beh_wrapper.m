@@ -30,7 +30,7 @@ cfg_rcs_db.ignoreold_par_db            = true;    % <-- keep as true to avoid ve
 % specify patient hemispheres
 %%% pts to update database from scratch locally:
 %pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS04R','RCS04L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
-pt_sides        = {'RCS02R','RCS05R', 'RCS05L','RCS07L', 'RCS07R'};
+pt_sides        = {'RCS07R'};
 
 
 for i = 1  : length(pt_sides)
@@ -70,7 +70,7 @@ end
 %% plot aDBS performance longitudinally
 %%% specify which dates to return:
 cfg_rcs_db.dates         = 'DateRange';
-cfg_rcs_db.date_range    = {'01-May-2023'; '01-Jul-2023'};
+cfg_rcs_db.date_range    = {'01-Jun-2023'; '21-Jun-2023'};
 
 %%% return every aDBS ever tried (takes much longer):
 %cfg.dates        = 'AllTime';
@@ -87,57 +87,100 @@ for i = 1:length(pt_sides)
 
     aDBS_sum.(pt_sides{i}) ...
         ...
-        = plot_longitudinal_aDBS(...
+        = plot_longitudinal_aDBS_2(...
         ...
     cfg_rcs_db,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
 end
 
 
 %%%
-%% behavioral plotting only
-%%
-% last N days for: 
+%% Behavioral plotting 
+
+% Create a config file to define patients and dates of interest
 cfg_rcap                     = [];
 
-cfg_rcap.pt_id               = 'RCS05';
-cfg_rcap.dates               = 'PreviousDays';
-cfg_rcap.ndays               = 10;
-
-%%% return every pain score:
-%cfg.dates        = 'AllTime';
-
-cfg_rcap.subplot             = true;
-cfg_rcap.stim_parameter      = '';
-
-    plot_timeline(cfg_rcap, REDcap, fluct_sum_stats);
-    
-    
-cfg_rcap                     = [];
-
-cfg_rcap.pt_id               = 'RCS06';
-cfg_rcap.dates               = 'PreviousDays';
-cfg_rcap.ndays               = 10;
-
-%%% return every pain score:
-%cfg.dates        = 'AllTime';
-
-cfg_rcap.subplot             = true;
-cfg_rcap.stim_parameter      = '';
-
-    plot_timeline(cfg_rcap, REDcap, fluct_sum_stats);
-
-
-
-cfg_rcap                     = [];
-
+% Define patient of interest
 cfg_rcap.pt_id               = 'RCS07';
+
+% Define dates of interest
 cfg_rcap.dates               = 'PreviousDays';
 cfg_rcap.ndays               = 10;
 
-%%% return every pain score:
+% Define stim parameter
+cfg_rcap.stim_parameter      = '';
+
+% Define stage dates
+cfg_rcap.stage_dates         = stage_dates;
+
+% Use the following line to return every pain score ever reported:
 %cfg.dates        = 'AllTime';
 
 cfg_rcap.subplot             = true;
 cfg_rcap.stim_parameter      = '';
 
-    plot_timeline(cfg_rcap, REDcap, fluct_sum_stats);
+% Generate a graph of behavioral reports (with pain fluctuation study aka
+% PFS)
+%     plot_timeline(cfg_rcap, REDcap, PFS_sum_stats);
+
+% Generate a graph of behavioral reports (without PFS information)
+    plot_timeline_no_PFS(cfg_rcap, REDcap);    
+
+%% Visualize additional patients of interest
+
+% Create a config file to define patients and dates of interest
+cfg_rcap                     = [];
+
+% Define patient of interest
+cfg_rcap.pt_id               = 'RCS02';
+
+% Define dates of interest
+cfg_rcap.dates               = 'PreviousDays';
+cfg_rcap.ndays               = 10;
+
+% Define stim parameter
+cfg_rcap.stim_parameter      = '';
+
+% Define stage dates
+cfg_rcap.stage_dates         = stage_dates;
+
+% Use the following line to return every pain score ever reported:
+%cfg.dates        = 'AllTime';
+
+cfg_rcap.subplot             = true;
+cfg_rcap.stim_parameter      = '';
+
+% Generate a graph of behavioral reports (with pain fluctuation study aka
+% PFS)
+%     plot_timeline(cfg_rcap, REDcap, PFS_sum_stats);
+
+% Generate a graph of behavioral reports (without PFS information)
+    plot_timeline_no_PFS(cfg_rcap, REDcap);    
+
+    % Create a config file to define patients and dates of interest
+cfg_rcap                     = [];
+
+% Define patient of interest
+cfg_rcap.pt_id               = 'RCS02';
+
+% Define dates of interest
+cfg_rcap.dates               = 'PreviousDays';
+cfg_rcap.ndays               = 10;
+
+% Define stim parameter
+cfg_rcap.stim_parameter      = '';
+
+% Define stage dates
+cfg_rcap.stage_dates         = stage_dates;
+
+% Use the following line to return every pain score ever reported:
+%cfg.dates        = 'AllTime';
+
+cfg_rcap.subplot             = true;
+cfg_rcap.stim_parameter      = '';
+
+% Generate a graph of behavioral reports (with pain fluctuation study aka
+% PFS)
+%     plot_timeline(cfg_rcap, REDcap, PFS_sum_stats);
+
+% Generate a graph of behavioral reports (without PFS information)
+    plot_timeline_no_PFS(cfg_rcap, REDcap);    
