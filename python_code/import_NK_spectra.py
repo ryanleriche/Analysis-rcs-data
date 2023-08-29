@@ -13,10 +13,7 @@ def  import_NK_spectra(pt_id, dirs):
     ch_names = [ch_lab[0].replace(" ", "") + ' ' + ch_lab[1] +'-' + ch_lab[3] for ch_lab in tmp_labs]
     print(ch_names)
 
-    tmp = np.load(base_dir + 'specs.npy')
-    dim = (tmp.shape[1], tmp.shape[0], tmp.shape[2])  
-    
-    raw_pwrspectra = np.reshape(tmp, dim, order='F')
+    raw_pwrspectra = np.load(base_dir + 'specs.npy')
     print(np.shape(raw_pwrspectra)) # spectra look to dimensionally trial by ch by freq 
 
     fft_bins_inHz = np.load(base_dir + 'freqs.npy')

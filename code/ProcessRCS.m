@@ -158,7 +158,7 @@ if processFlag == 1 || processFlag == 2
     
     %%
     % TimeDomain data
-    if cfg.textoutputs;      disp('Checking for Time Domain Data');      end
+  
     TD_fileToLoad = [folderPath filesep 'RawDataTD.json'];
     if isfile(TD_fileToLoad)
         jsonobj_TD = deserializeJSON(TD_fileToLoad);

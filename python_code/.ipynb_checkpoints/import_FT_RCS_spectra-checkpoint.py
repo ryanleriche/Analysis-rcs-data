@@ -12,8 +12,7 @@ def import_FT_RCS_spectra(pt_hemi, dirs):
     # To load a .mat 7.3 into Python as a dictionary:
     ft_struct = mat73.loadmat(base_dir + 'ft_form_pp_FFT_struct.mat')['ft_freq_pp']
     
-    pwrspectra_by_sess = np.reshape(ft_struct['powspctrm'], [ft_struct['powspctrm'].shape[1],
-                                    ft_struct['powspctrm'].shape[0], ft_struct['powspctrm'].shape[2]], order='F')
+    pwrspectra_by_sess = ft_struct['powspctrm']
     
     print(np.shape(pwrspectra_by_sess))
 
@@ -28,7 +27,7 @@ def import_FT_RCS_spectra(pt_hemi, dirs):
 
     
     parsed_db_oi   = pd.read_excel(base_dir + 'par_db.xlsx')
-
+    print(base_dir + 'par_db.xlsx')
     #### sanity check: importing from MATLAB has all the same spectra and meta data
 
     plt.style.use('seaborn-colorblind')
@@ -37,7 +36,7 @@ def import_FT_RCS_spectra(pt_hemi, dirs):
     plt.title(pt_hemi)
     for i_chan in range(len(ch_names)): # loop through channels
 
-        plt.plot(fft_bins_inHz, np.log10(np.mean(pwrspectra_by_sess[i_chan, :, :], 0)))
+         plt.plot(fft_bins_inHz, np.log10(np.mean(pwrspectra_by_sess[:, i_chan, :], 0)))
 
 
     plt.ylim([-11,-1])

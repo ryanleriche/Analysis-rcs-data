@@ -45,7 +45,7 @@ for i=1:length(i_ch_pb_in_LD)
         case 6;     pb  = 'Ch2Band1';
 
         case 7;     pb  = 'Ch3Band0';
-        case 8;     pb  = 'C32Band1';   
+        case 8;     pb  = 'Ch3Band1';   
     end
     convertedLd.powerband_Inputs{i} = pb;
 end
