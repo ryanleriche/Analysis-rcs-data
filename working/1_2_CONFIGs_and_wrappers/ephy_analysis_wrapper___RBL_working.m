@@ -114,6 +114,31 @@ for i = 1 : length(pt_sides)
         pp_rcs_spectra_2(sub_cfg, dirs, pt_sides{i})
 end
 
+%% single channel spectrogram, (2023 BRAIN submission)
+
+sub_cfg.pwr_limits      = [-10, -5];
+sub_cfg.freq            = [1, 40];
+
+
+sub_cfg.y_lbl_txt       = 'days since implant';
+sub_cfg.rcs_ch_oi       = 'Ch2';
+sub_cfg.c_str           = 'Power (db)';
+
+
+
+sub_cfg.save_dir       = fullfile(dirs.rcs_pia, 'ephy_analysis/staged_spectra_stability/');
+
+sub_cfg.fig_name        = 'example_s1_spectrum';
+
+plt_daily_spec(sub_cfg, dirs, 'RCS06R');
+
+
+
+
+
+
+%%
+
 %%% then w/ 5 min pre-survey
 %{
 sub_cfg.min_pre_rcap   = duration('0:05:00');
@@ -142,49 +167,29 @@ all sensing hemisphere is single figure.
 
 %pt_sides    = {'RCS02R','RCS04R','RCS04L', 'RCS05R', 'RCS05L', 'RCS06R','RCS06L','RCS07L', 'RCS07R'};
 close all
+set(0,'DefaultFigureVisible','on')
+
 pt_sides    = {'RCS02R', 'RCS04L', 'RCS04R','RCS05L', 'RCS05R', 'RCS06L','RCS06R','RCS07L', 'RCS07R'};
 pts         = {'RCS02', 'RCS04', 'RCS05', 'RCS06','RCS07'};          
 
 
-[rcs_30s.sense_chan, rcs_30s.fft_bins_inHz]   = import_fooof(...
+[rcs_30s.sense_chan, ...
+    rcs_30s.fft_bins_inHz]  = import_fooof(...
                                             fullfile(dirs.rcs_preproc, 'spectra_per_sess/'),...
                                              pt_sides, ...
                                             '/stage1_only (pp work up)/30s_pre_survey/');
 
-[nk.sense_chan, nk.fft_bins_inHz]     = import_fooof(...
+[nk.sense_chan, ...
+    nk.fft_bins_inHz]       = import_fooof(...
                                             fullfile(dirs.nk_preproc, 'fooof_specs (30s_prior_to_survey, updated channels)'),...
                                             pts,...
                                             '');
 %%
-[nk, rcs_30] = plt_nk_rcs_spectra(dirs, pt_sides, ...
+[nk, rcs_30s] = plt_nk_rcs_spectra(dirs, pt_sides, ...
                                   nk, rcs_30s, ...
                                   'ALL_hemispheres_nk_rcs (fixed, 30s_pre_survey)');
 %%
-peak_sum_tbl = find_nearest_FOOOFd_peak(nk, rcs_30s);
-
-for i = 1 : length(pt_sides)
-
-    rcs_chs = rcs_30.sense_chan.Properties.RowNames;
-    i_rcs   = find(contains(rcs_chs, pt_sides{i}));
-    
-    nk_chs  = nk.sense_chan.Properties.RowNames;
-    i_nk    = find(contains(nk_chs, pt_sides{i}));
-
-    peak_sum_tbl.abs_spec_diff_in_db(i) = mean(...
-                        abs(...
-                            nk.sense_chan{i_rcs,"mean_periodic_spec"}{1} ...
-                            - ...
-                            rcs_30.sense_chan{i_nk,"mean_periodic_spec"}{1}...
-                            )...
-                        );
-end
-
-peak_sum_tbl.Properties.RowNames = pt_sides;
-
-peak_sum_tbl = sortrows(peak_sum_tbl, 'Row');
-
-% plot_primary_peaks(dirs, peak_freq_tbl, nk, rcs_30s, ...
-%     'ALL_hemispheres_nk_rcs (fixed, 30s_pre_survey)---single band comparison')
+peak_sum_tbl = find_nearest_FOOOFd_peak(pt_sides, nk, rcs_30s);
 
 plot_primary_peaks_2(dirs, peak_sum_tbl, nk, rcs_30s, ...
     'ALL_hemispheres_nk_rcs (fixed, 30s_pre_survey)---major peaks')
@@ -196,134 +201,19 @@ s0_s1_path = fullfile(dirs.dropbox,...
          'Prasad_electrode_locations_stage0_and_stage1_ver4.mat');
 
 
-tmp            = load(s0_s1_path);
-s0_s1_dist_tbl = tmp.data;              clear tmp;
+[peak_sum_tbl, s0_s1_dist_tbl] ...
+    ...
+    = import_interstage_distance(...
+    ...
+s0_s1_path, peak_sum_tbl);
 
-
-s0_s1_dist_tbl(...
-                cellfun(@isempty, s0_s1_dist_tbl.SlicerClosestLabel),...
-                :) = [];
-
-
-s0_s1_dist_tbl.Subject = upper(s0_s1_dist_tbl.Subject);
-%%%
-hemi_lbl_mat = split(...
-                    replace(...   
-                        replace(...
-                                peak_sum_tbl.labels_1, {' ', '-'}, '_'), ...
-                        {'RACCa', 'CM'}, {'RACC', 'CMPF'}),...
-                    '_');
-
-first_cont = cellfun(@(x, y) sprintf('%s%s', x, y), ...
-            hemi_lbl_mat(:,2), hemi_lbl_mat(:,3), ...
-            'UniformOutput', false);
-
-second_cont = cellfun(@(x, y) sprintf('%s%s', x, y), ...
-            hemi_lbl_mat(:,2), hemi_lbl_mat(:,4), ...
-            'UniformOutput', false);
-
-peak_sum_tbl.labels_1_1 = first_cont;
-peak_sum_tbl.labels_1_2 = second_cont;
-
-
-RCS_lbl_rmv = {'RIFG', 'RSFG','RSGC', 'LSGC','LCaud','+'};
-TW_lbl_add  = {'RMFG', 'RMFG', 'RACC', 'LACC','LCN',''};
-hemi_lbl_mat = split(...
-                    replace(...   
-                        replace(...
-                                peak_sum_tbl.labels_2, {' ', '-'}, '_'), ...
-                                RCS_lbl_rmv, TW_lbl_add),...
-                    '_');
-
-% translate from 0:3, 8:11 (i.e., RC+S labels) to Tom Wozny's 1:4 labels
-hemi_lbl_mat(:, 3:4) = replace(hemi_lbl_mat(:, 3:4), ...
-                               compose('%g', [8:11, 0:3]),...
-                               compose('%g', [1:4, 1:4]));
-
-first_cont = cellfun(@(x, y) sprintf('%s%s', x, y), ...
-            hemi_lbl_mat(:,2), hemi_lbl_mat(:,3), ...
-            'UniformOutput', false);
-
-second_cont = cellfun(@(x, y) sprintf('%s%s', x, y), ...
-            hemi_lbl_mat(:,2), hemi_lbl_mat(:,4), ...
-            'UniformOutput', false);
-
-peak_sum_tbl.labels_2_1 = first_cont;
-peak_sum_tbl.labels_2_2 = second_cont;
-
+peak_sum_tbl ...
+    ...
+    = plot_interstage_distance_to_spectra(...
+    ...
+dirs, peak_sum_tbl,s0_s1_dist_tbl, 'spec_power_to_dist_error_correlation.png');
 
 %%
-
-for i = 1 : length(pt_sides)
-
-    pt_oi     = peak_sum_tbl.labels_1{i}(1:5);
-    i_pt_oi   = strcmpi(s0_s1_dist_tbl.Subject, pt_oi);
-
-
-    hemi_dist = s0_s1_dist_tbl(i_pt_oi, :);
-
-    i_label   = contains(hemi_dist.Label,...
-                    {peak_sum_tbl.labels_2_1{i}, peak_sum_tbl.labels_2_2{i}});
-
-    peak_sum_tbl.avg_SliderEuclidainMin(i) ...
-        ...
-        = mean(hemi_dist(i_label, :).SlicerEuclidianMin);
-
-    peak_sum_tbl.hemi_dist_tbl{i} = hemi_dist(i_label, :);
-
-
-    peak_sum_tbl.bf01_max(i)...
-        ...
-        =max(peak_sum_tbl.bf01{i});
-
-
-    peak_sum_tbl.bf01_mean(i)...
-        ...
-        =mean(peak_sum_tbl.bf01{i});
-
-end
-
-% close all
-% set(0,'DefaultFigureVisible','on')
-
-figure('Units','inches','Position',[5, 5, 5, 5]);
-
-colors = brewermap(length(pt_sides), 'Set1');
-
-for i = 1: length(pt_sides)
-scatter(peak_sum_tbl.avg_SliderEuclidainMin(i), ...
-        peak_sum_tbl.abs_spec_diff_in_db(i), ...
-        200, colors(i, :),'filled');
-hold on
-
-end
-
-legend(pt_sides, 'Location','northoutside', 'NumColumns',3);
-ylabel('absolute spectra difference (db)')
-xlabel('SliderEuclidainMin between bipolar pair')
-
-set(gca, 'FontSize', 14)
-
-i_keep = ~strcmp(peak_sum_tbl.Row, 'RCS05R');
-
-[rho, p] = corr(peak_sum_tbl.abs_spec_diff_in_db(i_keep),...
-                 peak_sum_tbl.avg_SliderEuclidainMin(i_keep), 'type','Pearson');
-
-
-title(sprintf("Pearson's correlation: %.2f \rho; %.1e \p-value", rho, p))
-
-
-%%
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -338,7 +228,7 @@ pts         = {'RCS02', 'RCS04', 'RCS05', 'RCS06','RCS07'};
                                             '/stage1_only (pp work up)/5m_pre_survey/');
 
 plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs_5m, 'ALL_hemispheres_nk_rcs (fixed, 5m_pre_survey)')
-%%
+
 %% compare peak frequencies between NK and RC+S spectra
 %{
 
@@ -359,95 +249,12 @@ visualize NK and RCS peaks and variance
 % 
 % plot_primary_peaks(peak_freq_tbl_5m, nk, rcs_5m)
 % 
-
-
-
 %%
 %
 %
 %
 %
 %
-%
-
-hemi_chan_lbls = hemi_sense_chan.Properties.RowNames;
-
-
-
-i_cnt = 1;
-
-%i_sense = 1:height(hemi_sense_chan);
-
-i_sense = [1, 2, 4, 7:2:13, 14, 17];
-for j  = i_sense
-    nexttile(i_cnt)
-
-    plt_spectrum = hemi_sense_chan{j,"pwr_spectra_aperiodic_rmv"}{1};
-
-    [lineout, ~] = stdshade(plt_spectrum, 0.2, 'k', fft_bins_inHz);
-
-    input = {lineout.YData, fft_bins_inHz, 'MinPeakProminence',0.1,'Annotate','extents'};
-
-    [a, b, c, d] ...
-     ...
-        =  findpeaks(input{:});
-
-     hemi_sense_chan{j, 'ss_avg_pks_pwr'} = {a};
-     hemi_sense_chan{j, 'ss_avg_pks_freq'} = {b};
-
-     hemi_sense_chan{j, 'ss_avg_half_prom_freq_width'} = {c};
-     hemi_sense_chan{j, 'ss_avg_hprom_pwr'}            = {d};
-
-    
-    %%% nice built-in plotting call
-    findpeaks(input{:}); hold on;
-
-    ax = gca;
-    h = findobj(ax, 'tag', 'HalfProminenceWidth');  h.LineWidth = 2;  h.Color = 'g';
-    h = findobj(ax, 'tag', 'Prominence');           h.LineWidth = 2;
-    
-    h = findobj(ax, 'tag', 'Peak');                 h.MarkerSize = 10; 
-
-  
-    %ylim([-0.1, 1])
-    ylabel('log_{10}(mV^{2}/Hz)');      xlabel('Frequency (Hz)');
-    title(hemi_chan_lbls(j), 'Interpreter','none');
-
- 
-    [lineout, ~] = stdshade(plt_spectrum, 0.2, 'k', fft_bins_inHz);
-    lineout.LineStyle = '-';              lineout.LineWidth = 2.25;
-    ylim([-0.1, .8])
-
-    i_cnt = i_cnt +1;
-    if j ==1
-
-        ax = gca;
-
-        ax.Legend.Position    = [0.55 0.8 0.4 0.125];
-        ax.Legend.FontSize     = 12;
-
-        ax.Legend.String(end)  = {'Mean periodic spectra'};
-
-
-        nexttile(i_cnt)
-        delete(gca)
-        i_cnt = i_cnt +1;
-
-    else
-        legend off
-
-    end
-end
-
-exportgraphics(gcf, [dirs.rcs_pia,'ephy_analysis/spectra_per_sess/group_rcs_s1_spectra_peaks.png'])
-
-%%
-i_sense = [1, 3 : 2 : height(hemi_sense_chan)];
-
-%%
-
-
-
 %% w/ power spectrum, aperiodic fit, and fooofed spectrum
 % explore high/low pain decoding for RCS02R
 cfg                 = [];

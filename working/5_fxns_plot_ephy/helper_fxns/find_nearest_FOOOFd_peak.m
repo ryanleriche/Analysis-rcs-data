@@ -1,4 +1,4 @@
-function peak_freq_tbl = find_nearest_FOOOFd_peak(fooof_struct_1, fooof_struct_2)
+function peak_freq_tbl = find_nearest_FOOOFd_peak(pt_sides, fooof_struct_1, fooof_struct_2)
 
 
 peak_freq_tbl              = table;
@@ -90,8 +90,25 @@ end
 peak_freq_tbl.labels_2   = fooof_struct_2.sense_chan.Properties.RowNames;
 peak_freq_tbl.labels_1   = fooof_struct_1.sense_chan.Properties.RowNames;
 
+%% find difference between spectra as single number summary of spectra similarity
+for i = 1 : length(pt_sides)
 
+    fs_2_chs = fooof_struct_2.sense_chan.Properties.RowNames;
+    i_fs_2   = find(contains(fs_2_chs, pt_sides{i}));
+    
+    fs_1_chs  = fooof_struct_1.sense_chan.Properties.RowNames;
+    i_fs_1    = find(contains(fs_1_chs, pt_sides{i}));
 
+    peak_freq_tbl.abs_spec_diff_in_db(i) = mean(...
+                        abs(...
+                            fooof_struct_1.sense_chan{i_fs_1,"mean_periodic_spec"}{1} ...
+                            - ...
+                            fooof_struct_2.sense_chan{i_fs_2,"mean_periodic_spec"}{1}...
+                            )...
+                        );
 end
 
-%%
+peak_freq_tbl.Properties.RowNames = pt_sides;
+peak_freq_tbl = sortrows(peak_freq_tbl, 'Row');
+
+end

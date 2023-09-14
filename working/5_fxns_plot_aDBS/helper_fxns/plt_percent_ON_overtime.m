@@ -43,12 +43,21 @@ function plt_percent_ON_overtime(t_vec, on_off_vec,...
     switch pt_side_id(1:end-1)
 
         case 'RCS05'
-            pain_metrics =  {'painSpikeNRS', 'mayoNRS', 'painVAS', 'MPQtotal'};
+            pain_metrics  =  {'painSpikeNRS', 'mayoNRS', 'painVAS', 'MPQtotal'};
             symbols       = {'*','o', '+', '^'};
 
         case  'RCS06'
-            pain_metrics =  {'npNRS','nocNRS', 'painVAS', 'MPQtotal'};
+            pain_metrics  =  {'npNRS','nocNRS', 'painVAS', 'MPQtotal'};
             symbols       = {'*','o', '+', '^'};
+
+        case  'RCS07'
+            pain_metrics  =  {'unp_abbrev_NRS','mayoNRS', 'painVAS', 'MPQtotal'};
+            symbols       = {'*','o', '+', '^'};
+
+            plt_rcap.unp_abbrev_NRS = redcap.unp_abbrev_NRS/0.4;
+
+
+
         otherwise
             pain_metrics =  {'mayoNRS', 'painVAS', 'MPQtotal'};
             symbols       = {'o', '+', '^'};
@@ -61,7 +70,7 @@ function plt_percent_ON_overtime(t_vec, on_off_vec,...
 
         switch pain_metrics{:, i_pain}
 
-            case {'painSpikeNRS', 'npNRS'}
+            case {'painSpikeNRS', 'npNRS','unp_abbrev_NRS'}
                  plt_color = 'r';
                  plt_size  = 200;
 
@@ -79,10 +88,24 @@ function plt_percent_ON_overtime(t_vec, on_off_vec,...
         hold on
     end
     
-    
-    y_lbls_txt = cellfun(@(x) sprintf('%g   %g   %g',x), ...
-    num2cell([0:10; 0:10:100; 0:4.5:45]', 2), 'UniformOutput', false);
-    
+     switch pt_side_id(1:end-1)
+
+        case 'RCS07'
+            y_lbls_txt = cellfun(@(x)...
+                                     sprintf('%g   %g   %g   %g',x), ...
+                                     num2cell([0:10;...
+                                               0:10:100; ...
+                                               0:4.5:45; ...
+                                               linspace(0,4,11)]', 2),...
+                                  'UniformOutput', false);
+            
+         otherwise
+            y_lbls_txt = cellfun(@(x)...
+                                    sprintf('%g   %g   %g',x), ...
+                                    num2cell([0:10; 0:10:100; 0:4.5:45]', 2),...
+                                'UniformOutput', false);
+            
+     end
     yticks(0:10); ylim([0,10]);  yticklabels(y_lbls_txt);
     
     fig_h = gcf;
@@ -99,7 +122,7 @@ function plt_percent_ON_overtime(t_vec, on_off_vec,...
            pain_metrics(:)'];
 
 
-    legend(leg_txt, 'FontSize',14, 'Location', 'northoutside', 'NumColumns', 8);
+    legend(leg_txt, 'FontSize',14, 'Location', 'northoutside', 'NumColumns', 8, 'Interpreter','none');
     
     grid on;
 

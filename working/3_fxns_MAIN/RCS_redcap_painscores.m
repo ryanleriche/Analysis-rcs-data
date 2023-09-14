@@ -237,13 +237,19 @@ for p = 1:numel(pt_id_list)
 
     if strcmp(pt_id, 'FLUCT')
 
-        varnames = alltable.Properties.VariableNames;
+       varnames = alltable.Properties.VariableNames;
 
         for i = 1 : length(varnames)
             if isnumeric(alltable.(varnames{i}))
 
                 if all(isnan(alltable.(varnames{i})))
                     alltable = removevars(alltable, varnames{i});
+                end
+  
+            elseif isdatetime(alltable.(varnames{i}))
+
+                if all(isnat(alltable.(varnames{i})))
+                     alltable = removevars(alltable, varnames{i});
                 end
             end
         end
@@ -265,43 +271,39 @@ for p = 1:numel(pt_id_list)
        initals = fieldnames(rcs_initals);
        pts                     = {'RCS02','RCS04', 'RCS05', 'RCS06', 'RCS07'};
 
+
+       mpq_questions = {'Throbbing', 'Shooting', 'Stabbing',...
+                            'Sharp', 'Cramping', 'Gnawing','Hot_burning',...
+                            'Aching', 'Heavy', 'Tender', 'Splitting',...
+                            'Tiring_Exhausting', 'Sickening', 'Fearful',...
+                            'Cruel'};
+
        for i=1: length(initals)
 
             clntable = alltable(...
                        contains(tmp_initals, rcs_initals.(initals{i})), :);
-            switch initals{i}
-            
-                case {'MB', 'EM'}
-                    clntable = clntable(clntable.Complete__3 == 2, :);
-            
-                case {'AMW','SDZ', 'SW'}
-                    clntable = clntable(clntable.Complete_ == 2, :);
-            end
+
+
             varnames = clntable.Properties.VariableNames;
 
             for j = 1 : length(varnames)
-                if isnumeric(clntable.(varnames{j}))
+                if isnumeric(clntable.(varnames{j})) && ~contains(varnames{j}, mpq_questions)
     
-                    if all(isnan(clntable.(varnames{j})))  &&...
-                        ~contains(varnames{j},...
-                            {'Throbbing', 'Shooting', 'Stabbing',...
-                            'Sharp', 'Cramping', 'Gnawing','Hot_burning',...
-                            'Aching', 'Heavy', 'Tender', 'Splitting',...
-                            'Tiring_Exhausting', 'Sickening', 'Fearful',...
-                            'Cruel'})
-        
+                    if all(isnan(clntable.(varnames{j})))
                         clntable = removevars(clntable, varnames{j});
                     end
-
+      
                 elseif isdatetime(clntable.(varnames{j}))
-    
+                    
                     if all(isnat(clntable.(varnames{j})))
-        
-                        clntable = removevars(clntable, varnames{j});
+                         clntable = removevars(clntable, varnames{j});
                     end
-
                 end
             end
+
+            varnames     = clntable.Properties.VariableNames;
+            complete_var = varnames(contains(varnames, 'Complete'));
+            clntable     = clntable(clntable{:, complete_var} == 2, :);
 
 
             redcap = table;
@@ -336,17 +338,18 @@ for p = 1:numel(pt_id_list)
                case {'AMW','SDZ', 'SW'}
                     %field names per subject
                     nrs_field         = 'PleaseRateYourCurrentPainIntensity_';
-                    nrs_unp_field     = 'PleaseRateYourCurrentPainUnpleasantness_';
+                    nrs_unp_field     = 'PleaseRateYourCurrentPainUnpleasantness__1';
 
                     vas_field         = 'PleaseRateYourCurrentPainIntensityBySlidingTheBoxAlongTheLine_';
 
-                    vas_unp_field     = 'PleaseRateYourCurrentPainUnpleasantnessBySlidingTheBoxAlongTheL';
+                    vas_unp_field     = 'PleaseRateYourCurrentPainUnpleasantness_';
 
                     vas_mood_field    = 'PleaseRateYourCurrentMoodBySlidingTheBoxAlongTheLine_';
                 
                     % No mood VAS was collected for some pts
                     redcap.moodVAS       = (clntable.(vas_mood_field));
 
+                    redcap.reliefVAS     = nan(height(redcap),1);
                otherwise
 
 
@@ -478,19 +481,20 @@ for p = 1:numel(pt_id_list)
             case 'RCS07'
             
                 % Populate the new flavors of painscores downloaded from redcap
-                redcap.mayoNRS = (clntable.('overall_intensity_nrs'));
-                redcap.unpNRS  = (clntable.('unp_intensity_nrs'));
+                redcap.mayoNRS          = clntable.('overall_intensity_nrs');
+                redcap.unpNRS           = clntable.('unp_intensity_nrs');
+                redcap.unp_abbrev_NRS   = clntable.('unpleasantness_abbrev');
                 
                 
-                redcap.leftarmNRS  = (clntable.('left_arm_intensity_nrs'));
-                redcap.leftlegNRS  = (clntable.('left_leg_intensity_nrs'));
-                redcap.leftfaceNRS = (clntable.('left_face_intensity_nrs'));
+                redcap.leftarmNRS       = clntable.('left_arm_intensity_nrs');
+                redcap.leftlegNRS       = clntable.('left_leg_intensity_nrs');
+                redcap.leftfaceNRS      = clntable.('left_face_intensity_nrs');
+
+ 
+                redcap.painVAS          = clntable.('pain_intensity_vas');
+                redcap.unpleasantVAS    = clntable.('unp_intensity_vas');
                 
-                
-                redcap.painVAS = (clntable.('pain_intensity_vas'));
-                redcap.unpleasantVAS = (clntable.('unp_intensity_vas'));
-                
-                redcap.moodVAS = (clntable.('mood_intensity_vas'));
+                redcap.moodVAS          = clntable.('mood_intensity_vas');
                 
 
              case 'RCS05new'

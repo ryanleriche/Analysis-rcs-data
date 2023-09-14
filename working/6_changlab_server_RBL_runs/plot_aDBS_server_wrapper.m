@@ -32,7 +32,7 @@ sessions.
 % specify which dates to plot aDBS longitudinal plots:
     %sub_cfg.dates        = 'AllTime'; %%% return every aDBS ever tried (takes much longer):
     sub_cfg.dates         = 'DateRange';
-    sub_cfg.date_range    = {'01-Jul-2023'; '3-Jun-2027'};
+    sub_cfg.date_range    = {'15-Aug-2023'; '3-Jun-2027'};
 
 % specify patient hemispheres
     pt_sides        = {'RCS02R', 'RCS04L','RCS04R', 'RCS05L', 'RCS05R',...

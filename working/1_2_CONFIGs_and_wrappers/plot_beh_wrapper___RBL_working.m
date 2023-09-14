@@ -603,4 +603,26 @@ cfg_rcap.sum_stat_txt        = true;
 cfg_rcap.stim_parameter      = '';
 
     plot_timeline_s3(cfg_rcap, REDcap, PFS_sum_stats);
+
+
+
+
+
+
+
+
+%%
+cfg_rcap                     = [];
+
+cfg_rcap.pt_id               = 'RCS02';
+cfg_rcap.dates               = 'PreviousDays';
+cfg_rcap.ndays               = 54;
+
+cfg_rcap.stage_dates         = stage_dates;
+
+cfg_rcap.subplot             = true;
+cfg_rcap.sum_stat_txt        = true;
+cfg_rcap.stim_parameter      = '';
+
+    plot_timeline(cfg_rcap, REDcap, PFS_sum_stats);
     

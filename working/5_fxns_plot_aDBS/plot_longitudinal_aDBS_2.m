@@ -335,6 +335,32 @@ for i =  1   : length(u_settings)
 %
 end
 
+%% delete all redundant files
+% output_dir = dir(save_dir);
+% 
+% names = replace({output_dir.name}', {' (whole time-period)','.png'}, '');
+% names = split(...
+%                 names(contains(names, '-->')), '-->');
+% 
+% start_ends = datetime(names, 'Format','uu-MM-dd');
+% u_starts   = unique(start_ends(:,1));
+% 
+% for j = 1 : length(u_starts)
+% 
+%     u_starts(j) == start_ends(:,1)
+% 
+% 
+% 
+% end
+% 
+% start_ends(:,1) ==
+% 
+% 
+% 
+% if isfile([save_dir,filename]);    delete([save_dir,filename]);   end
+
+
+
 if ~isempty(aDBS_sum)
     aDBS_sum = sortrows(aDBS_sum,'timeStart_INS_log','ascend');
     save(aDBS_sum_path ,"aDBS_sum",'-v7.3')

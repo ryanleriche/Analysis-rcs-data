@@ -41,7 +41,7 @@ sessions.
     pt_sides        = {'RCS02R', 'RCS04L','RCS04R', 'RCS05L', 'RCS05R',...
                        'RCS06L', 'RCS06R','RCS07L', 'RCS07R'};
 
-    pt_sides        = {'RCS02R'};               
+    pt_sides        = {'RCS07L'};               
 
 for i = 1  : length(pt_sides)
     %%% process RCS .jsons into searchable database

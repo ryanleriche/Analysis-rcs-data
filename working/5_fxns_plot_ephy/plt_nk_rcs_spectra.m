@@ -1,17 +1,20 @@
 function [nk, rcs] = plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs, fig_name)
 
-    colors = brewermap(NaN, 'Dark2');
+    %colors = brewermap(NaN, 'Dark2');
     
     
     save_dir = fullfile(dirs.rcs_pia, 'ephy_analysis/staged_spectra_stability/');
     
     if ~isfolder(save_dir);     mkdir(save_dir);    end
     
-    figure('Units','inches','Position',[-15, 3, 10, 10])
+    figure('Units','inches','Position',[-15, 3, 6, 6])
     
-    tiledlayout(3,3, 'Padding','tight')
-    sgtitle(sprintf('Periodic power-spectra between inpatient and ambulatory stages'))
+    tiledlayout(3,3, 'Padding','compact')
+    sgtitle(sprintf('Periodic power-spectra between\ninpatient (dotted line) and ambulatory (solid line) stages'))
     
+    colors = [brewermap(length(pt_sides)-1, 'Dark2');...
+                [0,0,0]];
+
     
     for i = 1 : length(pt_sides)
     
@@ -32,12 +35,19 @@ function [nk, rcs] = plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs, fig_name)
 %             
 %             plt_spectrum = (plt_spectrum - avg_spec);
 
-            stdshade(plt_spectrum, rcs.fft_bins_inHz, 0.2, colors(j,:)); hold on
+            stdshade(plt_spectrum, rcs.fft_bins_inHz, 0.2, colors(i,:)); hold on
     
             ylim([-.25, 1.25]);
     
-            xlabel('Frequency (Hz)');       ylabel('Power (db) above 1/f')
-    
+            if any(i == [1,4,7])
+                 ylabel('Periodic Power (db)')
+                
+            end
+            
+            if i > 6
+                xlabel('Frequency (Hz)');
+            end
+           
             rcs.sense_chan{i_rcs(j),"mean_periodic_spec"} = {mean(plt_spectrum)};
 
         end
@@ -51,7 +61,7 @@ function [nk, rcs] = plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs, fig_name)
 %             
 %             plt_spectrum = (plt_spectrum - avg_spec);
 
-            [lineout, ~] = stdshade(plt_spectrum, nk.fft_bins_inHz, 0.2, colors(j,:)); hold on
+            [lineout, ~] = stdshade(plt_spectrum, nk.fft_bins_inHz, 0.2, colors(i,:)); hold on
     
             lineout.LineStyle = '-.'; lineout.LineWidth = 2.5;
 
@@ -59,14 +69,15 @@ function [nk, rcs] = plt_nk_rcs_spectra(dirs, pt_sides, nk, rcs, fig_name)
 
         end
     
-        title(pt_sides{i});
+        title(pt_sides{i}); grid on
     
-        rcs_only = cellfun(@(x) [x(8:end),  ' (ambulatory)'], rcs_chs(i_rcs), 'UniformOutput',false);
-    
-        nk_only  = cellfun(@(x) [x(8:end),  ' (inpatient)'], nk_chs(i_nk), 'UniformOutput',false);
-    
-      
-        legend([rcs_only; nk_only]);
+%         rcs_only = cellfun(@(x) [x(8:end),  ' (ambulatory)'], rcs_chs(i_rcs), 'UniformOutput',false);
+%     
+%         nk_only  = cellfun(@(x) [x(8:end),  ' (inpatient)'], nk_chs(i_nk), 'UniformOutput',false);
+%       
+%         legend([rcs_only; nk_only]);
+
+        %legend({'ambulatory', 'inpatient'});
         
     end
     

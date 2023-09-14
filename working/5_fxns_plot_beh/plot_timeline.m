@@ -219,7 +219,7 @@ hold on
 
         case {'DateRange', 'PreviousDays'}
 
-            n_back  = 21;
+            n_back  = 5;
     
             plot(redcap.time, movmean(redcap.mayoNRS, [n_back 0], 'omitnan'),...
                 'LineWidth', 2,'HandleVisibility','off'); hold on;
