@@ -114,23 +114,25 @@ end
 
     
 %% cluster based on density peaks (Rodriguez and Laio, 2014 Science)
-save_dir = fullfile(cfg.proc, pt_id, cfg.proc_subdir, '/');
 
-if ~exist(save_dir, 'dir');      mkdir(save_dir);      end
+% if .xlsx of clusterd data exists, overwrite it
+source_xlsx = fullfile(cfg.proc_xlsx, [pt_id, '_clustered.xlsx']);
 
-saveas(raw_fig,     [save_dir, '1_raw_metrics.png']);
-saveas(z_space_fig, [save_dir, '2_z_space.png']);
+if isfile(source_xlsx);     delete(source_xlsx);        end
 
 
 try
     [dec_fig, beh_cl.i_cl, beh_cl.i_halo]  = cluster_dp(cfg, clus_tbl.Variables);
-    saveas(dec_fig,     [save_dir, '3_clus_decision.png']);
 catch
+    psy_phy_tbl.i_clusters = zeros(height(psy_phy_tbl), 1);
+    psy_phy_tbl.i_halo     = zeros(height(psy_phy_tbl), 1);
+    writetable(psy_phy_tbl, source_xlsx);
+
     fprintf('%s | no clusters found\n', pt_id)
     return
 
 end
-%%
+%% format scatter cloud of clustered metrics
 psy_phy_tbl.i_clusters     = beh_cl.i_cl';
 psy_phy_tbl.i_halo         = beh_cl.i_halo';
 
@@ -219,16 +221,22 @@ sgtitle(pt_id, 'Fontsize',14, 'Interpreter','none');
 fp_tbl.Properties.RowNames = compose('Cluster %g',unique(beh_cl.i_cl));
 
 %%
-%%
-% if .xlsx of clusterd data exists, overwrite it
-source_xlsx = [save_dir, pt_id, '_clustered.xlsx'];
-
 writetable(psy_phy_tbl, source_xlsx);
 
 %%% now save figures as .pngs
-saveas(cl_fig,      [save_dir, '4_clus_labels.png']);
-saveas(fp_fig,      [save_dir, '5_clus_fingerprints.png']);
 
+if cfg.save_fig
+    save_dir = fullfile(cfg.proc, pt_id, cfg.proc_subdir, '/');
+    
+    if ~exist(save_dir, 'dir');      mkdir(save_dir);      end
+    
+    saveas(raw_fig,     [save_dir, '1_raw_metrics.png']);
+    saveas(z_space_fig, [save_dir, '2_z_space.png']);
+    
+    saveas(dec_fig,     [save_dir, '3_clus_decision.png']);
+    saveas(cl_fig,      [save_dir, '4_clus_labels.png']);
+    saveas(fp_fig,      [save_dir, '5_clus_fingerprints.png']);
+end
 
 
 %%

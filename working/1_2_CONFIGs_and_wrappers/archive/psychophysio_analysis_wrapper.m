@@ -29,7 +29,7 @@ Ryan Leriche, May 2023
 %%
 % see CONFIG_psychophysio_analysis.m script to specify directories, pull REDcap, 
 % and generate subdirectories
-CONFIG_psychophysio_analysis;
+psychophysio_analysis_CONFIG;
 
 %%
 % cfg is the configuration for plotting and clustering w/n 'plot_psyphy_space' fxn
@@ -50,7 +50,6 @@ cfg.pca             = false;
 % name of subdirectoy and pt ids (used folder creation/saving)
 cfg.proc_subdir    = 'psy_only';
 rcs_pts            = {'RCS02', 'RCS04', 'RCS05', 'RCS06', 'RCS07'};
-
 
 % no need to print figures if they're all saved out (can delete these for
 % troubleshooting purposes)

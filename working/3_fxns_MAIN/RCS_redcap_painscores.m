@@ -1,4 +1,4 @@
-function    [painscores_out]  = RCS_redcap_painscores(varargin)
+function    [REDcap]  = RCS_redcap_painscores(varargin)
 %{
   [painscores_out]  = RCS_painScores_REDcap(varargin)
  This will import redcap data for RCS patients using Prasad's
@@ -45,7 +45,7 @@ SERVICE            = 'https://redcap.ucsf.edu/api/';
 if nargin == 0
     error('Token is required input')
 
-elseif nargin == 1
+elseif nargin == 1 || nargin ==  5
     rcs_TOKEN = varargin{1};
     pt_id_list = ...
         {'RCS02','RCS04','RCS05','RCS02new','RCS04new','RCS05new','RCS06', 'RCS07',...
@@ -394,11 +394,11 @@ for p = 1:numel(pt_id_list)
 % 
 %             writetable(redcap, [save_dir,pts{i},'_pre_trial.xls'])
 
-            painscores_out.(initals{i}) = redcap;
+            REDcap.(initals{i}) = redcap;
        end
         % rename as RCS pt code for clarity
        
-        painscores_out          = cell2struct(struct2cell(painscores_out), pts);
+        REDcap          = cell2struct(struct2cell(REDcap), pts);
 
        toc
        return
@@ -581,7 +581,7 @@ for p = 1:numel(pt_id_list)
         % therefore changed MPQtotal to NaN rather than 0
         redcap.MPQtotal(isnan(redcap.mayoNRS)) = NaN;
 
-        painscores_out.(pt_id) = redcap;
+        REDcap.(pt_id) = redcap;
         
 
         
@@ -649,21 +649,20 @@ for p = 1:numel(pt_id_list)
         redcap_streaming.stimON = clntable.(stimon_field);
         redcap_streaming.stimprog = clntable.(stimprog_field);
         
-        painscores_out.(pt_id) = redcap_streaming;
+        REDcap.(pt_id) = redcap_streaming;
        
         
     end
 end
 
 % make into structure of tables
-holdfieldnames =  fields(painscores_out);
+holdfieldnames =  fields(REDcap);
 for n = 1:numel(holdfieldnames)
-    painscores_out.(holdfieldnames{n}) = struct2table(painscores_out.(holdfieldnames{n}));
+    REDcap.(holdfieldnames{n}) = struct2table(REDcap.(holdfieldnames{n}));
 end
 
-
-oldscores = painscores_out;
-clear painscores_out
+oldscores = REDcap;
+clear REDcap
  
 %newscores.RCS01 =  oldscores.RCS01;
 
@@ -684,6 +683,31 @@ newscores.RCS06_STREAMING = oldscores.RCS06_STREAMING;
 newscores.RCS07_STREAMING = oldscores.RCS07_STREAMING;
 
 % OUTPUT
-painscores_out = newscores;
+REDcap = newscores;
+
+%% save each pt's pain surveys as easily shared .xlsx
+if length(varargin) == 5
+    
+    imp_field = fieldnames(REDcap);
+    
+    pts = varargin{4};
+    save_dir = varargin{5};
+    % save as source data as .xlsx
+    for i = 1 : length(imp_field)
+    
+        switch imp_field{i}
+            case pts
+    
+                source_xlsx = [save_dir, imp_field{i}, '_stages123.xlsx'];
+                
+                if exist(source_xlsx, 'file') == 2;        delete(source_xlsx);   end
+                
+                writetable(REDcap.(imp_field{i}), source_xlsx);
+    
+        end
+    end
+end
+
+
 
 toc

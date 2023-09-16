@@ -1,14 +1,14 @@
-% see CONFIG_changlab_server.m script to specify directories, pull REDcap, 
-% and generate subdirectories load CONFIG_server_wrapper
-CONFIG_changlab_server;
+%% see server_CONFIG.m script to specify directories and general set-up
+server_CONFIG;
 
-%% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
-% as of Apr. 2023, only daily surveys are analysis-ready/organized
-REDcap          = RCS_redcap_painscores(rcs_API_token);
+% load REDcap pain surveys and set-up directories
+general_setup;
 
+% see "dirs" structure for main directories used, and "rcs_db_cfg" for the
+% configuration of the RC+S databasing
+close all
+set(0,'DefaultFigureVisible','off')
 %% import RCS databases, and INS logs per pt side
-cfg_rcs.load_EventLog      = true;
-
 % option to load previous database for efficient processing
 cfg_rcs.ignoreold_db                = false;
 cfg_rcs.ignoreold_INS_logs          = false;

@@ -1,8 +1,11 @@
-% call CONFIG_aDBS to load directories, and REDcap data 
-plot_aDBS_CONFIG;
-%% import REDcap daily, weekly, and monthly surveys from stages 1,2 and 3
-% as of Apr. 2023, only daily surveys are analysis-ready/organized
-REDcap                  = RCS_redcap_painscores(rcs_API_token);
+%% see user_local_CONFIG.m script to specify directories and general set-up
+user_local_CONFIG;
+
+% load REDcap pain surveys and set-up directories
+general_setup;
+
+% see "dirs" structure for main directories used, and "rcs_db_cfg" for the
+% configuration of the RC+S databasing
 
 %% import RCS databases, and INS logs per pt side as structures
 %{
@@ -26,22 +29,20 @@ sessions.
 %}
 
 % option to load previous database for efficient processing
-    sub_cfg.ignoreold_db                = false;
-    sub_cfg.ignoreold_INS_logs          = false;
-    sub_cfg.ignoreold_par_db            = true;    % <-- keep as true to avoid version issues
+    rcs_db_cfg.ignoreold_db                = false;
+    rcs_db_cfg.ignoreold_INS_logs          = false;
+    rcs_db_cfg.ignoreold_par_db            = true;    % <-- keep as true to avoid version issues
     
-    %sub_cfg.ignoreold_aDBS_plts         = false;
+    %rcs_db_cfg.ignoreold_aDBS_plts         = false;
 
 % specify which dates to plot aDBS longitudinal plots:
-    %sub_cfg.dates        = 'AllTime'; %%% return every aDBS ever tried (takes much longer):
-    sub_cfg.dates         = 'DateRange';
-    sub_cfg.date_range    = {'01-Jul-2023'; '3-Jun-2027'};
+    %rcs_db_cfg.dates        = 'AllTime'; %%% return every aDBS ever tried (takes much longer):
+    rcs_db_cfg.dates         = 'DateRange';
+    rcs_db_cfg.date_range    = {'01-Jul-2023'; '3-Jun-2027'};
 
 % specify patient hemispheres
     pt_sides        = {'RCS02R', 'RCS04L','RCS04R', 'RCS05L', 'RCS05R',...
                        'RCS06L', 'RCS06R','RCS07L', 'RCS07R'};
-
-    pt_sides        = {'RCS07L'};               
 
 for i = 1  : length(pt_sides)
     %%% process RCS .jsons into searchable database
@@ -49,7 +50,7 @@ for i = 1  : length(pt_sides)
         ...
         = makeDatabaseRCS_Ryan(...
         ...
-        sub_cfg, pt_sides{i});
+        rcs_db_cfg, pt_sides{i});
 
     %%% process INS logs .txts based on unique entries only
         % (INS logs have mostly repeating entries)
@@ -57,7 +58,7 @@ for i = 1  : length(pt_sides)
         ...
         = RCS_logs( ...
         ...
-        sub_cfg, pt_sides{i});
+        rcs_db_cfg, pt_sides{i});
 
     %%% unpack all sense, LD, and stimulation settings as own variable in table
         % allows for programmatic discernment of unique RC+S settings
@@ -65,7 +66,7 @@ for i = 1  : length(pt_sides)
         ...
         = makeParsedDatabaseRCS(...
         ...
-        sub_cfg, pt_sides{i}, db);
+        rcs_db_cfg, pt_sides{i}, db);
 
     %%% find nearest (yet, preceding) streaming session to INS log entry
         % accounts for INS to API time latency
@@ -80,6 +81,6 @@ for i = 1  : length(pt_sides)
         ...
         = plot_longitudinal_aDBS_2(...
         ...
-        sub_cfg,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
+        rcs_db_cfg,    pt_sides{i},    REDcap,     INS_logs_API_t_synced,      par_db_aDBS_ss);
 
 end

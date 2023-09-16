@@ -99,7 +99,6 @@ tmp_LD_tbl  = vertcat(tmp_lds{:});
 % explicitly include Streaming Session API time, name, and path
 tmp_LD_tbl.sess_name       = db_RCSXXX.sess_name(i_detSett);
 
-
 %%% expand LD0 and LD1 settings as own variable for easy plotting/analysis later
 LD0_tbl     = parse_LDtbl(tmp_LD_tbl.Ld0);
 LD1_tbl     = parse_LDtbl(tmp_LD_tbl.Ld1);

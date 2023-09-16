@@ -20,6 +20,15 @@ function LD_tbl = parse_LDtbl(input_LD_tbl)
 
     pb_input    = repmat({'Disabled'}, height(LD_tbl), 8);
 
+
+    % format consistently regardless of input format
+    if ~iscell(LD_tbl.powerband_Inputs{1})
+
+        LD_tbl.powerband_Inputs = cellfun(@(x) {{x}}, LD_tbl.powerband_Inputs);
+        
+
+    end
+
     for d=1:8
 
         i_pb_input_d = find(cellfun(@(x) length(x), LD_tbl.powerband_Inputs) >=d);

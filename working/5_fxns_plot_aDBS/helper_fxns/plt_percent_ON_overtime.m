@@ -32,7 +32,7 @@ function plt_percent_ON_overtime(t_vec, on_off_vec,...
     
     ylabel(['Percent time ON', newline,'(stim amplitude > 0 mA)'], 'FontSize',18)
     
-    ylim([-5,105]);        
+    ylim([-5,110]);        
     
     yyaxis right; 
     
@@ -48,13 +48,14 @@ function plt_percent_ON_overtime(t_vec, on_off_vec,...
 
         case  'RCS06'
             pain_metrics  =  {'npNRS','nocNRS', 'painVAS', 'MPQtotal'};
-            symbols       = {'*','o', '+', '^'};
+            symbols       = {'square','o', '+', '^'};
 
         case  'RCS07'
-            pain_metrics  =  {'unp_abbrev_NRS','mayoNRS', 'painVAS', 'MPQtotal'};
-            symbols       = {'*','o', '+', '^'};
+            pain_metrics  =  {'unp_abbrev_NRS','moodVAS', 'painVAS', 'MPQtotal'};
+            symbols       = {'square','o', '+', '^'};
 
             plt_rcap.unp_abbrev_NRS = redcap.unp_abbrev_NRS/0.4;
+            plt_rcap.moodVAS        = redcap.moodVAS/10;
 
 
 
@@ -70,13 +71,22 @@ function plt_percent_ON_overtime(t_vec, on_off_vec,...
 
         switch pain_metrics{:, i_pain}
 
-            case {'painSpikeNRS', 'npNRS','unp_abbrev_NRS'}
+            case {'painSpikeNRS'}
                  plt_color = 'r';
-                 plt_size  = 200;
+                 plt_size  = 250;
+
+            case {'npNRS','unp_abbrev_NRS'}
+                 plt_color = 'r';
+                 plt_size  = 125;
+
+             case {'moodVAS'}
+                 plt_color = [0.4940 0.1840 0.5560];
+                 plt_size  = 75;
 
             otherwise
                  plt_color = 'b';
                  plt_size  = 75;
+                 plt_face  = 'none';
     
         end
         scatter(plt_rcap.time, plt_rcap.(pain_metrics{:,i_pain}), ...

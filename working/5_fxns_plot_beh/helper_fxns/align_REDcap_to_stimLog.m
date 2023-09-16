@@ -5,12 +5,6 @@ function [stim_log, redcap] ...
     cfg, pt_side_id, db, REDcap)
 
 
-
-% cfg                    = [];
-% cfg.load_EventLog      = false;
-% cfg.ignoreold          = false;
-% cfg.raw_dir            = pia_raw_dir;
-
     
 db_RCSXXX   = db.(pt_side_id);
 redcap      = REDcap.(pt_side_id(1:end-1));
@@ -343,11 +337,11 @@ per_assigned = length(unique(all_i_redcap(~isnan(all_i_redcap)))) ./ height(redc
 fprintf('%s | %.1f%% of REDcap report(s) assigned to stim settings\n', pt_side_id, per_assigned);
 
 
-save_dir = [cfg.proc_dir,  '/stimLog/'];
+save_dir = fullfile(cfg.proc_dir,  'stimLog');
+
 if ~isfolder(save_dir);    mkdir(save_dir);   end
 
 save(...
-     [save_dir, pt_side_id, '_stimLog.mat'], ...
-     ...
+    fullfile(save_dir, [pt_side_id, '_stimLog.mat']), ...
      'stim_log', 'redcap', '-v7.3');
 end

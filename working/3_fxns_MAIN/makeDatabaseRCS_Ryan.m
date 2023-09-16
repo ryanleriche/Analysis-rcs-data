@@ -141,11 +141,11 @@ db_out      = struct('rec',[],...
 % needed, so as not to replicate whole thing.
 % Can be turned off with third input 'ignoreold'
 
-cfg.proc_dir = fullfile(cfg.proc_dir, 'databases');
+proc_db_dir = fullfile(cfg.proc_dir, 'databases');
 
-if ~isfolder(cfg.proc_dir);    mkdir(cfg.proc_dir);      end
+if ~isfolder(proc_db_dir);    mkdir(proc_db_dir);      end
 
-outputFileName    = fullfile(cfg.proc_dir,[pt_side_id '_database.mat']);
+outputFileName    = fullfile(proc_db_dir,[pt_side_id '_database.mat']);
 
 
 if exist(outputFileName,'file') && ~cfg.ignoreold_db 
@@ -504,14 +504,11 @@ end
 % OUTPUTS =========================================================
 
 % Rename file to include patient ID
-% writetable(RCSdatabase_out,fullfile(cfg.proc_dir,[pt_side_id...
-%     '_database.csv']));
-
-save(fullfile(cfg.proc_dir,[pt_side_id '_database.mat']),...
+save(fullfile(proc_db_dir,[pt_side_id '_database.mat']),...
     'RCSdatabase_out','badsessions');
 
 fprintf('mat of database saved as %s to %s \n',...
-    [pt_side_id '_database.mat'],cfg.proc_dir);
+    [pt_side_id '_database.mat'],proc_db_dir);
 
 %==================================================================
 end

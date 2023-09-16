@@ -128,14 +128,17 @@ if strcmp(cfg.CBDP_method, 'manual')
     rho_min    = rect.Position(1);
     delta_min  = rect.Position(2);
 
-elseif strcmp(cfg.CBDP_method, 'top_two')
+elseif contains(cfg.CBDP_method, 'top')
 
     [~, i_sort] = sort(gamma, "descend");
 
-    rho_min   = min(rho(i_sort(1:2)));
+    cbdp_cell = split(cfg.CBDP_method, '_');
+    
+    N_clus =  str2double(cbdp_cell{2});
 
+    rho_min   = min(rho(i_sort(1:N_clus)));
     %[~, i_sort] = sort(delta, "descend");
-    delta_min = min(delta(i_sort(1:2)));
+    delta_min = min(delta(i_sort(1:N_clus)));
 
     
 

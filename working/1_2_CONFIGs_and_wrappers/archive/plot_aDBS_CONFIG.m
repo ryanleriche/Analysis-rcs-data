@@ -1,35 +1,4 @@
-% input and output directories, and API tokens
-% call pain fluctuation study (PFS) data and summary statistics
-% call hard-coded pt meta data (RCS Stage dates pulled from patient iternaries, Google Drive folders, etc)
 
-%% input directories unique to user w/n 'dirs' structure
-dirs = struct;
-
-% where RCS files are saved from PIA server
-dirs.rcs_pia    = '/Users/Leriche/pia_server/datastore_spirit/human/rcs_chronic_pain/rcs_device_data/';
-
-% where 'ryanleriche/Analysis-rcs-data' Github repo is saved locally
-% this a fork off of 'Analysis-rcs-data" as off April 2023
-dirs.rcs_analysis      = '/Users/Leriche/Github/Analysis-rcs-data/';
-
-dirs.rcs_preproc        = fullfile(dirs.rcs_pia, 'processed/');
-
-% the 'raw', 'proc' and 'ephy_analysis' directories are explicitly set
-% depending on use case (e.g., on the server raw and processed data can NOT
-% be saved nearby, but locally they can)
-sub_cfg.raw_dir                     = fullfile(dirs.rcs_pia, 'raw/');
-sub_cfg.proc_dir                    = dirs.rcs_preproc;
-sub_cfg.anal_dir                    = fullfile(dirs.rcs_pia, 'ephy_analysis/');
-sub_cfg.load_EventLog      = true;
-
-
-
-% application programming interface (API) token which is essentially a
-% password to access REDcap remotely, and is unique per researcher per
-% study (e.g., Ryan has a unique token for the RCS and PCS studies)
-
-rcs_API_token   = '95FDE91411C10BF91FD77328169F7E1B';
-pcs_API_token   = 'DB65F8CB50CFED9CA5A250EFD30F10DB';
 
 %% below loads pain fluctuation study and PT meta data
 

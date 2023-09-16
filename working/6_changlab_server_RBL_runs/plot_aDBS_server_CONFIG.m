@@ -84,5 +84,3 @@ REDcap                  = RCS_redcap_painscores(rcs_API_token);
 %%% load pt meta data (dates of stage starts/stops, and home/clinic visits for RCS pts)
 CONFIG_pt_meta;
 
-close all
-set(0,'DefaultFigureVisible','off')
