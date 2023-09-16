@@ -88,18 +88,18 @@ i_all_nan = find(all(isnan(r_cap.tbl{:, r_cap.vars_oi}), 1));
 r_cap.vars_oi(i_all_nan) = [];
 
 %%
-save_dir   = fullfile(cfg.proc, pt_id);
-% save figures as .pngs
-if ~isfolder(save_dir);     mkdir(save_dir);      end
+if save_fig
+    save_dir   = fullfile(cfg.proc, pt_id);
+    % save figures as .pngs
+    if ~isfolder(save_dir);     mkdir(save_dir);      end
+    
+    saveas(fig_raw, fullfile(save_dir, '0_filter_VAS.png'));
+end
 
-saveas(fig_raw, fullfile(save_dir, '0_filter_VAS.png'));
-
-
-%%
+%% local fxn(s)
 function format_plot()  
 
     set(gca,'fontSize',14, 'TickLength', [0 0]); 
     grid on;    box off;
-  
 end
 end
