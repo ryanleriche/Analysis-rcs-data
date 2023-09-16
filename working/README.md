@@ -1,4 +1,5 @@
-# RC+S Chronic Pain analgesia, aDBS development, and staged spectra comparisons
+# RC+S Chronic Pain behavioral and electrophysiological analysis
+
 
 **Background**: The Shirvalkar Lab is investigating adaptive neurostimulation administered through Summit RC+S devices to treat chronic pain. In MATLAB, this repo databases, and preliminarily analyzes our behavioral and neural data--building from the "Analysis-rcs-data" repo to:
 
